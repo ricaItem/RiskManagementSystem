@@ -1,0 +1,21 @@
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.DotSettings.user
+.vscode/
+wwwroot/lib/
+node_modules/
+
+# Rider / JetBrains
+.idea/
+
+# Logs / databases / secrets
+*.log
+*.sqlite
+*.db
+appsettings.*.json
+secrets.json

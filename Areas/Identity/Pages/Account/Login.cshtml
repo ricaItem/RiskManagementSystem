@@ -1,0 +1,84 @@
+﻿@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "/Views/Shared/_LayoutLanding.cshtml";
+}
+
+<section class="relative min-h-screen overflow-hidden bg-white dark:bg-slate-950">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-32 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-200/55 via-emerald-200/35 to-indigo-200/45 blur-3xl dark:from-sky-500/15 dark:via-emerald-500/10 dark:to-indigo-500/15"></div>
+        <div class="absolute -bottom-40 right-[-140px] h-[480px] w-[480px] rounded-full bg-gradient-to-tr from-emerald-200/40 to-sky-200/40 blur-3xl dark:from-emerald-500/10 dark:to-sky-500/10"></div>
+    </div>
+
+    <div class="relative flex min-h-screen items-center justify-center px-4 py-12">
+        
+        <div class="mx-auto w-full max-w-md">
+            <div class="flex justify-center">
+                <a asp-controller="Home" asp-action="Index" class="text-center">
+                    <div class="text-sm font-extrabold text-slate-900 dark:text-white">Sentro</div>
+                    <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">ERP Risk Management</div>
+                </a>
+            </div>
+
+            <h1 class="mt-8 text-center text-2xl font-extrabold text-slate-900 dark:text-white">
+                Sign in to your account
+            </h1>
+            <p class="mt-2 text-center text-sm text-slate-600 dark:text-slate-300">
+                Welcome back. Please enter your details.
+            </p>
+
+            <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-lg ring-1 ring-slate-900/5
+                        dark:border-slate-800 dark:bg-slate-900 dark:ring-white/10">
+                <form method="post" class="space-y-5">
+                    <div asp-validation-summary="ModelOnly"
+                         class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
+                                dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200">
+                    </div>
+
+                    <div>
+                        <label asp-for="Input.Email" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
+                        <input asp-for="Input.Email" autocomplete="username"
+                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
+                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                                      dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+                        <span asp-validation-for="Input.Email" class="mt-1 block text-xs text-rose-600"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Input.Password" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
+                        <input asp-for="Input.Password" type="password" autocomplete="current-password"
+                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
+                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                                      dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+                        <span asp-validation-for="Input.Password" class="mt-1 block text-xs text-rose-600"></span>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3">
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            <input asp-for="Input.RememberMe"
+                                   class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-600" />
+                            Remember me
+                        </label>
+
+                        <a asp-page="./ForgotPassword"
+                           class="text-sm font-bold text-sky-700 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/15 transition hover:brightness-110
+                                   focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
+                        Log In
+                    </button>
+
+                    <p class="text-center text-sm text-slate-600 dark:text-slate-300">
+                        Don’t have an account?
+                        <a asp-page="./Register" class="font-extrabold text-slate-900 hover:underline dark:text-white">Register</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>

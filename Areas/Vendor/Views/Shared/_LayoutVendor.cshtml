@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sentro Vendor</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+
+    <script src="~/js/theme.js"></script>
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#020617] dark:text-white">
+
+    <div class="flex min-h-screen">
+        <aside class="w-64 border-r border-slate-200 bg-white/50 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/50 hidden md:block">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-600 to-emerald-600"></div>
+                    <div class="text-sm font-extrabold tracking-tight">
+                        Sentro
+                        <div class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 -mt-0.5 uppercase tracking-wider">Vendor</div>
+                    </div>
+                </div>
+
+                <nav class="space-y-2">
+                    <a href="/Vendor/Dashboard" class="flex items-center gap-3 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-600">
+                        <span class="text-lg">📊</span> Dashboard
+                    </a>
+
+                    <a href="/Vendor/Organizations" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <span class="text-lg">🏢</span> Organizations
+                    </a>
+
+                    <div class="pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">System Settings</div>
+
+                    <button type="button"
+                            onclick="window.__toggleTheme()"
+                            class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <span class="dark:hidden text-lg">🌙</span>
+                        <span class="hidden dark:inline text-lg">☀️</span>
+                        <span class="dark:hidden">Switch to Dark</span>
+                        <span class="hidden dark:inline">Switch to Light</span>
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="flex-1">
+            <header class="flex h-16 items-center justify-between border-b border-slate-200 px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    Vendor Portal / <span class="text-slate-900 dark:text-white">@ViewData["Title"]</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-end mr-2">
+                        <span class="text-xs font-bold">Admin User</span>
+                        <span class="text-[10px] text-emerald-600 font-bold uppercase">Super Vendor</span>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border border-slate-300 dark:border-slate-600"></div>
+                </div>
+            </header>
+
+            <div class="p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
