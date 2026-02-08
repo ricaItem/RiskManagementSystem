@@ -3,7 +3,7 @@
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
     [Area("Vendor")]
-    public class OrganizationsController : Controller
+    public class IntegrationsController : Controller
     {
         public IActionResult Index()
         {

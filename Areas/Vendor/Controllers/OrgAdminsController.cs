@@ -3,9 +3,9 @@
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
     [Area("Vendor")]
-    public class OrganizationsController : Controller
+    public class OrgAdminsController : Controller
     {
-        public IActionResult Index()
+       public IActionResult Index()
         {
             return View();
         }

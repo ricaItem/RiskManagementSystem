@@ -2,8 +2,9 @@
 
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
-    [Area("Vendor")]
-    public class OrganizationsController : Controller
+    [Area("Vendor") ]
+
+    public class AnalyticsController : Controller
     {
         public IActionResult Index()
         {

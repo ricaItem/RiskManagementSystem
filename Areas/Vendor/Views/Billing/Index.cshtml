@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "Billing & Subscriptions";
+    Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
+}
+
+<div class="space-y-6 animate-in fade-in duration-500">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Commercial <span class="text-emerald-600">Management</span></h1>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Revenue Tracking & Plan Governance</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                Manage Price Books
+            </button>
+            <button class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white dark:bg-emerald-600 shadow-lg shadow-emerald-500/20">
+                New Invoice
+            </button>
+        </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Monthly Recurring Revenue</p>
+            <h3 class="mt-2 text-2xl font-black text-slate-900 dark:text-white">$142,500</h3>
+            <p class="text-[10px] font-bold text-emerald-500 mt-1">↑ 4.2% from last month</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Pending Renewals</p>
+            <h3 class="mt-2 text-2xl font-black text-amber-500">12 Firms</h3>
+            <p class="text-[10px] font-bold text-slate-400 mt-1 text-nowrap">Expiring in 30 days</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Avg. License Utilization</p>
+            <h3 class="mt-2 text-2xl font-black text-sky-500">78%</h3>
+            <p class="text-[10px] font-bold text-slate-400 mt-1">Across all organizations</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Churn Rate</p>
+            <h3 class="mt-2 text-2xl font-black text-rose-500">0.8%</h3>
+            <p class="text-[10px] font-bold text-emerald-500 mt-1">Historically low</p>
+        </div>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Organization Subscriptions</h3>
+            <input type="text" placeholder="Filter by firm..." class="rounded-xl border-none bg-slate-100 px-4 py-2 text-xs font-bold dark:bg-slate-800 dark:text-white" />
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:bg-slate-800/30">
+                        <th class="px-6 py-4">Client Firm</th>
+                        <th class="px-6 py-4">Plan</th>
+                        <th class="px-6 py-4">Users / Limit</th>
+                        <th class="px-6 py-4">Next Renewal</th>
+                        <th class="px-6 py-4">Amount</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    @{
+                        var subs = new[] {
+                                        new { Firm = "BuildCraft Solutions", Plan = "Enterprise", Users = 145, Limit = 500, Renewal = "2026-05-12", Price = "$4,500", Status = "Active" },
+                                        new { Firm = "Skyline Heights", Plan = "Professional", Users = 42, Limit = 50, Renewal = "2026-03-01", Price = "$1,200", Status = "Expiring Soon" },
+                                        new { Firm = "Terraform Infra", Plan = "Basic", Users = 8, Limit = 10, Renewal = "2026-11-20", Price = "$450", Status = "Active" }
+                                        };
+                    }
+                    @foreach (var sub in subs)
+                    {
+                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            <td class="px-6 py-4 font-bold text-slate-900 dark:text-white">@sub.Firm</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-md bg-emerald-100 text-[10px] font-black uppercase text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">@sub.Plan</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-slate-600 dark:text-slate-300">@sub.Users / @sub.Limit</span>
+                                    <div class="h-1.5 w-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                        <div class="h-full bg-sky-500" style="width: @(sub.Users * 100 / sub.Limit)%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-xs font-medium text-slate-500">@sub.Renewal</td>
+                            <td class="px-6 py-4 font-black text-slate-900 dark:text-white">@sub.Price<span class="text-[10px] text-slate-400">/mo</span></td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-2 rounded-lg text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

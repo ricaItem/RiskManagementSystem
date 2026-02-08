@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-
-namespace WEB_Sentro.Areas.Vendor.Controllers
+namespace WEB_Sentro.Areas.Client.Controllers
 {
-    [Area("Vendor")]
-    public class OrganizationsController : Controller
+    [Area("Client")]
+    public class DashboardController : Controller
     {
         public IActionResult Index()
         {

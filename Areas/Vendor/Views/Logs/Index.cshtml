@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "System Logs & Audit Trails";
+    Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
+}
+
+<div class="space-y-6 animate-in fade-in duration-500">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Audit <span class="text-emerald-600">Trails</span></h1>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Global Security & Activity Monitoring</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                Download CSV
+            </button>
+            <button class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white dark:bg-emerald-600">
+                Live Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 rounded-2xl bg-slate-100/50 p-2 dark:bg-slate-800/50">
+        <select class="rounded-lg border-none bg-white px-3 py-2 text-xs font-bold shadow-sm dark:bg-slate-900 dark:text-slate-300">
+            <option>All Severity</option>
+            <option>Critical</option>
+            <option>Security</option>
+            <option>Info</option>
+        </select>
+        <select class="rounded-lg border-none bg-white px-3 py-2 text-xs font-bold shadow-sm dark:bg-slate-900 dark:text-slate-300">
+            <option>All Organizations</option>
+            <option>BuildCraft Solutions</option>
+            <option>Skyline Heights</option>
+        </select>
+        <input type="text" placeholder="Search by User or Event..." class="flex-1 rounded-lg border-none bg-white px-3 py-2 text-xs font-bold shadow-sm dark:bg-slate-900 dark:text-white" />
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900/50">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:bg-slate-800/50">
+                    <th class="px-6 py-4">Timestamp</th>
+                    <th class="px-6 py-4">Organization</th>
+                    <th class="px-6 py-4">Actor</th>
+                    <th class="px-6 py-4">Event</th>
+                    <th class="px-6 py-4">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs font-bold dark:divide-slate-800">
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4 text-slate-400">2026-02-08 14:22:01</td>
+                    <td class="px-6 py-4 dark:text-white">BuildCraft Solutions</td>
+                    <td class="px-6 py-4 text-slate-500">admin@buildcraft.com</td>
+                    <td class="px-6 py-4">Modified Risk Threshold (Global)</td>
+                    <td class="px-6 py-4"><span class="text-emerald-500">Success</span></td>
+                </tr>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors bg-rose-50/30 dark:bg-rose-900/10">
+                    <td class="px-6 py-4 text-slate-400">2026-02-08 14:15:10</td>
+                    <td class="px-6 py-4 dark:text-white">Skyline Heights</td>
+                    <td class="px-6 py-4 text-slate-500">m.jones@skyline.io</td>
+                    <td class="px-6 py-4 text-rose-600">Failed Login Attempt (3x)</td>
+                    <td class="px-6 py-4"><span class="text-rose-500 font-black">Warning</span></td>
+                </tr>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4 text-slate-400">2026-02-08 13:58:45</td>
+                    <td class="px-6 py-4 dark:text-white">System Vendor</td>
+                    <td class="px-6 py-4 text-slate-500">SuperAdmin (You)</td>
+                    <td class="px-6 py-4">Provisioned New Organization</td>
+                    <td class="px-6 py-4"><span class="text-emerald-500">Success</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
