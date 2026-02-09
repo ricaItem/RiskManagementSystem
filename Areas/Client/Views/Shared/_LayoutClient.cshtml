@@ -1,53 +1,216 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Client Portal</title>
+    <title>@ViewData["Title"] - Sentro Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/theme.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    width: {
+                        'sidebar-expanded': '260px',
+                        'sidebar-collapsed': '80px'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        .sidebar-transition {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+
+        /* Collapsed State Styles */
+        .sidebar-collapsed .sidebar-label,
+        .sidebar-collapsed .sidebar-header-text {
+            display: none;
+        }
+
+        .sidebar-collapsed .sidebar-nav-item {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-[#020617] transition-colors duration-300">
-    <div class="flex h-screen overflow-hidden">
-        <aside class="w-64 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-xl z-20">
-            <div class="flex h-20 items-center px-6 border-b border-slate-100 dark:border-slate-800">
-                <span class="text-xl font-black tracking-tighter text-slate-900 dark:text-white">
-                    SENTRO <span class="text-emerald-600">CLIENT</span>
-                </span>
+<body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#020617] dark:text-white overflow-x-hidden">
+
+    @{
+        string IsActive(string path)
+        {
+            var currentPath = Context.Request.Path.ToString();
+            return currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)
+            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+            : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent";
+        }
+    }
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden md:hidden"></div>
+
+    <div class="flex min-h-screen relative">
+        <aside id="mainSidebar"
+               class="sidebar-transition fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white/80 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80
+                      w-sidebar-expanded -translate-x-full md:translate-x-0 md:sticky md:top-0 md:h-screen">
+
+            <button onclick="toggleSidebar()"
+                    class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800 transition-transform"
+                    id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+                <span class="text-[10px]" id="toggleIcon">◀</span>
+            </button>
+
+            <div class="p-6 h-full flex flex-col overflow-hidden">
+                <div class="flex items-center gap-3 mb-10 shrink-0">
+                    <div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600"></div>
+                    <div class="sidebar-header-text text-sm font-extrabold tracking-tight whitespace-nowrap">
+                        Sentro
+                        <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 -mt-0.5 uppercase tracking-wider">Client Portal</div>
+                    </div>
+                </div>
+
+                <nav class="space-y-1 pb-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
+
+                    <div class="sidebar-label pt-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Operations</div>
+
+                    <a href="/Client/Dashboard" title="Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Dashboard")">
+                        <span class="text-lg shrink-0">🏠</span>
+                        <span class="sidebar-label whitespace-nowrap">Dashboard</span>
+                    </a>
+
+                    <a href="/Client/Risks" title="Risk Inventory" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks")">
+                        <span class="text-lg shrink-0">⚠️</span>
+                        <span class="sidebar-label whitespace-nowrap">Risk Inventory</span>
+                    </a>
+
+                    <a href="/Client/Incidents" title="Incidents" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Incidents")">
+                        <span class="text-lg shrink-0">🚨</span>
+                        <span class="sidebar-label whitespace-nowrap">Incidents</span>
+                    </a>
+
+                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Governance</div>
+
+                    <a href="/Client/Audits" title="Safety Audits" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Audits")">
+                        <span class="text-lg shrink-0">📋</span>
+                        <span class="sidebar-label whitespace-nowrap">Safety Audits</span>
+                    </a>
+
+                    <a href="/Client/Employees" title="Workforce" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Employees")">
+                        <span class="text-lg shrink-0">👷</span>
+                        <span class="sidebar-label whitespace-nowrap">Workforce</span>
+                    </a>
+
+                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Account</div>
+
+                    <a href="/Client/Settings" title="Settings" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Settings")">
+                        <span class="text-lg shrink-0">⚙️</span>
+                        <span class="sidebar-label whitespace-nowrap">Portal Settings</span>
+                    </a>
+                </nav>
+
+                <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <button type="button" onclick="window.__toggleTheme()"
+                            class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <span class="dark:hidden shrink-0">🌙 <span class="sidebar-label ml-2">Dark Appearance</span></span>
+                        <span class="hidden dark:inline shrink-0">☀️ <span class="sidebar-label ml-2">Light Appearance</span></span>
+                    </button>
+                </div>
             </div>
-
-            <nav class="mt-6 space-y-1 px-3">
-                <div class="pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Operations</div>
-
-                <a href="/Client/Dashboard" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-                    <span>🏠</span> Dashboard
-                </a>
-                <a href="/Client/Risks" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-                    <span>⚠️</span> Risk Inventory
-                </a>
-                <a href="/Client/Incidents" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-                    <span>🚨</span> Incidents
-                </a>
-
-                <div class="pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Governance</div>
-                <a href="/Client/Audits" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-                    <span>📋</span> Safety Audits
-                </a>
-                <a href="/Client/Employees" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-                    <span>👷</span> Workforce
-                </a>
-            </nav>
         </aside>
 
-        <main class="flex-1 overflow-y-auto p-8 relative">
-            @RenderBody()
+        <main class="flex-1 flex flex-col min-w-0 bg-inherit">
+            <header class="flex h-16 items-center justify-between border-b border-slate-200 px-4 md:px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30 sticky top-0 z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
+                        <span class="text-xl">☰</span>
+                    </button>
+                    <div class="text-xs font-bold text-slate-500 uppercase tracking-widest truncate">
+                        Client Portal / <span class="text-slate-900 dark:text-white">@ViewData["Title"]</span>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <button onclick="toggleUserDropdown()" id="userDropdownBtn" class="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                        <div class="hidden sm:flex flex-col items-end">
+                            <span class="text-xs font-bold">Client Admin</span>
+                            <span class="text-[10px] text-emerald-600 font-bold uppercase">Organization Name</span>
+                        </div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-black text-slate-500">
+                            CA
+                        </div>
+                    </button>
+
+                    <div id="userDropdown" class="absolute right-0 mt-3 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-900 hidden animate-in fade-in zoom-in duration-200">
+                        <a href="/Identity/Account/Manage" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+                            👤 Profile Settings
+                        </a>
+                        <hr class="my-1 border-slate-100 dark:border-slate-800" />
+                        <form action="/Identity/Account/Logout" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                                🚪 Sign Out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                @RenderBody()
+            </div>
         </main>
     </div>
+
+    <script>
+        const sidebar = document.getElementById('mainSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const dropdown = document.getElementById('userDropdown');
+
+        function toggleSidebar() {
+            if (window.innerWidth < 768) {
+                sidebar.classList.toggle('-translate-x-full');
+                overlay.classList.toggle('hidden');
+            } else {
+                const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+                sidebar.classList.toggle('w-sidebar-expanded', !isCollapsed);
+                sidebar.classList.toggle('w-sidebar-collapsed', isCollapsed);
+                toggleIcon.innerText = isCollapsed ? '▶' : '◀';
+            }
+        }
+
+        function toggleUserDropdown() {
+            dropdown.classList.toggle('hidden');
+        }
+
+        window.onclick = function(e) {
+            if (!document.getElementById('userDropdownBtn').contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        }
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

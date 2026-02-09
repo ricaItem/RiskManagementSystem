@@ -3,94 +3,178 @@
     Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
 }
 
-<div class="space-y-6 animate-in fade-in duration-500">
-    <div class="flex items-center justify-between">
+<div class="space-y-6 animate-in fade-in duration-500 pb-12">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-black text-slate-900 dark:text-white">BuildCraft <span class="text-emerald-600">Command</span></h1>
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Enterprise Risk Oversight • Professional Plan</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Enterprise Risk Oversight • Admin View</p>
         </div>
-        <div class="flex -space-x-2">
-            @for (int i = 0; i < 4; i++)
-            {
-                <div class="h-10 w-10 rounded-full border-2 border-white bg-slate-200 dark:border-slate-900 dark:bg-slate-800"></div>
-            }
-            <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-[10px] font-black text-white dark:border-slate-900">+12</div>
+        <div class="flex gap-2">
+            <select class="rounded-lg border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                <option>All Projects</option>
+                <option>Sky Tower</option>
+                <option>River Bridge</option>
+            </select>
+            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-black text-white hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20">
+                EXPORT DATA
+            </button>
         </div>
     </div>
 
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Risks</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">24</h3>
-            <div class="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500">
-                <span>▲ 4 High Priority</span>
-            </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Overdue Mitigations</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">12</h3>
+            <p class="mt-2 text-[10px] font-bold text-rose-500 uppercase tracking-tighter italic">⚠️ Immediate Action</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Incident Rate</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">0.2%</h3>
-            <div class="mt-2 flex items-center gap-1 text-[10px] font-bold text-emerald-500">
-                <span>▼ 15% from last month</span>
-            </div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Compliance Score</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">94%</h3>
-            <div class="mt-3 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                <div class="h-full bg-emerald-500 rounded-full" style="width: 94%"></div>
-            </div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Project Health</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">Stable</h3>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Pending Approvals</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">08</h3>
             <div class="mt-2 flex gap-1">
-                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[8px] font-black italic">6 NEW REQUESTS</span>
             </div>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Compliance Health</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">98.2%</h3>
+            <div class="mt-3 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                <div class="h-full bg-emerald-500 rounded-full" style="width: 98%"></div>
+            </div>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor Incidents</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">02</h3>
+            <p class="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tighter">✔ Normal Range</p>
         </div>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-12">
         <div class="lg:col-span-8 rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Risk Matrix Analysis</h3>
-                <button class="text-[10px] font-black uppercase text-emerald-600">View Full Matrix</button>
+            <div class="mb-6">
+                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Risk Exposure Trend</h3>
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Monthly Critical vs Resolved Risks</p>
             </div>
-
-            <div class="grid grid-cols-5 gap-2">
-                @for (int i = 0; i < 25; i++)
-                {
-                    var color = i < 5 ? "bg-rose-500/20 text-rose-600" : i < 15 ? "bg-amber-500/20 text-amber-600" : "bg-emerald-500/20 text-emerald-600";
-                    <div class="aspect-square rounded-lg @color flex items-center justify-center text-[10px] font-black">
-                        @(new Random().Next(0, 5))
-                    </div>
-                }
-            </div>
-            <div class="mt-4 flex justify-between text-[10px] font-black uppercase tracking-tighter text-slate-400">
-                <span>Low Impact</span>
-                <span>High Impact</span>
+            <div class="h-64">
+                <canvas id="riskTrendChart"></canvas>
             </div>
         </div>
 
-        <div class="lg:col-span-4 rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Live Activity</h3>
-            <div class="space-y-6">
-                <div class="flex gap-4">
-                    <div class="mt-1 h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900 dark:text-white">New High Risk Identified</p>
-                        <p class="text-[10px] text-slate-400 font-medium">Project: Sky Tower • 2m ago</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900 dark:text-white">Audit Completed</p>
-                        <p class="text-[10px] text-slate-400 font-medium">By: Sarah Skyline • 1h ago</p>
-                    </div>
-                </div>
+        <div class="lg:col-span-4 rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Distribution</h3>
+            <div class="h-64">
+                <canvas id="riskCategoryChart"></canvas>
             </div>
         </div>
     </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest mb-6">Mitigation Rate (By Dept)</h3>
+            <div class="space-y-5">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold">Structural Engineering</span>
+                        <span class="text-xs font-black text-emerald-500 uppercase">92%</span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: 92%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold">Logistics & Supply</span>
+                        <span class="text-xs font-black text-amber-500 uppercase">64%</span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div class="h-full bg-amber-500 rounded-full" style="width: 64%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest mb-6">Supplier Alert Watch</h3>
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="text-slate-400 font-black uppercase tracking-tighter">
+                        <th class="pb-3">Supplier</th>
+                        <th class="pb-3">Risk Rating</th>
+                        <th class="pb-3 text-right">Alerts</th>
+                    </tr>
+                </thead>
+                <tbody class="text-slate-900 dark:text-white">
+                    <tr class="border-t border-slate-100 dark:border-slate-800">
+                        <td class="py-3 font-bold">SteelCo Fabrication</td>
+                        <td class="py-3">
+                            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[9px] font-black">CRITICAL</span>
+                        </td>
+                        <td class="py-3 text-right font-medium text-slate-400">Insurance Expired</td>
+                    </tr>
+                    <tr class="border-t border-slate-100 dark:border-slate-800">
+                        <td class="py-3 font-bold">Apex Concrete</td>
+                        <td class="py-3">
+                            <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[9px] font-black">ELEVATED</span>
+                        </td>
+                        <td class="py-3 text-right font-medium text-slate-400">Audit Pending</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+<script>
+    // Initialize Trend Line Chart
+    const trendCtx = document.getElementById('riskTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Critical Risks',
+                data: [12, 19, 15, 8, 22, 12],
+                borderColor: '#f43f5e',
+                backgroundColor: 'transparent',
+                borderWidth: 3,
+                tension: 0.4
+            }, {
+                label: 'Resolved',
+                data: [8, 12, 18, 14, 15, 20],
+                borderColor: '#10b981',
+                backgroundColor: 'transparent',
+                borderWidth: 3,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { display: false },
+                x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
+            }
+        }
+    });
+
+    // Initialize Category Doughnut Chart
+    const catCtx = document.getElementById('riskCategoryChart').getContext('2d');
+    new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Safety', 'Financial', 'Legal'],
+            datasets: [{
+                data: [45, 30, 25],
+                backgroundColor: ['#f43f5e', '#3b82f6', '#f59e0b'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10, weight: 'bold' } } } }
+        }
+    });
+</script>

@@ -56,6 +56,43 @@ namespace WEB_Sentro.Data.Seed
                 if (!addRoleResult.Succeeded)
                     throw new Exception(string.Join("; ", addRoleResult.Errors.Select(e => e.Description)));
             }
+
+            // Seed an Admin account 
+            var adminEmail = config["Seed:AdminEmail"];
+            var adminPassword = config["Seed:AdminPassword"];
+
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+            {
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true,
+
+                        OrganizationId = 0,
+
+                        FirstName = config["Seed:AdminFirstName"] ?? "System",
+                        LastName = config["Seed:AdminLastName"] ?? "Admin",
+
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    var createAdminResult = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (!createAdminResult.Succeeded)
+                        throw new Exception(string.Join("; ", createAdminResult.Errors.Select(e => e.Description)));
+                }
+
+                if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+                {
+                    var addAdminRoleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
+                    if (!addAdminRoleResult.Succeeded)
+                        throw new Exception(string.Join("; ", addAdminRoleResult.Errors.Select(e => e.Description)));
+                }
+            }
         }
     }
 }

@@ -120,6 +120,10 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
             }
+            else if (roles.Contains("Admin"))
+            {
+                return LocalRedirect(Url.Content("~/Client/Dashboard"));
+            }
 
             return LocalRedirect(returnUrl);
         }
