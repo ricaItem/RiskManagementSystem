@@ -1,0 +1,105 @@
+﻿@model IEnumerable<Web_Sentro.Areas.Client.Controllers.RiskPerformanceViewModel>
+
+@{
+    ViewData["Title"] = "Risk Performance";
+    Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
+}
+
+<div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+    <div class="flex items-center justify-between border-b border-slate-200 pb-6 dark:border-slate-800">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white">Residual Risk <span class="text-indigo-600">Analysis</span></h1>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Mitigation Impact Report</p>
+        </div>
+        <button class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow-lg">
+            <i class="fas fa-download mr-2"></i> EXPORT PDF
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[10px] font-black uppercase text-slate-400">Total Risk Reduction</p>
+            <h2 class="text-3xl font-black text-emerald-600">-42%</h2>
+            <p class="mt-1 text-xs font-medium text-slate-500">Average score decrease across all active risks.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[10px] font-black uppercase text-slate-400">Critical Risks Resolved</p>
+            <h2 class="text-3xl font-black text-indigo-600">08<span class="text-lg text-slate-300">/12</span></h2>
+            <p class="mt-1 text-xs font-medium text-slate-500">Items moved from "Red" to "Amber/Green" zones.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[10px] font-black uppercase text-slate-400">Mitigation Efficiency</p>
+            <h2 class="text-3xl font-black text-amber-500">85%</h2>
+            <p class="mt-1 text-xs font-medium text-slate-500">Tasks completed on time vs. overdue.</p>
+        </div>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
+        <div class="bg-slate-50 px-8 py-4 border-b border-slate-200 dark:bg-slate-800/50 dark:border-slate-800">
+            <h3 class="text-sm font-black uppercase text-slate-600 dark:text-slate-300">Risk Trajectory</h3>
+        </div>
+
+        <table class="w-full text-left">
+            <thead class="text-[10px] font-black uppercase text-slate-400 bg-slate-50/50 dark:bg-slate-900">
+                <tr>
+                    <th class="px-8 py-4 w-1/3">Risk Scenario</th>
+                    <th class="px-8 py-4 w-1/4">Inherent (Before)</th>
+                    <th class="px-8 py-4 w-1/4">Residual (Current)</th>
+                    <th class="px-8 py-4 text-right">Impact</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @foreach (var item in Model)
+                {
+                    <tr class="group hover:bg-slate-50 transition dark:hover:bg-slate-800/50">
+                        <td class="px-8 py-6">
+                            <p class="font-bold text-slate-900 dark:text-white">@item.RiskTitle</p>
+                            <span class="inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                                @item.Status.ToUpper()
+                            </span>
+                        </td>
+
+                        <td class="px-8 py-6 align-middle">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl font-black text-slate-300">@item.InherentScore</span>
+                                <div class="h-2 w-24 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div class="h-full bg-rose-400" style="width: @(item.InherentScore * 4)%"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-8 py-6 align-middle">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl font-black @(item.ResidualScore < 10 ? "text-emerald-500" : "text-amber-500")">
+                                    @item.ResidualScore
+                                </span>
+                                <div class="h-2 w-24 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div class="h-full @(item.ResidualScore < 10 ? "bg-emerald-500" : "bg-amber-500")"
+                                         style="width: @(item.ResidualScore * 4)%"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-8 py-6 text-right">
+                            @if (item.ReductionPercent > 0)
+                            {
+                                <div class="inline-flex flex-col items-end">
+                                    <span class="text-lg font-black text-emerald-600">▼ @item.ReductionPercent%</span>
+                                    <span class="text-[9px] font-bold text-slate-400">RISK REDUCED</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="inline-flex flex-col items-end">
+                                    <span class="text-lg font-black text-slate-400">—</span>
+                                    <span class="text-[9px] font-bold text-slate-400">NO CHANGE</span>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
