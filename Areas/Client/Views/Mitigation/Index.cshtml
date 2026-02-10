@@ -1,123 +1,98 @@
-﻿@model IEnumerable<Web_Sentro.Areas.Client.Controllers.MitigationTaskViewModel>
-
+﻿@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationTaskViewModel>
 @{
-    ViewData["Title"] = "Mitigation Board";
-    Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
-
-    var todo = Model.Where(t => t.Status == "ToDo").ToList();
-    var progress = Model.Where(t => t.Status == "InProgress").ToList();
-    var review = Model.Where(t => t.Status == "Review").ToList();
-    var done = Model.Where(t => t.Status == "Done").ToList();
+    Layout = "_LayoutClient";
+    var statuses = new[] { "ToDo", "InProgress", "Review", "Done" };
 }
 
-<div class="h-[calc(100vh-100px)] flex flex-col animate-in fade-in duration-500">
-
-    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<div class="h-[calc(100vh-120px)] flex flex-col space-y-6 animate-in fade-in zoom-in duration-500">
+    <div class="flex items-center justify-between px-2">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white">Mitigation <span class="text-indigo-600">Plan</span></h1>
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Action Items & Task Tracking</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Mitigation <span class="text-indigo-600">Plan</span>
+            </h1>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Response Execution Board</p>
         </div>
-        <div class="flex gap-3">
-            <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1 dark:bg-slate-800">
-                <button class="px-3 py-1 bg-white rounded shadow-sm text-xs font-bold text-slate-900 dark:bg-slate-700 dark:text-white">Board</button>
-                <button class="px-3 py-1 text-xs font-bold text-slate-400 hover:text-slate-600">List</button>
-                <button class="px-3 py-1 text-xs font-bold text-slate-400 hover:text-slate-600">Gantt</button>
+        <div class="flex items-center gap-3">
+            <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button class="px-4 py-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-[10px] font-black uppercase">Board</button>
+                <button class="px-4 py-1.5 text-[10px] font-black uppercase text-slate-400">List</button>
             </div>
-            <button class="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-black text-white hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20">
-                <i class="fas fa-plus"></i> ADD TASK
+            <button class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all">
+                + New Task
             </button>
         </div>
     </div>
 
-    <div class="flex-1 overflow-x-auto overflow-y-hidden bg-slate-50 p-6 dark:bg-slate-950">
-        <div class="flex h-full gap-6 min-w-[1200px]">
+    <div class="flex-1 overflow-x-auto pb-4 custom-scrollbar">
+        <div class="flex h-full gap-6 min-w-max">
+            @foreach (var status in statuses)
+            {
+                var columnTasks = Model.Where(t => t.Status == status);
+                var color = status == "ToDo" ? "slate" : status == "InProgress" ? "indigo" : status == "Review" ? "amber" : "emerald";
 
-            <div class="flex w-80 flex-col rounded-xl bg-slate-100/50 dark:bg-slate-900/50">
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-2 w-2 rounded-full bg-slate-400"></div>
-                        <h3 class="text-xs font-black uppercase text-slate-500">To Do</h3>
-                        <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:bg-slate-800">@todo.Count</span>
+                <div class="w-80 flex flex-col bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800">
+                    <div class="p-5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="h-2 w-2 rounded-full bg-@color-500 shadow-[0_0_8px_rgba(var(--color-@color-500),0.5)]"></div>
+                            <h3 class="text-[11px] font-black uppercase tracking-widest text-slate-500">@status.Replace("InProgress", "In Progress")</h3>
+                            <span class="text-[10px] font-black bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md shadow-sm border border-slate-100 dark:border-slate-700">@columnTasks.Count()</span>
+                        </div>
+                        <button class="text-slate-300 hover:text-slate-500"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button>
                     </div>
-                    <button class="text-slate-400 hover:text-slate-600"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="flex-1 space-y-3 overflow-y-auto p-3" ondrop="drop(event, 'ToDo')" ondragover="allowDrop(event)">
-                    @foreach (var task in todo)
-                    {
-                        @await Html.PartialAsync("~/Areas/Client/Views/Mitigation/_TaskCard.cshtml", task)
-                    }
-                </div>
-            </div>
 
-            <div class="flex w-80 flex-col rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10">
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                        <h3 class="text-xs font-black uppercase text-indigo-600">In Progress</h3>
-                        <span class="rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600">@progress.Count</span>
-                    </div>
-                </div>
-                <div class="flex-1 space-y-3 overflow-y-auto p-3" ondrop="drop(event, 'InProgress')" ondragover="allowDrop(event)">
-                    @foreach (var task in progress)
-                    {
-                        @await Html.PartialAsync("~/Areas/Client/Views/Mitigation/_TaskCard.cshtml", task)
-                    }
-                </div>
-            </div>
+                    <div class="flex-1 p-3 space-y-4 overflow-y-auto" ondrop="drop(event, '@status')" ondragover="allowDrop(event)">
+                        @foreach (var task in columnTasks)
+                        {
+                            <div id="@task.Id" draggable="true" ondragstart="drag(event)"
+                                 class="group bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-500/50 dark:hover:border-indigo-400/50 transition-all cursor-grab active:cursor-grabbing">
 
-            <div class="flex w-80 flex-col rounded-xl bg-amber-50/50 dark:bg-amber-900/10">
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-2 w-2 rounded-full bg-amber-500"></div>
-                        <h3 class="text-xs font-black uppercase text-amber-600">Review</h3>
-                        <span class="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">@review.Count</span>
-                    </div>
-                </div>
-                <div class="flex-1 space-y-3 overflow-y-auto p-3" ondrop="drop(event, 'Review')" ondragover="allowDrop(event)">
-                    @foreach (var task in review)
-                    {
-                        @await Html.PartialAsync("~/Areas/Client/Views/Mitigation/_TaskCard.cshtml", task)
-                    }
-                </div>
-            </div>
+                                <div class="flex justify-between items-start mb-3">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-@color-500/10 text-@color-600 uppercase">@task.Priority</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-300 group-hover:text-indigo-500">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                                    </svg>
+                                </div>
 
-            <div class="flex w-80 flex-col rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10">
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                        <h3 class="text-xs font-black uppercase text-emerald-600">Done</h3>
-                        <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600">@done.Count</span>
+                                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug mb-4">@task.Title</h4>
+
+                                <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                                    <div class="flex -space-x-2">
+                                        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[8px] font-black text-white">@task.AssignedTo.Substring(0, 1)</div>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-slate-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="text-[9px] font-black">2d</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
-                <div class="flex-1 space-y-3 overflow-y-auto p-3" ondrop="drop(event, 'Done')" ondragover="allowDrop(event)">
-                    @foreach (var task in done)
-                    {
-                        @await Html.PartialAsync("~/Areas/Client/Views/Mitigation/_TaskCard.cshtml", task)
-                    }
-                </div>
-            </div>
-
+            }
         </div>
     </div>
 </div>
 
 <script>
     function allowDrop(ev) { ev.preventDefault(); }
-
     function drag(ev) {
         ev.dataTransfer.setData("text", ev.target.id);
-        ev.target.classList.add('opacity-50');
+        ev.target.classList.add('opacity-40', 'scale-95');
     }
-
     function drop(ev, status) {
         ev.preventDefault();
         var data = ev.dataTransfer.getData("text");
         var card = document.getElementById(data);
-        card.classList.remove('opacity-50');
+        card.classList.remove('opacity-40', 'scale-95');
 
-        var column = ev.target.closest('.overflow-y-auto');
-        column.appendChild(card);
-
-        // production: remove debug console output or keep if intentionally logging
+        // Find the column body
+        const columnBody = ev.target.closest('.overflow-y-auto');
+        if (columnBody) {
+            columnBody.appendChild(card);
+            // HCI: Provide feedback
+            console.log(`Task ${data} moved to ${status}`);
+        }
     }
 </script>

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace WEB_Sentro.Areas.Client.Views.Mitigation
+namespace WEB_Sentro.Areas.Client.Views.Projects
 {
-    public class _TaskCardModel : PageModel
+    public class MapModel : PageModel
     {
         public void OnGet()
         {

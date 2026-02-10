@@ -1,0 +1,111 @@
+﻿@model IEnumerable<dynamic>
+@{
+    Layout = "_LayoutClient";
+}
+
+<div class="max-w-6xl mx-auto lg:mx-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div class="text-left">
+            <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">
+                <a href="/Client/Supplier" class="hover:text-emerald-500 transition-colors">Registry</a>
+                <span class="opacity-30">/</span>
+                <span class="text-slate-900 dark:text-white">Performance Log</span>
+            </div>
+            <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+                @ViewBag.SupplierName <span class="text-emerald-500 italic">Audit</span>
+            </h1>
+            <p class="text-xs font-bold text-slate-500 mt-2">Historical risk impact and reliability tracking</p>
+        </div>
+
+        <a href="/Client/Supplier" class="flex items-center gap-3 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-width="3" /></svg>
+            Return to Registry
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Audits</p>
+            <p class="text-2xl font-black text-slate-900 dark:text-white">@ViewBag.TotalAudits</p>
+        </div>
+        <div class="bg-emerald-500/5 border border-emerald-500/20 p-5 rounded-3xl">
+            <p class="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Positive Growth</p>
+            <p class="text-2xl font-black text-emerald-600">@ViewBag.PositiveEvents</p>
+        </div>
+        <div class="bg-rose-500/5 border border-rose-500/20 p-5 rounded-3xl">
+            <p class="text-[9px] font-black text-rose-600/60 uppercase tracking-widest mb-1">Critical Faults</p>
+            <p class="text-2xl font-black text-rose-600">@ViewBag.CriticalIssues</p>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-3xl shadow-xl shadow-slate-900/10">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 text-white/50">Avg Net Impact</p>
+            <p class="text-2xl font-black text-white">@ViewBag.AverageImpact</p>
+        </div>
+    </div>
+
+    <hr class="border-slate-200 dark:border-slate-800" />
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div class="lg:col-span-3 space-y-6">
+            <div class="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                <h4 class="text-[10px] font-black uppercase text-slate-500 mb-4 tracking-widest">Audit Policy</h4>
+                <p class="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Reliability scores are recalibrated every 30 days based on these logged events.
+                    <span class="text-emerald-500 underline block mt-2 cursor-pointer">Request Manual Audit →</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="lg:col-span-9 relative border-l-2 border-slate-100 dark:border-slate-800 pl-10 ml-4 lg:ml-0">
+            <div class="space-y-12">
+                @foreach (var log in Model)
+                {
+                    bool isLoss = log.Impact < 0;
+                    <div class="relative">
+                        <div class="absolute -left-[53px] top-0 h-10 w-10 rounded-xl border-4 border-slate-50 dark:border-slate-950 flex items-center justify-center shadow-md @(isLoss ? "bg-rose-500" : "bg-emerald-500")">
+                            @if (isLoss)
+                            {
+                                <span class="text-white text-xs font-black">!</span>
+                            }
+                            else
+                            {
+
+                                <span class="text-white text-xs font-black">✓</span>
+                            }
+                        </div>
+
+                        <div class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:border-emerald-500/30 transition-all duration-500">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">@log.Event</h3>
+                                        <span class="text-[9px] font-black bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-400">@log.Date.ToString("yyyy")</span>
+                                    </div>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">@log.Date.ToString("MMMM dd") at @log.Date.ToString("HH:mm")</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-black @(isLoss ? "text-rose-500" : "text-emerald-500")">
+                                        @(isLoss ? "" : "+")@log.Impact
+                                    </p>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase">Impact Score</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl italic text-sm text-slate-600 dark:text-slate-300 border-l-4 @(isLoss ? "border-rose-500" : "border-emerald-500")">
+                                "@log.Note"
+                            </div>
+
+                            <div class="mt-6 flex items-center gap-4">
+                                <div class="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white">@log.Auditor.Substring(0, 1)</div>
+                                <div>
+                                    <p class="text-[10px] font-black text-slate-900 dark:text-white uppercase">@log.Auditor</p>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase">Authorized Auditor</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

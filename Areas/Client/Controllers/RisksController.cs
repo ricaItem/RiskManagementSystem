@@ -1,140 +1,102 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Web_Sentro.Areas.Client.Models;
 
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
     public class RisksController : Controller
     {
-        public IActionResult Index(string filterStatus = "All", string search = "")
+        public IActionResult Identification()
         {
-            var risks = new List<RiskViewModel>
+            ViewData["Title"] = "Risk Identification";
+
+            // Mock Data for UI Testing
+            var risks = new List<RiskIdentificationViewModel>
             {
-                new RiskViewModel {
-                    Id = "R-1024",
-                    Title = "Crane Stability on Soft Soil",
-                    Reporter = "Sarah Field (Site Mgr)",
-                    Project = "Sky Tower",
-                    Category = "Safety",
-                    Probability = 4,
-                    Impact = 4,
-                    Status = "Open",
-                    DateIdentified = DateTime.Now.AddDays(-2)
+                new RiskIdentificationViewModel {
+                    Id = 1, Title = "Tower Crane Fatigue", Category = "Operational",
+                    Priority = "Critical", DetectedBy = "J. Dela Cruz", ProjectSite = "North Wing"
                 },
-                new RiskViewModel {
-                    Id = "R-1025",
-                    Title = "Steel Shipment Delay",
-                    Reporter = "John Doe (Procurement)",
-                    Project = "River Bridge",
-                    Category = "Operational",
-                    Probability = 3,
-                    Impact = 3,
-                    Status = "Mitigating",
-                    DateIdentified = DateTime.Now.AddDays(-5)
-                },
-                new RiskViewModel {
-                    Id = "R-1026",
-                    Title = "Regulatory Permit Expiry",
-                    Reporter = "Legal Team",
-                    Project = "Sky Tower",
-                    Category = "Compliance",
-                    Probability = 5,
-                    Impact = 5,
-                    Status = "Critical",
-                    DateIdentified = DateTime.Now.AddHours(-4)
-                },
-                new RiskViewModel {
-                    Id = "R-1027",
-                    Title = "Budget Overrun - Concrete",
-                    Reporter = "Finance Dept",
-                    Project = "Downtown Hub",
-                    Category = "Financial",
-                    Probability = 2,
-                    Impact = 4,
-                    Status = "Review",
-                    DateIdentified = DateTime.Now.AddDays(-10)
+                new RiskIdentificationViewModel {
+                    Id = 2, Title = "Steel Price Volatility", Category = "Financial",
+                    Priority = "Medium", DetectedBy = "A. Santos", ProjectSite = "Global"
                 }
             };
 
-            if (filterStatus != "All")
-            {
-                risks = risks.Where(r => r.Status == filterStatus).ToList();
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                risks = risks.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            ViewData["CurrentFilter"] = filterStatus;
             return View(risks);
         }
 
-        public IActionResult Create()
+        [HttpPost]
+        public IActionResult IdentifyNewRisk(RiskIdentificationViewModel model)
         {
-            return View();
+            // Logic: Save to Database here
+            // _context.Risks.Add(model);
+            // _context.SaveChanges();
+            return RedirectToAction("Identification");
         }
-
-        // GET: /Client/Risks/Assess/{id}
-        public IActionResult Assess(string id)
+        [HttpGet]
+        public IActionResult Assess(int id)
         {
-            // Mock Data: In a real app, fetch from DB using 'id'
-            var risk = new RiskViewModel
+            ViewData["Title"] = "Risk Assessment";
+
+            // In production: Fetch the specific risk by ID
+            var model = new RiskAssessmentViewModel
             {
-                Id = id,
-                Title = "Crane Stability on Soft Soil",
-                Description = "Heavy rains have softened the ground near the north foundation.",
-                Project = "Sky Tower",
-                Category = "Safety",
-                Probability = 0, // Not assessed yet
-                Impact = 0,
-                Status = "Open",
-                DateIdentified = DateTime.UtcNow.AddDays(-2)
+                RiskId = id,
+                RiskTitle = "Tower Crane Mechanical Fatigue", // Example
+                Likelihood = 1,
+                Impact = 1
             };
 
-            return View(risk);
+            return View(model);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-            public IActionResult Assess(RiskViewModel model)
+        public IActionResult SaveAssessment(RiskAssessmentViewModel model)
         {
-            if (!ModelState.IsValid)
+            // Logic: If Score > 15, automatically flag for Mitigation Board
+            if (model.RiskScore >= 15)
             {
-                // Return same view with validation errors
-                return View(model);
+                // Code to push to Mitigation Board
             }
 
-            // Logic to save the new Score (Probability * Impact) to the database would go here.
-            // Example:
-            // var score = model.Probability * model.Impact;
-            // ... persist model/score ...
-
-            return RedirectToAction(nameof(Index));
+            // Save to DB logic here...
+            return RedirectToAction("Identification");
         }
-    }
 
-    public class RiskViewModel
+        [HttpGet]
+        public IActionResult Monitoring()
+        {
+            ViewData["Title"] = "Risk Monitoring Hub";
+
+            var model = new RiskMonitoringViewModel
+            {
+                ProjectName = "Sentro Tower - Davao",
+                Latitude = 7.0707,
+                Longitude = 125.6083,
+                Temperature = 31,
+                WeatherCondition = "Thunderstorm Warning",
+                WindSpeed = 45.5, // km/h
+                ActiveRisksCount = 12,
+                HighPriorityRisks = new List<RiskIdentificationViewModel>() // Populate from DB
+            };
+
+
+            model.HighPriorityRisks = new List<RiskIdentificationViewModel>
     {
-        public string Id { get; set; }
-        public string Title { get; set; }
-        public string Reporter { get; set; }
-        public string Project { get; set; }
-        public string Category { get; set; }
-        public int Probability { get; set; }
-        public int Impact { get; set; }
-        public string Status { get; set; }
-        public DateTime? DateIdentified { get; set; }
-        public string Description { get; set; }
+        new RiskIdentificationViewModel {
+            Title = "Tower Crane Fatigue", ProjectSite = "North Wing",
+            Category = "Operational", Priority = "Critical", DetectedBy = "J. Dela Cruz"
+        },
+        new RiskIdentificationViewModel {
+            Title = "Steel Price Volatility", ProjectSite = "Global",
+            Category = "Financial", Priority = "Medium", DetectedBy = "System Auth"
+        }
+    };
 
-        public int RiskScore => Probability * Impact;
+            return View(model);
+        }
 
-        public string RiskColorClass => RiskScore >= 15 ? "text-rose-600 bg-rose-100 border-rose-200" :
-                                        RiskScore >= 8 ? "text-amber-600 bg-amber-100 border-amber-200" :
-                                        "text-emerald-600 bg-emerald-100 border-emerald-200";
 
-        public string RiskLabel => RiskScore >= 15 ? "HIGH" : RiskScore >= 8 ? "MED" : "LOW";
     }
 }

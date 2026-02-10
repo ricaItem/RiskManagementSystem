@@ -1,0 +1,209 @@
+﻿@model IEnumerable<Web_Sentro.Areas.Client.Models.SupplierRiskViewModel>
+@{
+    Layout = "_LayoutClient";
+}
+
+<div class="max-w-full mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Supplier <span class="text-amber-500">Risk Registry</span>
+            </h1>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Procurement & Third-Party Vulnerabilities</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:text-amber-600 transition-all">
+                Audit Registry
+            </button>
+            <button onclick="toggleAddSupplierModal()" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Supplier
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        @foreach (var supplier in Model)
+        {
+            var isAtRisk = supplier.ReliabilityScore < 50;
+            <div class="bg-white dark:bg-slate-900 border @(isAtRisk ? "border-rose-500/30 ring-1 ring-rose-500/10" : "border-slate-200 dark:border-slate-800") rounded-3xl p-6 shadow-sm group hover:shadow-xl transition-all">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex gap-4">
+                        <div class="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner">
+                            @(supplier.ResourceType.Contains("Steel") ? "🏗️" : "🧪")
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">@supplier.SupplierName</h3>
+                            <p class="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Primary Resource: @supplier.ResourceType</p>
+                        </div>
+                    </div>
+
+                    <div class="relative h-12 w-12 flex items-center justify-center">
+                        <svg class="h-full w-full -rotate-90">
+                            <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" fill="transparent" class="text-slate-100 dark:text-slate-800" />
+                            <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" fill="transparent"
+                                    stroke-dasharray="125.6" stroke-dashoffset="@(125.6 * (1 - supplier.ReliabilityScore / 100))"
+                                    class="@(isAtRisk ? "text-rose-500" : "text-emerald-500") transition-all duration-1000" />
+                        </svg>
+                        <span class="absolute text-[10px] font-black">@supplier.ReliabilityScore%</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl text-center">
+                        <p class="text-[9px] font-black text-slate-400 uppercase">Financials</p>
+                        <p class="text-xs font-bold @(supplier.FinancialStatus == "Warning" ? "text-amber-500" : "text-emerald-500")">@supplier.FinancialStatus</p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl text-center">
+                        <p class="text-[9px] font-black text-slate-400 uppercase">Delivery</p>
+                        <p class="text-xs font-bold @(supplier.DeliveryTrend == "Critical" ? "text-rose-500" : "text-amber-500")">@supplier.DeliveryTrend</p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl text-center">
+                        <p class="text-[9px] font-black text-slate-400 uppercase">Contract</p>
+                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300">₱@string.Format("{0:N0}", supplier.ContractValue)</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <a href="/Client/Supplier/Audit/@supplier.Id"
+                       class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all text-center">
+                        View History
+                    </a>
+
+                    <button onclick="toggleDisputeModal(@supplier.Id, '@supplier.SupplierName')"
+                            class="flex-1 bg-amber-500/10 text-amber-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all">
+                        Open Dispute
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+
+    <div id="addSupplierModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleAddSupplierModal()"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4">
+            <div class="w-full max-w-lg scale-100 transform rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div class="mb-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Onboard Supplier</h2>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Register New Procurement Partner</p>
+                    </div>
+                    <button onclick="toggleAddSupplierModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                <form asp-action="AddSupplier" method="post" class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block px-1">Legal Company Name</label>
+                        <input type="text" name="SupplierName" placeholder="e.g. Davao Industrial Steel" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-800 transition-all text-slate-700 dark:text-white" required />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block px-1">Resource Category</label>
+                            <select name="ResourceType" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                <option>Structural Steel</option>
+                                <option>Concrete/Aggregates</option>
+                                <option>Electrical Components</option>
+                                <option>Heavy Machinery</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block px-1">Contract Value (₱)</label>
+                            <input type="number" name="ContractValue" placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-700 dark:bg-slate-800 dark:text-white" required />
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                        <p class="text-[10px] font-bold text-amber-700 dark:text-amber-500 leading-relaxed">
+                            <strong>Note:</strong> New suppliers are automatically given a baseline Reliability Score of 50% until their first successful delivery audit.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="w-full rounded-xl bg-amber-500 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600 hover:scale-[1.01] active:scale-95">
+                        Register Supplier
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="disputeModal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xl transition-opacity" onclick="toggleDisputeModal()"></div>
+
+        <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-[2.5rem] bg-white dark:bg-slate-950 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+
+                <div class="h-2 w-full bg-rose-600"></div>
+
+                <div class="p-8 sm:p-10">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-600">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM2.25 12c0 5.385 4.365 9.75 9.75 9.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25 2.25 6.615 2.25 12z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic" id="modal-title">Open Dispute</h2>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Breach of Agreement Filing</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Targeting Supplier</span>
+                        <span id="disputeSupplierNameDisplay" class="text-sm font-black text-rose-600 uppercase italic">Loading...</span>
+                    </div>
+
+                    <form asp-action="FileDispute" method="post" class="space-y-6">
+                        <input type="hidden" id="disputeSupplierId" name="supplierId" />
+
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-500 mb-2 block px-1 tracking-widest">Reason for Violation</label>
+                            <textarea name="reason" rows="4" required
+                                      class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold dark:border-slate-700 dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500 transition-all placeholder:text-slate-300"
+                                      placeholder="Describe the incident in detail..."></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 pt-4">
+                            <button type="button" onclick="toggleDisputeModal()"
+                                    class="w-full rounded-2xl bg-slate-100 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="w-full rounded-2xl bg-slate-900 dark:bg-white py-4 text-[10px] font-black uppercase tracking-widest text-white dark:text-slate-900 shadow-xl hover:bg-rose-600 hover:text-white transition-all">
+                                File Dispute
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleAddSupplierModal() {
+            const modal = document.getElementById('addSupplierModal');
+            modal.classList.toggle('hidden');
+        }
+
+                function toggleDisputeModal(id, name) {
+            const modal = document.getElementById('disputeModal');
+            const idInput = document.getElementById('disputeSupplierId');
+            const nameDisplay = document.getElementById('disputeSupplierNameDisplay');
+
+            if (id && name) {
+                idInput.value = id;
+                nameDisplay.innerText = name;
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; 
+            } else {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto'; 
+            }
+        }
+    </script>
+</div>

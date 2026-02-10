@@ -1,0 +1,144 @@
+﻿@model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
+@{
+    Layout = "_LayoutClient";
+}
+
+<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Risk <span class="text-emerald-600">Identification</span>
+            </h1>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Phase 1: Diagnostic & Logging</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="group flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-all shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 transition-transform group-hover:-translate-y-0.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Import
+            </button>
+            <button onclick="toggleNewRiskModal()" class="flex items-center gap-2 bg-gradient-to-br from-emerald-600 to-teal-600 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                New Risk Entry
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @foreach (var stat in new[] {
+                new { Label = "Total Risks", Value = "24", Color = "emerald", Icon = "M2.25 18L9 11.25l4.306 4.307L15 13.5l3 3m-3-12h4.5m0 0v4.5m0-4.5L13.5 13.5" },
+                new { Label = "Uncategorized", Value = "05", Color = "amber", Icon = "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" },
+                new { Label = "Critical Priority", Value = "12", Color = "rose", Icon = "M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" },
+                new { Label = "Site Pins", Value = "08", Color = "blue", Icon = "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" }
+                })
+        {
+            <div class="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm group transition-all hover:shadow-md">
+                <div class="relative z-10 flex justify-between items-start">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">@stat.Label</p>
+                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">@stat.Value</h3>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-@stat.Color-500/10 flex items-center justify-center text-@stat.Color-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="@stat.Icon" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 h-1 w-0 bg-@stat.Color-500 group-hover:w-full transition-all duration-500"></div>
+            </div>
+        }
+    </div>
+
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                        <th class="px-6 py-4">Risk Detail</th>
+                        <th class="px-6 py-4">Category</th>
+                        <th class="px-6 py-4">Priority Level</th>
+                        <th class="px-6 py-4">Originator</th>
+                        <th class="px-6 py-4 text-right">Utility</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+                    @foreach (var risk in Model)
+                    {
+                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all">
+                            <td class="px-6 py-5">
+                                <div class="font-black text-slate-900 dark:text-white mb-0.5">@risk.Title</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Job Site: @risk.ProjectSite</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase tracking-tighter">@risk.Category</span>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-2">
+                                    @{
+                                        var color = risk.Priority == "Critical" ? "rose" : "amber";
+                                    }
+                                    <div class="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="bg-@color-500 h-full w-[@(risk.Priority == "Critical" ? "95" : "50")%]"></div>
+                                    </div>
+                                    <span class="text-[10px] font-black text-@color-500 uppercase">@risk.Priority</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">@risk.DetectedBy</span>
+                            </td>
+                            <td class="px-6 py-5 text-right">
+                                <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all text-slate-400 hover:text-emerald-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="newRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleNewRiskModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg scale-100 transform rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="mb-6 flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Identify Risk</h2>
+                <button onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 font-bold"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <form asp-action="IdentifyNewRisk" method="post" class="space-y-4">
+                <input type="text" name="Title" placeholder="Risk Description" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 transition-all" required />
+                <div class="grid grid-cols-2 gap-4">
+                    <select name="Category" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-700 dark:bg-slate-800">
+                        <option>Operational</option>
+                        <option>Financial</option>
+                        <option>Safety</option>
+                    </select>
+                    <select name="Priority" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-700 dark:bg-slate-800">
+                        <option>Critical</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.01]">Log Entry</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleNewRiskModal() {
+        document.getElementById('newRiskModal').classList.toggle('hidden');
+    }
+</script>

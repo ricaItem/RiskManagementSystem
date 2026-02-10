@@ -92,48 +92,57 @@
 
                 <nav class="space-y-1 pb-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
 
-                    <div class="sidebar-label pt-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Operations</div>
-
                     <a href="/Client/Dashboard" title="Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Dashboard")">
                         <span class="text-lg shrink-0">🏠</span>
                         <span class="sidebar-label whitespace-nowrap">Dashboard</span>
                     </a>
 
-                    <a href="/Client/Risks" title="Risk Inventory" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks")">
-                        <span class="text-lg shrink-0">⚠️</span>
-                        <span class="sidebar-label whitespace-nowrap">Risk Inventory</span>
+                    <div class="sidebar-label pt-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Risk Management</div>
+
+                    <a href="/Client/Risks/Identification" title="Risk Identification" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Identification")">
+                        <span class="text-lg shrink-0">🔍</span>
+                        <span class="sidebar-label whitespace-nowrap">Risk Identification</span>
                     </a>
 
-                    <a href="/Client/Mitigation" title="Mitigation Board" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Mitigation")">
-                        <span class="text-lg shrink-0">⚙️</span>
-                        <span class="sidebar-label whitespace-nowrap">Mitigation Board</span>
+                    <a href="/Client/Risks/Assess" title="Risk Assessment" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Assessment")">
+                        <span class="text-lg shrink-0">⚖️</span>
+                        <span class="sidebar-label whitespace-nowrap">Risk Assessment</span>
                     </a>
 
-                    <a href="/Client/Reports/RiskPerformance" title="Risk Performance Report" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Reports")">
-                        <span class="text-lg shrink-0">📊</span>
-                        <span class="sidebar-label whitespace-nowrap">Risk Performance</span>
-                    </a>
-         
-                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Governance</div>
-
-                    <a href="/Client/Audits" title="Safety Audits" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Audits")">
-                        <span class="text-lg shrink-0">📋</span>
-                        <span class="sidebar-label whitespace-nowrap">Safety Audits</span>
+                    <a href="/Client/Mitigation" title="Mitigation Planning" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Mitigation")">
+                        <span class="text-lg shrink-0">🛡️</span>
+                        <span class="sidebar-label whitespace-nowrap">Mitigation Planning</span>
                     </a>
 
-                    <a href="/Client/Employees" title="Workforce" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Employees")">
-                        <span class="text-lg shrink-0">👷</span>
-                        <span class="sidebar-label whitespace-nowrap">Workforce</span>
+                    <a href="/Client/Risks/Monitoring" title="Risk Monitoring" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Monitoring")">
+                        <span class="text-lg shrink-0">📡</span>
+                        <span class="sidebar-label whitespace-nowrap">Risk Monitoring</span>
                     </a>
 
-                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Account</div>
+                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Operations & Assets</div>
 
-                    <a href="/Client/Settings" title="Settings" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Settings")">
-                        <span class="text-lg shrink-0">⚙️</span>
-                        <span class="sidebar-label whitespace-nowrap">Portal Settings</span>
+                    <a href="/Client/Inventory" title="Inventory & Supplies" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory")">
+                        <span class="text-lg shrink-0">🏗️</span>
+                        <span class="sidebar-label whitespace-nowrap">Inventory & Expenses</span>
+                    </a>
+
+                    <a href="/Client/Supplier/Index" title="Supplier Risk" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Supplier")">
+                        <span class="text-lg shrink-0">🤝</span>
+                        <span class="sidebar-label whitespace-nowrap">Supplier Risk</span>
+                    </a>
+
+                    <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Site Intelligence</div>
+
+                    <a href="/Client/Projects/Map" title="Project Map" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Projects/Map")">
+                        <span class="text-lg shrink-0">📍</span>
+                        <span class="sidebar-label whitespace-nowrap">Geolocation Hub</span>
+                    </a>
+
+                    <a href="/Client/Weather" title="Weather Watch" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Weather")">
+                        <span class="text-lg shrink-0">☁️</span>
+                        <span class="sidebar-label whitespace-nowrap">Site Weather</span>
                     </a>
                 </nav>
-
                 <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button type="button" onclick="window.__toggleTheme()"
                             class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">

@@ -1,134 +1,129 @@
-﻿@model Web_Sentro.Areas.Client.Controllers.RiskViewModel
-
+﻿@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
 @{
-    ViewData["Title"] = "Assess Risk";
-    Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
+    Layout = "_LayoutClient";
 }
 
-<div class="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-    <div class="mb-6 flex items-center gap-2 text-xs font-bold text-slate-400">
-        <a href="/Client/Risks" class="hover:text-slate-800">Risk Board</a>
-        <i class="fas fa-chevron-right text-[8px]"></i>
-        <span>Assessment: @Model.Id</span>
+<div class="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Risk <span class="text-indigo-600">Assessment</span>
+            </h1>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Phase 2: Qualitative Analysis & Scoring</p>
+        </div>
+        <div class="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Assessing Risk:</span>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-200">@Model.RiskTitle</span>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-        <div class="lg:col-span-4 space-y-6">
-            <div>
-                <h1 class="text-3xl font-black text-slate-900 dark:text-white">Risk <span class="text-indigo-600">Assessment</span></h1>
-                <p class="mt-2 text-sm text-slate-500">Determine the severity level to assign the correct mitigation workflow.</p>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div class="mb-4">
-                    <span class="rounded bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600 uppercase">@Model.Category Risk</span>
-                </div>
-                <h2 class="text-xl font-black text-slate-900 dark:text-white">@Model.Title</h2>
-                <p class="mt-2 text-sm text-slate-500 leading-relaxed">@Model.Description</p>
-
-                <div class="mt-6 flex items-center gap-4 border-t border-slate-100 pt-4 dark:border-slate-800">
-                    <div class="flex -space-x-2">
-                        <div class="h-8 w-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">JD</div>
-                    </div>
-                    <div class="text-xs">
-                        <p class="font-bold text-slate-900 dark:text-white">Reported by J. Doe</p>
-                        <p class="text-slate-400">Project: @Model.Project</p>
-                    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl">
+            <div class="flex justify-between items-end mb-6">
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Probability vs. Severity Matrix</h3>
+                <div class="flex gap-4">
+                    <div class="flex items-center gap-2"><div class="h-3 w-3 bg-rose-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Critical</span></div>
+                    <div class="flex items-center gap-2"><div class="h-3 w-3 bg-emerald-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Acceptable</span></div>
                 </div>
             </div>
 
-            <div id="score-card" class="hidden rounded-2xl bg-slate-900 p-6 text-white shadow-xl transition-all duration-500">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Calculated Risk Score</p>
-                <div class="flex items-end justify-between">
-                    <h1 class="text-5xl font-black" id="total-score">0</h1>
-                    <span id="risk-label" class="rounded px-2 py-1 text-xs font-black uppercase bg-slate-700">PENDING</span>
+            <div class="relative">
+                <div class="absolute -left-12 top-1/2 -rotate-90 origin-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Impact</div>
+
+                <div class="grid grid-cols-5 gap-2">
+                    @for (int i = 5; i >= 1; i--)
+                    { // Impact
+                        @for (int l = 1; l <= 5; l++)
+                        { // Likelihood
+                            var score = i * l;
+                            var colorClass = score >= 15 ? "bg-rose-500 hover:bg-rose-600 text-white" :
+                            score >= 10 ? "bg-orange-400 hover:bg-orange-500 text-white" :
+                            score >= 5 ? "bg-amber-300 hover:bg-amber-400 text-slate-900" :
+                            "bg-emerald-500 hover:bg-emerald-600 text-white";
+
+                            <button type="button"
+                                    onclick="updateScore(@l, @i, @score)"
+                                    class="@colorClass h-20 rounded-xl transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:scale-105 active:scale-95 group">
+                                <span class="text-lg font-black">@score</span>
+                                <span class="text-[8px] font-bold opacity-0 group-hover:opacity-100 uppercase">L:@l I:@i</span>
+                            </button>
+                        }
+                    }
                 </div>
-                <p class="mt-4 text-xs font-medium text-slate-400">Based on standard ISO 31000 matrix calculation (Likelihood × Impact).</p>
+                <div class="text-center mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Likelihood / Probability</div>
             </div>
         </div>
 
-        <div class="lg:col-span-8">
-            <form asp-action="Assess" method="post" class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <input type="hidden" asp-for="Id" />
-                <input type="hidden" id="prob-input" asp-for="Probability" />
-                <input type="hidden" id="imp-input" asp-for="Impact" />
+        <div class="space-y-6">
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                <svg class="absolute -right-10 -top-10 h-40 w-40 text-white/5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
 
-                <div class="relative">
-                    <div class="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-black uppercase tracking-widest text-slate-400">Likelihood</div>
-                    <div class="absolute bottom-[-30px] left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-widest text-slate-400">Impact (Severity)</div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Calculated Risk Index</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="displayScore" class="text-7xl font-black italic">1</span>
+                    <span id="displayLevel" class="text-sm font-black uppercase tracking-widest text-emerald-400">Low</span>
+                </div>
 
-                    <div class="grid grid-cols-5 gap-2">
-                        @for (int row = 5; row >= 1; row--) // Likelihood (Rows)
-                        {
-                            @for (int col = 1; col <= 5; col++) // Impact (Cols)
-                            {
-                                var score = row * col;
-                                var colorClass = score >= 15 ? "hover:bg-rose-500 hover:text-white border-rose-100" :
-                                score >= 8 ? "hover:bg-amber-500 hover:text-white border-amber-100" :
-                                "hover:bg-emerald-500 hover:text-white border-emerald-100";
-                                var bgClass = score >= 15 ? "bg-rose-50" : score >= 8 ? "bg-amber-50" : "bg-emerald-50";
-
-                                <button type="button"
-                                        onclick="selectCell(this, @row, @col, @score)"
-                                        class="matrix-cell group flex h-20 w-full flex-col items-center justify-center rounded-lg border-2 @bgClass @colorClass transition-all duration-200 focus:ring-4 ring-indigo-500/20">
-                                    <span class="text-xl font-black opacity-20 group-hover:opacity-100 transition-opacity">@score</span>
-                                    <span class="text-[9px] font-bold opacity-0 group-hover:opacity-100 uppercase mt-1">Select</span>
-                                </button>
-                            }
-                        }
+                <div class="mt-8 space-y-4">
+                    <div class="flex justify-between text-xs border-b border-white/10 pb-2">
+                        <span class="text-slate-400 font-bold uppercase">Likelihood Score</span>
+                        <span id="valL" class="font-black">1</span>
+                    </div>
+                    <div class="flex justify-between text-xs border-b border-white/10 pb-2">
+                        <span class="text-slate-400 font-bold uppercase">Impact Score</span>
+                        <span id="valI" class="font-black">1</span>
                     </div>
                 </div>
+            </div>
 
-                <div class="mt-8 flex justify-end gap-4 border-t border-slate-100 pt-6">
-                    <a href="/Client/Risks" class="rounded-lg px-6 py-3 text-xs font-bold text-slate-500 hover:bg-slate-50 transition">CANCEL</a>
-                    <button type="submit" disabled id="save-btn" class="rounded-lg bg-slate-200 px-8 py-3 text-xs font-black text-slate-400 transition cursor-not-allowed">
-                        CONFIRM ASSESSMENT
-                    </button>
+            <form asp-action="SaveAssessment" method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                <input type="hidden" asp-for="RiskId" />
+                <input type="hidden" asp-for="Likelihood" id="hiddenL" value="1" />
+                <input type="hidden" asp-for="Impact" id="hiddenI" value="1" />
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Risk Response Strategy</label>
+                    <select class="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black dark:border-slate-800 dark:bg-slate-800 transition-all outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option>Avoid (Eliminate Threat)</option>
+                        <option>Mitigate (Reduce Likelihood/Impact)</option>
+                        <option>Transfer (Insurance/Third Party)</option>
+                        <option>Accept (Monitor Only)</option>
+                    </select>
                 </div>
+
+                <button type="submit" class="w-full mt-6 bg-indigo-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all">
+                    Finalize Assessment
+                </button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function selectCell(btn, prob, imp, score) {
-        // 1. Reset all cells
-        document.querySelectorAll('.matrix-cell').forEach(c => {
-            c.classList.remove('ring-4', 'ring-indigo-500', 'scale-105', 'z-10', 'shadow-lg');
-            c.classList.add('opacity-50'); // Dim others
-        });
+    function updateScore(l, i, score) {
+        // HCI: Provide immediate visual feedback (Automation)
+        document.getElementById('displayScore').innerText = score;
+        document.getElementById('valL').innerText = l;
+        document.getElementById('valI').innerText = i;
 
-        // 2. Highlight selected
-        btn.classList.remove('opacity-50');
-        btn.classList.add('ring-4', 'ring-indigo-500', 'scale-105', 'z-10', 'shadow-lg');
+        // Update Hidden Inputs for Server
+        document.getElementById('hiddenL').value = l;
+        document.getElementById('hiddenI').value = i;
 
-        // 3. Update Inputs
-        document.getElementById('prob-input').value = prob;
-        document.getElementById('imp-input').value = imp;
-
-        // 4. Update Visual Score Card
-        const card = document.getElementById('score-card');
-        const scoreText = document.getElementById('total-score');
-        const label = document.getElementById('risk-label');
-        const saveBtn = document.getElementById('save-btn');
-
-        card.classList.remove('hidden');
-        scoreText.innerText = score;
-
-        // Dynamic Styling based on score
-        card.className = "rounded-2xl p-6 text-white shadow-xl transition-all duration-500 " +
-                         (score >= 15 ? "bg-rose-600 shadow-rose-500/30" :
-                          score >= 8 ? "bg-amber-500 shadow-amber-500/30" :
-                          "bg-emerald-500 shadow-emerald-500/30");
-
-        label.innerText = score >= 15 ? "CRITICAL RISK" : score >= 8 ? "MODERATE RISK" : "LOW RISK";
-        label.className = "rounded px-2 py-1 text-xs font-black uppercase bg-white/20";
-
-        // Enable Save
-        saveBtn.disabled = false;
-        saveBtn.classList.remove('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
-        saveBtn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700', 'shadow-lg', 'shadow-indigo-500/20');
+        // Automated Level Detection
+        const levelSpan = document.getElementById('displayLevel');
+        if (score >= 15) {
+            levelSpan.innerText = "Critical";
+            levelSpan.className = "text-sm font-black uppercase tracking-widest text-rose-500";
+        } else if (score >= 10) {
+            levelSpan.innerText = "High";
+            levelSpan.className = "text-sm font-black uppercase tracking-widest text-orange-400";
+        } else if (score >= 5) {
+            levelSpan.innerText = "Medium";
+            levelSpan.className = "text-sm font-black uppercase tracking-widest text-amber-300";
+        } else {
+            levelSpan.innerText = "Low";
+            levelSpan.className = "text-sm font-black uppercase tracking-widest text-emerald-400";
+        }
     }
 </script>
