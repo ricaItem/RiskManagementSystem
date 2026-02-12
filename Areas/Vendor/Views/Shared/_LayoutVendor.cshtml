@@ -58,6 +58,22 @@
             padding-left: 0;
             padding-right: 0;
         }
+
+        .logo-img {
+            max-width: 180px;
+        }
+
+        .sidebar-collapsed .logo-img {
+            height: 32px;
+            max-width: 40px;
+            object-position: left;
+        }
+
+        .sidebar-collapsed .sidebar-header-text {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
     </style>
     <script src="~/js/theme.js"></script>
 </head>
@@ -83,53 +99,54 @@
             <button onclick="toggleSidebar()"
                     class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800 transition-transform"
                     id="sidebarToggleBtn" aria-label="Toggle Sidebar">
-                <span class="text-[10px]" id="toggleIcon">◀</span>
+                <span class="text-[10px]" id="toggleIcon">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                </span>
             </button>
 
             <div class="p-6 h-full flex flex-col overflow-hidden">
-                <div class="flex items-center gap-3 mb-10 shrink-0">
-                    <div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-sky-600 to-emerald-600"></div>
-                    <div class="sidebar-header-text text-sm font-extrabold tracking-tight whitespace-nowrap">
-                        Sentro
-                        <div class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 -mt-0.5 uppercase tracking-wider">Vendor</div>
+                <div class="flex items-center justify-center mb-10 shrink-0 px-2 h-16">
+                    <div class="flex items-center justify-center transition-all duration-300 w-full">
+                        <img src="~/images/logoo.png"
+                             alt="Sentro Logo"
+                             class="logo-img h-12 w-auto object-contain transition-all duration-300 dark:brightness-0 dark:invert" />
                     </div>
                 </div>
 
                 <nav class="space-y-1 pb-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
-                    @* Helper for Sidebar Sections *@
                     <div class="sidebar-label pt-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Core</div>
 
                     <a href="/Vendor/Dashboard" title="Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/Dashboard")">
-                        <span class="text-lg shrink-0">📊</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">System Dashboard</span>
                     </a>
 
                     <a href="/Vendor/Analytics" title="Analytics" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/Analytics")">
-                        <span class="text-lg shrink-0">📈</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Usage & Analytics</span>
                     </a>
 
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Management</div>
 
                     <a href="/Vendor/Organizations" title="Organizations" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/Organizations")">
-                        <span class="text-lg shrink-0">🏢</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Organizations</span>
                     </a>
 
                     <a href="/Vendor/OrgAdmins" title="Admins" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/OrgAdmins")">
-                        <span class="text-lg shrink-0">🔑</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Admin Accounts</span>
                     </a>
 
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Commercial</div>
 
                     <a href="/Vendor/Billing" title="Billing" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/Billing")">
-                        <span class="text-lg shrink-0">💳</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Billing & Plans</span>
                     </a>
 
                     <a href="/Vendor/Settings" title="Settings" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Vendor/Settings")">
-                        <span class="text-lg shrink-0">⚙️</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Global Settings</span>
                     </a>
                 </nav>
@@ -137,8 +154,14 @@
                 <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button type="button" onclick="window.__toggleTheme()"
                             class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-                        <span class="dark:hidden shrink-0">🌙 <span class="sidebar-label ml-2">Dark</span></span>
-                        <span class="hidden dark:inline shrink-0">☀️ <span class="sidebar-label ml-2">Light</span></span>
+                        <span class="dark:hidden flex items-center gap-3 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                            <span class="sidebar-label">Dark</span>
+                        </span>
+                        <span class="hidden dark:flex items-center gap-3 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span class="sidebar-label">Light</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -148,7 +171,7 @@
             <header class="flex h-16 items-center justify-between border-b border-slate-200 px-4 md:px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30 sticky top-0 z-30">
                 <div class="flex items-center gap-4">
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
-                        <span class="text-xl">☰</span>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                     </button>
                     <div class="text-xs font-bold text-slate-500 uppercase tracking-widest truncate">
                         Vendor Portal / <span class="text-slate-900 dark:text-white">@ViewData["Title"]</span>
@@ -168,11 +191,13 @@
 
                     <div id="userDropdown" class="absolute right-0 mt-3 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-900 hidden animate-in fade-in zoom-in duration-200">
                         <a href="/Vendor/Account" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
-                            👤 My Account
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            My Account
                         </a>
                         <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
                         <button type="button" onclick="openLogoutModal()" class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20">
-                            🚪 Logout
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            Logout
                         </button>
                     </div>
                 </div>
@@ -188,7 +213,9 @@
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
         <div class="relative w-full max-w-sm rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in duration-200">
             <div class="text-center">
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-2xl dark:bg-rose-500/10">👋</div>
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/10">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
                 <h3 class="text-lg font-black text-slate-900 dark:text-white">Signing Out?</h3>
                 <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">Are you sure you want to end your session?</p>
             </div>
@@ -214,26 +241,23 @@
             const isMobile = window.innerWidth < 768;
 
             if (isMobile) {
-                // Mobile behavior: Slide in/out
                 sidebar.classList.toggle('-translate-x-full');
                 overlay.classList.toggle('hidden');
             } else {
-                // Desktop behavior: Collapse width
                 const isCollapsed = sidebar.classList.contains('w-sidebar-collapsed');
 
                 if (isCollapsed) {
                     sidebar.classList.remove('w-sidebar-collapsed', 'sidebar-collapsed');
                     sidebar.classList.add('w-sidebar-expanded');
-                    toggleIcon.innerText = '◀';
+                    toggleIcon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
                 } else {
                     sidebar.classList.remove('w-sidebar-expanded');
                     sidebar.classList.add('w-sidebar-collapsed', 'sidebar-collapsed');
-                    toggleIcon.innerText = '▶';
+                    toggleIcon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
                 }
             }
         }
 
-        // --- Existing User Dropdown Logic ---
         function toggleUserDropdown() {
             dropdown?.classList.toggle('hidden');
         }
@@ -255,7 +279,6 @@
             document.getElementById('vendorLogoutForm').submit();
         }
 
-        // Close dropdown on outside click
         window.addEventListener('click', function(e) {
             const btn = document.getElementById('userDropdownBtn');
             if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {

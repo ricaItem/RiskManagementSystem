@@ -20,6 +20,38 @@ namespace Web_Sentro.Areas.Client.Controllers
                 new RiskIdentificationViewModel {
                     Id = 2, Title = "Steel Price Volatility", Category = "Financial",
                     Priority = "Medium", DetectedBy = "A. Santos", ProjectSite = "Global"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 3, Title = "Foundation Seepage", Category = "Operational",
+                    Priority = "Critical", DetectedBy = "M. Rivera", ProjectSite = "Basement Level B2"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 4, Title = "Scaffolding Stability", Category = "No Category",
+                    Priority = "Critical", DetectedBy = "R. Gomez", ProjectSite = "West Tower Facade"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 5, Title = "Supply Chain Delay (Cement)", Category = "Operational",
+                    Priority = "Medium", DetectedBy = "L. Tan", ProjectSite = "Logistics Hub"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 6, Title = "Labor Shortage (Welding)", Category = "No Category",
+                    Priority = "Medium", DetectedBy = "K. Sy", ProjectSite = "Structural Phase 3"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 7, Title = "Unprotected Floor Openings", Category = "Safety",
+                    Priority = "Critical", DetectedBy = "J. Reyes", ProjectSite = "East Wing Floor 12"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 8, Title = "Currency Exchange Flux", Category = "Financial",
+                    Priority = "Low", DetectedBy = "C. Puno", ProjectSite = "Procurement"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 9, Title = "Inadequate Site Lighting", Category = "No Category",
+                    Priority = "Medium", DetectedBy = "D. Lim", ProjectSite = "Parking Annex"
+                },
+                new RiskIdentificationViewModel {
+                    Id = 10, Title = "Utility Line Encroachment", Category = "Operational",
+                    Priority = "Critical", DetectedBy = "S. Bautista", ProjectSite = "South Site Boundary"
                 }
             };
 

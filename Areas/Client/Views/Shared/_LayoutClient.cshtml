@@ -54,6 +54,22 @@
             padding-left: 0;
             padding-right: 0;
         }
+
+        .logo-img {
+            max-width: 180px; 
+        }
+
+        .sidebar-collapsed .logo-img {
+            height: 32px; 
+            max-width: 40px;
+            object-position: left;
+        }
+
+        .sidebar-collapsed .sidebar-header-text {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#020617] dark:text-white overflow-x-hidden">
@@ -78,76 +94,84 @@
             <button onclick="toggleSidebar()"
                     class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800 transition-transform"
                     id="sidebarToggleBtn" aria-label="Toggle Sidebar">
-                <span class="text-[10px]" id="toggleIcon">◀</span>
+                <span class="text-[10px]" id="toggleIcon">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                </span>
             </button>
 
             <div class="p-6 h-full flex flex-col overflow-hidden">
-                <div class="flex items-center gap-3 mb-10 shrink-0">
-                    <div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600"></div>
-                    <div class="sidebar-header-text text-sm font-extrabold tracking-tight whitespace-nowrap">
-                        Sentro
-                        <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 -mt-0.5 uppercase tracking-wider">Client Portal</div>
+                <div class="flex items-center justify-center mb-10 shrink-0 px-2 h-16">
+                    <div class="flex items-center justify-center transition-all duration-300 w-full">
+                        <img src="~/images/logoo.png"
+                             alt="Sentro Logo"
+                             class="logo-img h-12 w-auto object-contain transition-all duration-300 dark:brightness-0 dark:invert" />
                     </div>
                 </div>
 
                 <nav class="space-y-1 pb-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
 
                     <a href="/Client/Dashboard" title="Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Dashboard")">
-                        <span class="text-lg shrink-0">🏠</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Dashboard</span>
                     </a>
 
                     <div class="sidebar-label pt-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Risk Management</div>
 
                     <a href="/Client/Risks/Identification" title="Risk Identification" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Identification")">
-                        <span class="text-lg shrink-0">🔍</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Risk Identification</span>
                     </a>
 
                     <a href="/Client/Risks/Assess" title="Risk Assessment" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Assessment")">
-                        <span class="text-lg shrink-0">⚖️</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Risk Assessment</span>
                     </a>
 
                     <a href="/Client/Mitigation" title="Mitigation Planning" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Mitigation")">
-                        <span class="text-lg shrink-0">🛡️</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Mitigation Planning</span>
                     </a>
 
                     <a href="/Client/Risks/Monitoring" title="Risk Monitoring" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Monitoring")">
-                        <span class="text-lg shrink-0">📡</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Risk Monitoring</span>
                     </a>
 
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Operations & Assets</div>
 
                     <a href="/Client/Inventory" title="Inventory & Supplies" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory")">
-                        <span class="text-lg shrink-0">🏗️</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Inventory & Expenses</span>
                     </a>
 
                     <a href="/Client/Supplier/Index" title="Supplier Risk" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Supplier")">
-                        <span class="text-lg shrink-0">🤝</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Supplier Risk</span>
                     </a>
 
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Site Intelligence</div>
 
                     <a href="/Client/Projects/Map" title="Project Map" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Projects/Map")">
-                        <span class="text-lg shrink-0">📍</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Geolocation Hub</span>
                     </a>
 
                     <a href="/Client/Weather" title="Weather Watch" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Weather")">
-                        <span class="text-lg shrink-0">☁️</span>
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Site Weather</span>
                     </a>
                 </nav>
                 <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button type="button" onclick="window.__toggleTheme()"
                             class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-                        <span class="dark:hidden shrink-0">🌙 <span class="sidebar-label ml-2">Dark Appearance</span></span>
-                        <span class="hidden dark:inline shrink-0">☀️ <span class="sidebar-label ml-2">Light Appearance</span></span>
+                        <span class="dark:hidden flex items-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                            <span class="sidebar-label ml-3">Dark Appearance</span>
+                        </span>
+                        <span class="hidden dark:flex items-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span class="sidebar-label ml-3">Light Appearance</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -157,7 +181,7 @@
             <header class="flex h-16 items-center justify-between border-b border-slate-200 px-4 md:px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30 sticky top-0 z-30">
                 <div class="flex items-center gap-4">
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
-                        <span class="text-xl">☰</span>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                     </button>
                     <div class="text-xs font-bold text-slate-500 uppercase tracking-widest truncate">
                         Client Portal / <span class="text-slate-900 dark:text-white">@ViewData["Title"]</span>
@@ -170,20 +194,22 @@
                             <span class="text-xs font-bold">Client Admin</span>
                             <span class="text-[10px] text-emerald-600 font-bold uppercase">Organization Name</span>
                         </div>
-                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-black text-slate-500">
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-black text-slate-500 border border-slate-300 dark:border-slate-700">
                             CA
                         </div>
                     </button>
 
-                    <div id="userDropdown" class="absolute right-0 mt-3 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-900 hidden animate-in fade-in zoom-in duration-200">
+                    <div id="userDropdown" class="absolute right-0 mt-3 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-900 hidden animate-in fade-in zoom-in duration-200">
                         <a href="/Identity/Account/Manage" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
-                            👤 Profile Settings
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            Profile Settings
                         </a>
                         <hr class="my-1 border-slate-100 dark:border-slate-800" />
                         <form action="/Identity/Account/Logout" method="post">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20">
-                                🚪 Sign Out
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                Sign Out
                             </button>
                         </form>
                     </div>
@@ -210,7 +236,10 @@
                 const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
                 sidebar.classList.toggle('w-sidebar-expanded', !isCollapsed);
                 sidebar.classList.toggle('w-sidebar-collapsed', isCollapsed);
-                toggleIcon.innerText = isCollapsed ? '▶' : '◀';
+
+                toggleIcon.innerHTML = isCollapsed
+                    ? `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`
+                    : `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
             }
         }
 
@@ -219,7 +248,8 @@
         }
 
         window.onclick = function(e) {
-            if (!document.getElementById('userDropdownBtn').contains(e.target)) {
+            const btn = document.getElementById('userDropdownBtn');
+            if (btn && !btn.contains(e.target) && dropdown) {
                 dropdown.classList.add('hidden');
             }
         }
