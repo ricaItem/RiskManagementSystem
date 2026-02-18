@@ -1,4 +1,209 @@
-﻿@page
-@model WEB_Sentro.Areas.Client.Views.Inventory.ExpensesModel
+﻿@model IEnumerable<dynamic>
 @{
+    Layout = "_LayoutClient";
 }
+
+<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Project <span class="text-blue-600">Expenses</span></h1>
+        <div class="flex gap-2">
+            <button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm">Export PDF</button>
+            <button onclick="openExpenseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:scale-105 transition-all">+ Log Expense</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Total Expenses (Month)</p>
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">$@Model.Sum(x => (double)x.Amount).ToString("N2")</h3>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Pending Approvals</p>
+            <h3 class="text-2xl font-black text-amber-500">@Model.Count(x => x.Status == "Pending")</h3>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Top Site Outflow</p>
+            <h3 class="text-xl font-black text-slate-900 dark:text-white">North Tower A</h3>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm border-l-4">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Budget vs Actual</p>
+            <h3 class="text-2xl font-black text-slate-600">82%</h3>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-md">
+        <input type="text" id="expenseSearch" placeholder="Search transactions..." class="flex-1 min-w-[200px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
+        <input type="date" id="dateFilter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none">
+        <select id="categoryFilter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none">
+            <option value="">All Categories</option>
+            <option>Materials</option>
+            <option>Labor</option>
+            <option>Equipment</option>
+        </select>
+    </div>
+
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+        <table class="w-full text-left" id="expensesTable">
+            <thead>
+                <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                    <th class="px-6 py-4">Transaction</th>
+                    <th class="px-6 py-4">Category</th>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4">Amount</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+                @foreach (var exp in Model)
+                {
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-blue-500/5 transition-all group">
+                        <td class="px-6 py-5">
+                            <div class="font-black text-slate-900 dark:text-white transaction-desc">@exp.Description</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: #@exp.Id</div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="text-[10px] font-black uppercase text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md transaction-cat">@exp.Category</span>
+                        </td>
+                        <td class="px-6 py-5 text-[11px] font-bold text-slate-500">@exp.Date.ToString("MMM dd, yyyy")</td>
+                        <td class="px-6 py-5 font-black text-slate-900 dark:text-white">$@exp.Amount.ToString("N2")</td>
+                        <td class="px-6 py-5">
+                            @{
+                                var statusColor = exp.Status == "Paid" ? "emerald" : (exp.Status == "Pending" ? "blue" : "rose");
+                            }
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full bg-@statusColor-500"></div>
+                                <span class="text-[10px] font-black uppercase text-@statusColor-600">@exp.Status</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <button onclick="openUpdateExpenseModal('@exp.Id', '@exp.Description', '@exp.Category', '@exp.Amount', '@exp.Date.ToString("yyyy-MM-dd")', '@exp.Status')"
+                                    class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 font-bold text-[10px] uppercase transition-all">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="logExpenseModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal('logExpenseModal')"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-black text-slate-900 dark:text-white uppercase">Log <span class="text-blue-600">Expense</span></h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Financial Outflow Tracking</p>
+                </div>
+                <button onclick="toggleModal('logExpenseModal')" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+
+            <form id="expenseForm" asp-action="LogExpense" method="post" enctype="multipart/form-data" class="space-y-4">
+                <input type="hidden" name="Id" id="expId" />
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Description</label>
+                    <input type="text" id="expDesc" name="Description" placeholder="What was purchased?" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Category</label>
+                        <select id="expCat" name="Category" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
+                            <option>Materials</option>
+                            <option>Labor</option>
+                            <option>Equipment</option>
+                            <option>Utilities</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Amount ($)</label>
+                        <input type="number" id="expAmount" step="0.01" name="Amount" placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800" required />
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Proof of Purchase</label>
+                    <div class="relative border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center hover:bg-slate-50 transition-all">
+                        <input type="file" name="Receipt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <p id="fileName" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Click to upload receipt</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Date</label>
+                        <input type="date" id="expDate" name="Date" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Status</label>
+                        <select id="expStatus" name="Status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
+                            <option>Paid</option>
+                            <option>Pending</option>
+                            <option>Overdue</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" id="expSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg mt-2 transition-transform active:scale-95">Log Transaction</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.toggle('hidden');
+    }
+
+    // Opens modal for NEW expense
+    function openExpenseModal() {
+        document.getElementById('expenseForm').reset();
+        document.getElementById('modalTitle').innerHTML = 'Log <span class="text-blue-600">Expense</span>';
+        document.getElementById('expSubmitBtn').innerText = 'Log Transaction';
+        toggleModal('logExpenseModal');
+    }
+
+    // Opens modal with DATA for update
+    function openUpdateExpenseModal(id, desc, cat, amount, date, status) {
+        document.getElementById('expId').value = id;
+        document.getElementById('expDesc').value = desc;
+        document.getElementById('expCat').value = cat;
+        document.getElementById('expAmount').value = amount;
+        document.getElementById('expDate').value = date;
+        document.getElementById('expStatus').value = status;
+
+        document.getElementById('modalTitle').innerHTML = 'Update <span class="text-blue-600">Expense</span>';
+        document.getElementById('expSubmitBtn').innerText = 'Save Changes';
+        toggleModal('logExpenseModal');
+    }
+
+    // Instant Search & Category Filter Logic
+    const searchInput = document.getElementById('expenseSearch');
+    const catFilter = document.getElementById('categoryFilter');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const catTerm = catFilter.value.toLowerCase();
+        const rows = document.querySelectorAll('#expensesTable tbody tr');
+
+        rows.forEach(row => {
+            const desc = row.querySelector('.transaction-desc').innerText.toLowerCase();
+            const cat = row.querySelector('.transaction-cat').innerText.toLowerCase();
+
+            const matchesSearch = desc.includes(searchTerm);
+            const matchesCat = catTerm === "" || cat === catTerm;
+
+            row.style.display = (matchesSearch && matchesCat) ? "" : "none";
+        });
+    }
+
+    searchInput.addEventListener('keyup', filterTable);
+    catFilter.addEventListener('change', filterTable);
+</script>

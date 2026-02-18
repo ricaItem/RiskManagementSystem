@@ -139,9 +139,21 @@
 
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Operations & Assets</div>
 
-                    <a href="/Client/Inventory" title="Inventory & Supplies" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory")">
-                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        <span class="sidebar-label whitespace-nowrap">Inventory & Expenses</span>
+                    @* <a href="@Url.Action("Index", "Inventory", new { area = "Client" })"
+                       title="Inventory"
+                       class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory/Index")">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <span class="sidebar-label whitespace-nowrap">Inventory</span>
+                    </a> *@
+                    <a href="@Url.Action("Expenses", "Inventory", new { area = "Client" })"
+                       title="Expenses"
+                       class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory/Expenses")">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <span class="sidebar-label whitespace-nowrap">Expenses</span>
                     </a>
 
                     <a href="/Client/Supplier/Index" title="Supplier Risk" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Supplier")">

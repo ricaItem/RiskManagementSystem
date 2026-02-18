@@ -1,4 +1,161 @@
-﻿@page
-@model WEB_Sentro.Areas.Client.Views.Inventory.IndexModel
+﻿@model IEnumerable<dynamic>
 @{
+    Layout = "_LayoutClient";
 }
+
+<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Stock <span class="text-emerald-600">Inventory</span></h1>
+        <button onclick="toggleModal('addMaterialModal')" class="bg-emerald-600 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+            + Add Material
+        </button>
+    </div>
+
+    <div class="flex gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <input type="text" placeholder="Search SKU or Material..." class="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none">
+        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none">
+            <option>All Status</option>
+            <option>In Stock</option>
+            <option>Low Stock</option>
+        </select>
+    </div>
+
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                    <th class="px-6 py-4">Item Details</th>
+                    <th class="px-6 py-4">Stock Level</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+                @foreach (var item in Model)
+                {
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all">
+                        <td class="px-6 py-5">
+                            <div class="font-black text-slate-900 dark:text-white">@item.Name</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase">SKU: @item.SKU</div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="text-sm font-black text-slate-700 dark:text-slate-200">@item.Stock <span class="text-[10px] font-bold text-slate-400 uppercase">@item.Unit</span></div>
+                            <div class="w-24 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1">
+                                <div class="h-full rounded-full @(item.Stock < item.MinLevel ? "bg-rose-500" : "bg-emerald-500")" style="width: @(Math.Min((item.Stock / (double)item.MinLevel) * 50, 100))%"></div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            @{
+                                var statusColor = item.Status == "In Stock" ? "emerald" : (item.Status == "Low Stock" ? "amber" : "rose");
+                            }
+                            <span class="px-2.5 py-1 rounded-lg bg-@statusColor-500/10 text-@statusColor-600 text-[10px] font-black uppercase">@item.Status</span>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <button onclick="openUpdateModal('@item.Name', '@item.SKU', '@item.Stock', '@item.MinLevel', '@item.Unit')"
+                                    class="text-slate-400 hover:text-emerald-500 font-bold text-[10px] uppercase transition-colors">
+                                Update
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="addMaterialModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal('addMaterialModal')"></div>
+
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Add <span class="text-emerald-600">Material</span></h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Warehouse Stock</p>
+                </div>
+                <button onclick="toggleModal('addMaterialModal')" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+
+            <form asp-action="UpdateMaterial" method="post" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">SKU / Serial</label>
+                        <input type="text" id="modalSKU" name="SKU" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700 outline-none" required />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Unit Type</label>
+                        <select id="modalUnit" name="Unit" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
+                            <option value="Bags">Bags</option>
+                            <option value="Pieces">Pieces</option>
+                            <option value="Units">Units</option>
+                            <option value="Kilos">Kilos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Material Name</label>
+                    <input type="text" id="modalName" name="Name" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Current Quantity</label>
+                        <input type="number" id="modalStock" name="Stock" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800" required />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Min. Level</label>
+                        <input type="number" id="modalMinLevel" name="MinLevel" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800" required />
+                    </div>
+                </div>
+
+                <button type="submit" id="modalSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg">Update Stock</button>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+
+
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        modal.classList.toggle('hidden');
+
+        // Reset the form and title if we are opening a "New" entry
+        if (modalId === 'addMaterialModal' && !modal.classList.contains('hidden')) {
+             // You can clear fields here if needed
+             document.querySelector('#addMaterialModal h2').innerHTML = 'Add <span class="text-emerald-600">Material</span>';
+             document.getElementById('modalSubmitBtn').innerText = 'Commit to Inventory';
+        }
+    }
+
+    function openUpdateModal(name, sku, stock, minLevel, unit) {
+        // 1. Fill the fields
+        document.getElementById('modalName').value = name;
+        document.getElementById('modalSKU').value = sku;
+        document.getElementById('modalStock').value = stock;
+        document.getElementById('modalMinLevel').value = minLevel;
+        document.getElementById('modalUnit').value = unit;
+
+        // 2. Change modal UI to "Update" mode
+        document.querySelector('#addMaterialModal h2').innerHTML = 'Update <span class="text-emerald-600">Stock</span>';
+        document.getElementById('modalSubmitBtn').innerText = 'Save Changes';
+
+        // 3. Open the modal
+        toggleModal('addMaterialModal');
+    }
+        document.querySelector('input[placeholder="Search SKU or Material..."]').addEventListener('keyup', function(e) {
+        const term = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+</script>
