@@ -1,7 +1,17 @@
-﻿@model IEnumerable<dynamic>
+@model IEnumerable<Web_Sentro.Areas.Client.Controllers.ArchivedEmployeeVm>
 @{
     Layout = "_LayoutClient";
     ViewData["Title"] = "System Archive";
+}
+
+@if (TempData["Alert"] != null)
+{
+    <div class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500">
+        <div class="bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="text-xs font-black uppercase tracking-widest">@TempData["Alert"]</span>
+        </div>
+    </div>
 }
 
 <div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
@@ -16,24 +26,20 @@
         </div>
     </div>
 
-
     <div class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-md mb-6">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-5 relative">
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2.5" stroke-linecap="round" /></svg>
                 </span>
-                <input type="text" id="logSearch" placeholder="Search by Category, Project Details..."
+                <input type="text" id="logSearch" placeholder="Search by Name, Email, Role..."
                        class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
             </div>
 
             <div class="md:col-span-3">
                 <select id="severityFilter" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Categories</option>
-                    <option value="success">Expense</option>
-                    <option value="warning">Employee</option>
-                    <option value="critical">Risk</option>
-                    <option value="critical">Supplier</option>
+                    <option value="Employee">Employee</option>
                 </select>
             </div>
 
@@ -53,10 +59,10 @@
         <table class="w-full text-left">
             <thead>
                 <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                    <th class="px-6 py-4">Original ID</th>
-                    <th class="px-6 py-4">Project & Details</th>
-                    <th class="px-6 py-4">Financials</th>
-                    <th class="px-6 py-4">Deleted On</th>
+                    <th class="px-6 py-4">Reference</th>
+                    <th class="px-6 py-4">Employee & Details</th>
+                    <th class="px-6 py-4">Role</th>
+                    <th class="px-6 py-4">Archived On</th>
                     <th class="px-6 py-4 text-right">Actions</th>
                 </tr>
             </thead>
@@ -74,52 +80,67 @@
                 }
                 @foreach (var item in Model)
                 {
-                    <tr class="hover:bg-rose-50/20 dark:hover:bg-rose-500/5 transition-all group">
+                    <tr class="archive-row hover:bg-rose-50/20 dark:hover:bg-rose-500/5 transition-all group" data-category="Employee">
                         <td class="px-6 py-5">
-                            <div class="text-[10px] font-black text-slate-400">#@item.Id</div>
-                            <div class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 w-fit">Expense</div>
+                            <div class="text-[10px] font-black text-slate-400">@(item.UserId.Length > 8 ? item.UserId.Substring(0, 8) + "…" : item.UserId)</div>
+                            <div class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 w-fit">@item.Module</div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="font-black text-slate-900 dark:text-white text-xs">@item.ProjectName</div>
-                            <div class="text-[10px] font-bold text-slate-400">@item.Vendor - @item.Description</div>
+                            <div class="font-black text-slate-900 dark:text-white text-xs">@item.Name</div>
+                            <div class="text-[10px] font-bold text-slate-400">@item.Email</div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="font-black text-slate-700 dark:text-slate-300">$@item.Amount.ToString("N2")</div>
+                            <div class="font-black text-slate-700 dark:text-slate-300 text-[10px] uppercase">@item.Role</div>
                         </td>
                         <td class="px-6 py-5 text-[11px] font-bold text-rose-500/70">
-                            @item.DeletedAt?.ToString("dd MMM yyyy, HH:mm")
+                            @item.CreatedAt.ToString("dd MMM yyyy")
                         </td>
                         <td class="px-6 py-5 text-right">
                             <div class="flex justify-end gap-2">
-                                <form asp-controller="Archive" asp-action="Restore" asp-route-id="@item.Id" method="post">
-                                    <button type="submit" class="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all">
-                                        Restore
-                                    </button>
-                                </form>
-
-                                <form asp-controller="Archive" asp-action="PermanentDelete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('WARNING: This action cannot be undone. Permanent delete?')">
-                                    <button type="submit" class="p-2 text-slate-300 hover:text-rose-600 transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr id="noResultsRow" style="display: none;">
-                        <td colspan="5" class="px-6 py-20 text-center">
-                            <div class="flex flex-col items-center opacity-20">
-                                <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <p class="text-xs font-black uppercase tracking-widest">No matching items found</p>
+                                <button type="button" class="btn-restore-archive bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                                        data-user-id="@item.UserId"
+                                        data-user-name="@item.Name">
+                                    Restore
+                                </button>
                             </div>
                         </td>
                     </tr>
                 }
+                <tr id="noResultsRow" style="display: none;">
+                    <td colspan="5" class="px-6 py-20 text-center">
+                        <div class="flex flex-col items-center opacity-20">
+                            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="text-xs font-black uppercase tracking-widest">No matching items found</p>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 </div>
+
+<!-- Restore confirmation modal -->
+<div id="restoreModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 border border-slate-200 dark:border-slate-800">
+        <h2 class="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase">Restore <span class="text-emerald-600">Employee</span></h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Restore <strong id="restoreModalName" class="text-slate-700 dark:text-slate-300"></strong>? They will reappear in Employee records with status <strong>Active</strong>.
+        </p>
+        <div class="flex gap-3">
+            <button type="button" id="restoreModalCancel" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Cancel</button>
+            <button type="button" id="restoreModalConfirm" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all">Confirm Restore</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for restore (submitted after confirmation) -->
+<form id="restoreForm" action="@Url.Action("RestoreEmployee", "Archive", new { area = "Client" })" method="post" class="hidden">
+    
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="restoreEmployeeId" />
+</form>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -128,26 +149,25 @@
         const dateFilter = document.getElementById('dateFilter');
         const noResultsRow = document.getElementById('noResultsRow');
 
-        const tableRows = document.querySelectorAll('tbody tr:not(#noResultsRow)');
+        const tableRows = document.querySelectorAll('tbody tr.archive-row');
 
         function filterTable() {
             const searchTerm = searchInput.value.toLowerCase();
-            const selectedCategory = categoryFilter.options[categoryFilter.selectedIndex].text.toLowerCase();
+            const selectedCategory = categoryFilter.value.toLowerCase();
             const selectedDate = dateFilter.value;
 
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                const categoryElement = row.querySelector('td:nth-child(1) div:last-child');
-                const category = categoryElement ? categoryElement.textContent.toLowerCase().trim() : "";
+                const category = (row.getAttribute('data-category') || '').toLowerCase();
+                const detailsCell = row.querySelector('td:nth-child(2)');
+                const roleCell = row.querySelector('td:nth-child(3)');
+                const searchableText = [detailsCell, roleCell].map(c => c ? c.textContent : '').join(' ').toLowerCase();
+                const archivedOn = row.querySelector('td:nth-child(4)') ? row.querySelector('td:nth-child(4)').textContent.trim() : '';
 
-                const projectDetails = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').textContent.toLowerCase() : "";
-
-                const deletedOn = row.querySelector('td:nth-child(4)') ? row.querySelector('td:nth-child(4)').textContent.trim() : "";
-
-                const matchesSearch = projectDetails.includes(searchTerm);
-                const matchesCategory = selectedCategory === "all categories" || category === selectedCategory;
-                const matchesDate = !selectedDate || formatDateToMatch(deletedOn).includes(selectedDate);
+                const matchesSearch = !searchTerm || searchableText.includes(searchTerm);
+                const matchesCategory = !selectedCategory || category === selectedCategory;
+                const matchesDate = !selectedDate || formatDateToMatch(archivedOn).includes(selectedDate);
 
                 if (matchesSearch && matchesCategory && matchesDate) {
                     row.style.display = '';
@@ -179,4 +199,30 @@
         const event = new Event('input');
         document.getElementById('logSearch').dispatchEvent(event);
     }
+
+    // Restore confirmation modal
+    function openRestoreModal(userId, userName) {
+        document.getElementById('restoreEmployeeId').value = userId;
+        document.getElementById('restoreModalName').textContent = userName || 'this employee';
+        const overlay = document.getElementById('restoreModalOverlay');
+        overlay.classList.remove('hidden');
+        setTimeout(function () { overlay.classList.add('opacity-100'); }, 10);
+    }
+
+    function closeRestoreModal() {
+        const overlay = document.getElementById('restoreModalOverlay');
+        overlay.classList.remove('opacity-100');
+        setTimeout(function () { overlay.classList.add('hidden'); }, 300);
+    }
+
+    document.querySelectorAll('.btn-restore-archive').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openRestoreModal(this.getAttribute('data-user-id'), this.getAttribute('data-user-name'));
+        });
+    });
+
+    document.getElementById('restoreModalCancel').addEventListener('click', closeRestoreModal);
+    document.getElementById('restoreModalConfirm').addEventListener('click', function () {
+        document.getElementById('restoreForm').submit();
+    });
 </script>
