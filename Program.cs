@@ -1,10 +1,11 @@
-﻿
+
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
+using WEB_Sentro.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +31,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.SignIn.RequireConfirmedAccount = false;
 })
 .AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
 // Force Session-Only Authentication
 builder.Services.ConfigureApplicationCookie(options =>
