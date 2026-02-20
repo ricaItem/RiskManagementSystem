@@ -13,9 +13,9 @@
 
 @if (TempData["Alert"] != null)
 {
-    <div class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500">
+    <div id="toastAlert" class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500" role="alert">
         <div class="bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
             <span class="text-xs font-black uppercase tracking-widest">@TempData["Alert"]</span>
         </div>
     </div>
@@ -36,19 +36,30 @@
 
     <div class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-md mb-6">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div class="md:col-span-6 relative">
+            <div class="md:col-span-4 relative">
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2.5" stroke-linecap="round" /></svg>
                 </span>
-                <input type="text" id="empSearch" placeholder="Search by Name or Role..."
-                       class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input type="text" id="empSearch" placeholder="Search by Name or Email..."
+                       class="w-full bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
             </div>
 
-            <div class="md:col-span-5">
-                <select id="statusFilter" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+            <div class="md:col-span-3">
+                <select id="roleFilter" class="w-full bg-white dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Roles</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Manager">Manager</option>
+                    <option value="ProcurementOfficer">Procurement Officer</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-3">
+                <select id="dateFilter" class="w-full bg-white dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All dates</option>
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
                 </select>
             </div>
 
@@ -65,47 +76,66 @@
             <thead>
                 <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                     <th class="px-6 py-4">Employee</th>
+                    <th class="px-6 py-4">Email</th>
                     <th class="px-6 py-4">Role</th>
+                    <th class="px-6 py-4">Added</th>
                     <th class="px-6 py-4 text-right">Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                @foreach (var emp in Model)
+                @if (Model != null && Model.Any())
                 {
-                    var empJson = System.Text.Json.JsonSerializer.Serialize(emp, jsonOptions);
-                    var initials = (emp.Name ?? "??");
-                    initials = initials.Length >= 2 ? initials.Substring(0, 2) : initials;
+                    @foreach (var emp in Model)
+                    {
+                        var empJson = System.Text.Json.JsonSerializer.Serialize(emp, jsonOptions);
+                        var initials = (emp.Name ?? "??");
+                        initials = initials.Length >= 2 ? initials.Substring(0, 2) : initials;
+                        var statusLower = (emp.Status ?? "").ToLower();
+                        var isActive = statusLower == "active";
 
-                    <tr onclick='openProfile(@Html.Raw(empJson))' class="hover:bg-slate-50/50 dark:hover:bg-blue-500/5 transition-all group emp-row cursor-pointer">
-                        <td class="px-6 py-5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[11px] font-black text-blue-600 uppercase">
-                                    @initials
+                        <tr onclick='openProfile(@Html.Raw(empJson))' class="hover:bg-slate-50/50 dark:hover:bg-blue-500/5 transition-all group emp-row cursor-pointer" data-added="@emp.CreatedAt.ToString("O")">
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase shrink-0">
+                                        @initials
+                                    </div>
+                                    <div class="text-xs font-black text-slate-900 dark:text-white emp-name min-w-0">@emp.Name</div>
                                 </div>
-                                <div>
-                                    <div class="text-xs font-black text-slate-900 dark:text-white emp-name">@emp.Name</div>
-                                    <div class="text-[10px] font-medium text-slate-400">@emp.Email</div>
-                                </div>
-                            </div>
-                        </td>
-
-                        <td class="px-6 py-5">
-                            <div class="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300 emp-role">@emp.Role</div>
-                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 emp-dept">N/A</span>
-                        </td>
-
-                        <td class="px-6 py-5 text-right">
-                            @{
-                                var statusLower = (emp.Status ?? "").ToLower();
-                                var sc = statusLower == "active" ? "emerald" : "rose";
-                                var icon = statusLower == "active" ? "✓" : "✕";
-                            }
-
-                            <button type="button" onclick="event.stopPropagation(); toggleStatus('@emp.UserId', '@emp.Status')" class="group relative focus:outline-none">
-                                <span class="emp-status inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-@sc-500/10 text-@sc-600 text-[9px] font-black uppercase tracking-tighter border border-@sc-500/20 hover:bg-@sc-500 hover:text-white transition-all">
-                                    <span class="text-[10px]">@icon</span> @emp.Status
-                                </span>
-                            </button>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="text-[10px] font-medium text-slate-600 dark:text-slate-400 emp-email">@emp.Email</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300 emp-role">@emp.Role</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400">@emp.CreatedAt.ToString("MMM d, yyyy")</span>
+                            </td>
+                            <td class="px-6 py-5 text-right">
+                                <button type="button" onclick="event.stopPropagation(); toggleStatus('@emp.UserId', '@emp.Status')" class="group relative focus:outline-none">
+                                    @if (isActive)
+                                    {
+                                        <span class="emp-status inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-tighter border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all">
+                                            <span class="text-[10px]">✓</span> @emp.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="emp-status inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-tighter border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all">
+                                            <span class="text-[10px]">✕</span> @emp.Status
+                                        </span>
+                                    }
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <p class="text-sm font-bold text-slate-500 dark:text-slate-400">No employee records yet.</p>
+                            <button type="button" onclick="openDeployModal()" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-all">Deploy Staff</button>
                         </td>
                     </tr>
                 }
@@ -130,26 +160,32 @@
             </div>
 
             <div class="space-y-5">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Full Name</label>
-                    <input type="text" name="name" required class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. Juan Dela Cruz">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">First name</label>
+                        <input type="text" name="firstName" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. Juan">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Last name</label>
+                        <input type="text" name="lastName" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. Dela Cruz">
+                    </div>
                 </div>
                 <div>
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Email Address</label>
-                    <input type="email" name="email" required class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="juan@sentro.com">
+                    <input type="email" name="email" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="juan@sentro.com">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Role</label>
-                        <select name="role" required class="w-full ...">
+                        <select name="role" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer">
                             <option value="Employee">Employee</option>
                             <option value="Manager">Manager</option>
-                            <option value="ProcurementOfficer">ProcurementOfficer</option>
+                            <option value="ProcurementOfficer">Procurement Officer</option>
                         </select>
                     </div>
                     <div>
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Department</label>
-                        <select name="department" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <select name="department" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer">
                             <option>Operations</option>
                             <option>Design</option>
                             <option>HSE</option>
@@ -168,22 +204,22 @@
     </div>
 </div>
 
-<!-- Status Modal (Archive) -->
+<!-- Status Modal (Archive / Deactivation protocol) -->
 <div id="statusModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 border border-slate-200">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 border border-slate-200 dark:border-slate-700">
         <form action="@Url.Action("UpdateStatus", "Employees", new { area = "Client" })" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="statusEmpId" />
             <input type="hidden" name="newStatus" value="Inactive" />
 
-            <h2 class="text-xl font-black text-slate-900 mb-2 uppercase italic">Deactivation <span class="text-rose-600">Protocol</span></h2>
-            <p class="text-xs text-slate-500 mb-6 font-bold uppercase tracking-tight">Please provide a reason for moving this record to archives.</p>
+            <h2 class="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase italic">Deactivation <span class="text-rose-500 dark:text-rose-400">Protocol</span></h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 font-bold uppercase tracking-tight">Please provide a reason for moving this record to archives.</p>
 
-            <textarea name="reason" required class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 outline-none mb-6" rows="4" placeholder="Termination, Resignation, End of Contract..."></textarea>
+            <textarea name="reason" required rows="4" placeholder="Termination, Resignation, End of Contract..." class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 text-slate-900 border border-transparent dark:border-slate-700 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 outline-none mb-6 resize-none"></textarea>
 
             <div class="flex gap-3">
-                <button type="button" onclick="closeStatusModal()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest">Cancel</button>
-                <button type="submit" class="flex-1 bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-rose-500/20">Archive Record</button>
+                <button type="button" onclick="closeStatusModal()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                <button type="submit" class="flex-1 bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-700 transition-colors">Archive Record</button>
             </div>
         </form>
     </div>
@@ -198,10 +234,10 @@
 </form>
 
 <!-- Side panel overlay -->
-<div id="sidePanelOverlay" onclick="closeProfile()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+<div id="sidePanelOverlay" onclick="closeProfile()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300"></div>
 
-<!-- Side panel -->
-<div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
+<!-- Side panel (z above layout sidebar so sidebar is covered when panel is open) -->
+<div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
     <div class="h-full flex flex-col p-8">
 
         <div class="flex justify-between items-start mb-8">
@@ -252,19 +288,20 @@
                 <input type="hidden" name="id" id="editId" />
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Full Name</label>
-                    <input type="text" name="name" id="editName" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="text" name="name" id="editName" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Work Email</label>
-                    <input type="email" name="email" id="editEmail" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="email" name="email" id="editEmail" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Role</label>
-                    <input type="text" name="role" id="editRole" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                </div>
-                <div>
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Bio</label>
-                    <textarea name="bio" id="editBio" rows="4" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"></textarea>
+                    <select name="role" id="editRole" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer">
+                        <option value="Admin">Admin</option>
+                        <option value="Employee">Employee</option>
+                        <option value="Manager">Manager</option>
+                        <option value="ProcurementOfficer">Procurement Officer</option>
+                    </select>
                 </div>
 
                 <div class="flex gap-3 pt-4">
@@ -285,28 +322,50 @@
 <script>
     let isEditMode = false;
     const searchInput = document.getElementById('empSearch');
-    const statusFilter = document.getElementById('statusFilter');
+    const roleFilter = document.getElementById('roleFilter');
+    const dateFilter = document.getElementById('dateFilter');
+
+    // Toast auto-dismiss after 4 seconds
+    (function () {
+        const toast = document.getElementById('toastAlert');
+        if (toast) {
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(function () {
+                toast.style.opacity = '0';
+                setTimeout(function () { toast.style.display = 'none'; }, 400);
+            }, 4000);
+        }
+    })();
 
     function filterEmployees() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const statusTerm = statusFilter.value.toLowerCase();
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const roleTerm = (roleFilter.value || "").toLowerCase();
+        const dateDays = dateFilter.value ? parseInt(dateFilter.value, 10) : 0;
+        const cutoff = dateDays > 0 ? new Date(Date.now() - dateDays * 24 * 60 * 60 * 1000) : null;
 
         document.querySelectorAll('.emp-row').forEach(row => {
-            const name = row.querySelector('.emp-name').innerText.toLowerCase();
-            const role = row.querySelector('.emp-role').innerText.toLowerCase();
-            const status = row.querySelector('.emp-status').innerText.toLowerCase();
-            const matchesSearch = name.includes(searchTerm) || role.includes(searchTerm);
-            const matchesStatus = statusTerm === "" || status.includes(statusTerm);
-            row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+            const name = (row.querySelector('.emp-name')?.innerText || "").toLowerCase();
+            const email = (row.querySelector('.emp-email')?.innerText || "").toLowerCase();
+            const role = (row.querySelector('.emp-role')?.innerText || "").toLowerCase();
+            const addedStr = row.getAttribute('data-added');
+            const addedDate = addedStr ? new Date(addedStr) : null;
+
+            const matchesSearch = !searchTerm || name.includes(searchTerm) || email.includes(searchTerm) || role.includes(searchTerm);
+            const matchesRole = !roleTerm || role === roleTerm || role.replace(/\s/g, '').toLowerCase() === roleTerm.replace(/\s/g, '').toLowerCase();
+            const matchesDate = !cutoff || (addedDate && addedDate >= cutoff);
+
+            row.style.display = (matchesSearch && matchesRole && matchesDate) ? "" : "none";
         });
     }
 
     searchInput.addEventListener('input', filterEmployees);
-    statusFilter.addEventListener('change', filterEmployees);
+    roleFilter.addEventListener('change', filterEmployees);
+    dateFilter.addEventListener('change', filterEmployees);
 
     function resetFilters() {
         searchInput.value = "";
-        statusFilter.value = "";
+        roleFilter.value = "";
+        dateFilter.value = "";
         filterEmployees();
     }
 
@@ -328,8 +387,13 @@
         document.getElementById('editId').value = emp.userId ?? emp.id ?? "";
         document.getElementById('editName').value = emp.name ?? "";
         document.getElementById('editEmail').value = emp.email ?? "";
-        document.getElementById('editRole').value = emp.role ?? "Employee";
-        document.getElementById('editBio').value = emp.bio ?? "";
+        var roleSelect = document.getElementById('editRole');
+        var roleVal = (emp.role || "Employee").trim();
+        if (roleSelect.querySelector('option[value="' + roleVal + '"]')) {
+            roleSelect.value = roleVal;
+        } else {
+            roleSelect.value = "Employee";
+        }
 
         const skillsContainer = document.getElementById('panelSkills');
         skillsContainer.innerHTML = '';

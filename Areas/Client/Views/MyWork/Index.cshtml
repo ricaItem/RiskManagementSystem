@@ -1,0 +1,105 @@
+@model WEB_Sentro.Areas.Client.Controllers.MyWorkDashboardViewModel
+@{
+    ViewData["Title"] = "My Work";
+    Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
+}
+
+<div class="space-y-6 animate-in fade-in duration-500 pb-12">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 class="text-2xl font-black text-slate-900 dark:text-white">My <span class="text-emerald-600">Work</span></h1>
+        <a href="/Client/Risks/Identification" class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-black text-white hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Report a risk
+        </a>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">My Open Risks</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.MyOpenRisksCount</h3>
+            <a href="/Client/MyWork/MyRisks" class="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline">View all</a>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">My Assigned Tasks</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.MyAssignedTasksCount</h3>
+            <a href="/Client/MyWork/MyTasks" class="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline">View all</a>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">My Pending Assessments</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.MyPendingAssessmentsCount</h3>
+            <a href="/Client/MyWork/MyAssessments" class="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline">View all</a>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">My Site Alerts</p>
+            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.MySiteAlertsCount</h3>
+            <p class="mt-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">Alerts for your sites</p>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-1 rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-4">My Tasks</h3>
+            @if (Model.MyTasks != null && Model.MyTasks.Any())
+            {
+                <ul class="space-y-2">
+                    @foreach (var t in Model.MyTasks.Take(5))
+                    {
+                        <li class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">@t.Title</span>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black @(t.Status == "ToDo" || (t.DueDate != default && t.DueDate < DateTime.UtcNow) ? "bg-rose-100 text-rose-600 dark:bg-rose-500/20" : "bg-slate-100 text-slate-600 dark:bg-slate-600")">@t.Status</span>
+                        </li>
+                    }
+                </ul>
+                <a href="/Client/MyWork/MyTasks" class="mt-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline block">View all tasks</a>
+            }
+            else
+            {
+                <p class="text-sm text-slate-500 dark:text-slate-400">No tasks assigned.</p>
+                <a href="/Client/Risks/Identification" class="mt-2 inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-emerald-700">Report a risk</a>
+            }
+        </div>
+
+        <div class="lg:col-span-1 rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-4">Assigned Assessments</h3>
+            @if (Model.AssignedAssessments != null && Model.AssignedAssessments.Any())
+            {
+                <ul class="space-y-2">
+                    @foreach (var a in Model.AssignedAssessments.Take(5))
+                    {
+                        <li class="py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <a href="/Client/Risks/Assess/@a.RiskId" class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 truncate block">@a.RiskTitle</a>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400">@a.Status</span>
+                        </li>
+                    }
+                </ul>
+                <a href="/Client/MyWork/MyAssessments" class="mt-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline block">View all</a>
+            }
+            else
+            {
+                <p class="text-sm text-slate-500 dark:text-slate-400">No assessments assigned to you.</p>
+            }
+        </div>
+
+        <div class="lg:col-span-1 rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-4">My Recent Risks</h3>
+            @if (Model.MyRecentRisks != null && Model.MyRecentRisks.Any())
+            {
+                <ul class="space-y-2">
+                    @foreach (var r in Model.MyRecentRisks.Take(5))
+                    {
+                        <li class="py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">@r.Title</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400">@r.Category · @r.Priority</span>
+                        </li>
+                    }
+                </ul>
+                <a href="/Client/MyWork/MyRisks" class="mt-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline block">View all risks</a>
+            }
+            else
+            {
+                <p class="text-sm text-slate-500 dark:text-slate-400">No risks yet.</p>
+                <a href="/Client/Risks/Identification" class="mt-2 inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-emerald-700">Report a risk</a>
+            }
+        </div>
+    </div>
+</div>

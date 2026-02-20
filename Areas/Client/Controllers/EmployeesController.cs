@@ -91,21 +91,19 @@ namespace Web_Sentro.Areas.Client.Controllers
         // This creates a NEW login account + assigns role + org id
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Deploy(string name, string email, string role, string department)
+        public async Task<IActionResult> Deploy(string firstName, string lastName, string email, string role, string department)
         {
-            // NOTE: you had "department" in UI, but ApplicationUser does not have Department.
-            // We will ignore department for now, unless you add it to ApplicationUser or make EmployeeProfile table.
-            TempData["Alert"] = "Deploy endpoint hit.";
-
-            if (string.IsNullOrWhiteSpace(name) ||
+            if (string.IsNullOrWhiteSpace(firstName) ||
                 string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(role))
             {
-                TempData["Alert"] = "Missing required fields.";
+                TempData["Alert"] = "Missing required fields (first name, email, role).";
                 return RedirectToAction(nameof(Index));
             }
 
             email = email.Trim().ToLowerInvariant();
+            var fName = firstName.Trim();
+            var lName = (lastName ?? "").Trim();
 
             var existing = await _userManager.FindByEmailAsync(email);
             if (existing != null)
@@ -113,10 +111,6 @@ namespace Web_Sentro.Areas.Client.Controllers
                 TempData["Alert"] = "Email is already used by another account.";
                 return RedirectToAction(nameof(Index));
             }
-
-            var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var firstName = parts.Length > 0 ? parts[0] : name.Trim();
-            var lastName = parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : "";
 
             var me = await GetMeAsync();
             if (me == null) return Challenge();
@@ -131,13 +125,13 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Email = email,
                 EmailConfirmed = true,
                 OrganizationId = orgId,
-                FirstName = firstName,
-                LastName = lastName,
+                FirstName = fName,
+                LastName = lName,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
-            // TEMP password ó you can change this to something generated.
+            // TEMP password ù you can change this to something generated.
             // If your UI collects password, pass it instead.
             var tempPassword = "Temp@12345"; // change later
             var createRes = await _userManager.CreateAsync(user, tempPassword);
@@ -166,8 +160,9 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await _userManager.AddToRoleAsync(user, role);
 
+            var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
             TempData["Alert"] =
-                $"Created employee account for {name}. Temporary password: {tempPassword}";
+                $"Created employee account for {displayName}. Temporary password: {tempPassword}";
 
             return RedirectToAction(nameof(Index));
         }

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
@@ -120,12 +120,19 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
             }
-            else if (roles.Contains("Admin"))
+            if (roles.Contains("Admin"))
             {
                 return LocalRedirect(Url.Content("~/Client/Dashboard"));
             }
+            if (roles.Contains("Employee"))
+            {
+                return LocalRedirect(Url.Content("~/Client/MyWork"));
+            }
 
-            return LocalRedirect(returnUrl);
+            // Manager, ProcurementOfficer, etc.: respect ReturnUrl if local; else default
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
+            return LocalRedirect(Url.Content("~/Client/Dashboard"));
         }
 
     }

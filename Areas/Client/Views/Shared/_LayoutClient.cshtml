@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,6 +71,15 @@
         .sidebar-collapsed .accordion-panel {
             display: none !important;
         }
+
+        /* Smooth appearance of main content on navigation (reduces "full refresh" feel) */
+        .main-content-wrap {
+            animation: mainContentFadeIn 0.25s ease-out;
+        }
+        @@keyframes mainContentFadeIn {
+            from { opacity: 0.6; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#020617] dark:text-white overflow-x-hidden">
@@ -80,8 +89,8 @@
         {
             var currentPath = Context.Request.Path.ToString();
             return currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)
-            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-            : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent";
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/15 border-emerald-500/20"
+                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent";
         }
     }
 
@@ -106,41 +115,67 @@
                 </div>
 
                 <nav class="space-y-1 pb-4 overflow-y-auto flex-1 custom-scrollbar">
-                    <a href="/Client/Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Dashboard")">
+                    @if (User.IsInRole("Employee"))
+                    {
+                        <div class="pt-0">
+                            <span class="sidebar-header-text sidebar-section-header px-4 text-slate-400">My Work</span>
+                            <div class="mt-1 space-y-1 pl-0">
+                                <a href="/Client/MyWork" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                                    <span class="sidebar-label">Dashboard</span>
+                                </a>
+                                <a href="/Client/MyWork/MyRisks" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyRisks")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    <span class="sidebar-label">My Risks</span>
+                                </a>
+                                <a href="/Client/MyWork/MyTasks" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyTasks")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                    <span class="sidebar-label">My Tasks</span>
+                                </a>
+                                <a href="/Client/MyWork/MyAssessments" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyAssessments")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    <span class="sidebar-label">My Assessments</span>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                    <a href="/Client/Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Dashboard")">
                         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                         <span class="sidebar-label">Dashboard</span>
                     </a>
 
                     <div class="pt-4">
                         <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-black border transition-all
-                                       text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
+                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
                                 onclick="toggleAccordion('rmAccordion')"
                                 aria-controls="rmAccordion"
                                 aria-expanded="false">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" />
                             </svg>
-                            <span class="sidebar-label whitespace-nowrap flex-1 text-left">Risk Management</span>
+                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Risk Management</span>
                             <svg id="rmChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
 
                         <div id="rmAccordion" class="accordion-panel mt-1 space-y-1 pl-2 hidden">
-                            <a href="/Client/Risks/Identification" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Identification")">
+                            <a href="/Client/Risks/Identification" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Identification")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                 <span class="sidebar-label">Risk Identification</span>
                             </a>
-                            <a href="/Client/Risks/Assess" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Assessment")">
+                            <a href="/Client/Risks/Assess" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Assess")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                 <span class="sidebar-label">Risk Assessment</span>
                             </a>
-                            <a href="/Client/Mitigation" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Mitigation")">
+                            <a href="/Client/Mitigation" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Mitigation")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                                 <span class="sidebar-label">Mitigation Planning</span>
                             </a>
-                            <a href="/Client/Risks/Monitoring" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Risks/Monitoring")">
+                            <a href="/Client/Risks/Monitoring" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Monitoring")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>
                                 <span class="sidebar-label">Risk Monitoring</span>
                             </a>
@@ -149,15 +184,15 @@
 
                     <div class="pt-4">
                         <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-black border transition-all
-                                       text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
+                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
                                 onclick="toggleAccordion('opsAccordion')"
                                 aria-controls="opsAccordion"
                                 aria-expanded="false">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
-                            <span class="sidebar-label whitespace-nowrap flex-1 text-left uppercase tracking-widest text-[10px]">Operations</span>
+                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Operations</span>
                             <svg id="opsChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
@@ -189,35 +224,36 @@
 
                     <div class="pt-4">
                         <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-black border transition-all
-                                       text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
+                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
                                 onclick="toggleAccordion('intelAccordion')"
                                 aria-controls="intelAccordion"
                                 aria-expanded="false">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
-                            <span class="sidebar-label whitespace-nowrap flex-1 text-left uppercase tracking-widest text-[10px]">Intelligence</span>
+                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Intelligence</span>
                             <svg id="intelChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
 
                         <div id="intelAccordion" class="accordion-panel mt-1 space-y-1 pl-2 hidden">
-                            <a href="/Client/Projects/Map" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Projects/Map")">
+                            <a href="/Client/Projects/Map" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 <span class="sidebar-label">Geolocation Hub</span>
                             </a>
-                            <a href="/Client/Weather" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Weather")">
+                            <a href="/Client/Weather" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Weather")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
                                 <span class="sidebar-label">Site Weather</span>
                             </a>
                         </div>
                     </div>
+                    }
                 </nav>
 
                 <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                    <button type="button" onclick="window.__toggleTheme()" class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <button type="button" onclick="window.__toggleTheme()" class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 sidebar-section-header text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
                         <span class="dark:hidden flex items-center gap-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg><span class="sidebar-label">Dark</span></span>
                         <span class="hidden dark:flex items-center gap-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="sidebar-label">Light</span></span>
                     </button>
@@ -225,7 +261,7 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-inherit content-transition">
+        <main class="main-content-wrap flex-1 flex flex-col min-w-0 bg-inherit content-transition">
             <header class="flex h-16 items-center justify-between border-b border-slate-200 px-4 md:px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30 sticky top-0 z-30">
                 <div class="flex items-center gap-4">
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
