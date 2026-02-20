@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
+    [Authorize]
     public class AuditController : Controller
     {
         // GET: /Client/Audit/Index

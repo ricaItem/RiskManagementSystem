@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
@@ -101,10 +101,19 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         }
 
 
-        public async Task OnGetAsync(string returnUrl = null)
+        public async Task<IActionResult> OnGetAsync(string returnUrl = null)
         {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                if (User.IsInRole("SuperAdmin")) return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
+                if (User.IsInRole("Admin")) return LocalRedirect(Url.Content("~/Client/Dashboard"));
+                if (User.IsInRole("Employee")) return LocalRedirect(Url.Content("~/Client/MyWork"));
+                return LocalRedirect(Url.Content("~/Client/Dashboard"));
+            }
+
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)

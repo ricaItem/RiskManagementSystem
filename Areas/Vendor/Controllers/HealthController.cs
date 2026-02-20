@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
-    [Area("Vendor")] 
+    [Area("Vendor")]
+    [Authorize(Roles = "SuperAdmin")]
     public class HealthController : Controller
     {
         public IActionResult Index()

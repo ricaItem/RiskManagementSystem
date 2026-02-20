@@ -55,8 +55,16 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             public bool RememberMe { get; set; }
         }
 
-        public async Task OnGetAsync(string returnUrl = null)
+        public async Task<IActionResult> OnGetAsync(string returnUrl = null)
         {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                if (User.IsInRole("SuperAdmin")) return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
+                if (User.IsInRole("Admin")) return LocalRedirect(Url.Content("~/Client/Dashboard"));
+                if (User.IsInRole("Employee")) return LocalRedirect(Url.Content("~/Client/MyWork"));
+                return LocalRedirect(Url.Content("~/Client/Dashboard"));
+            }
+
             if (!string.IsNullOrEmpty(ErrorMessage))
             {
                 ModelState.AddModelError(string.Empty, ErrorMessage);
@@ -69,6 +77,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
             ReturnUrl = returnUrl;
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
@@ -85,7 +94,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
 
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                ModelState.AddModelError(string.Empty, "Invalid credentials.");
                 return Page();
             }
 
@@ -104,7 +113,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                     return Page();
                 }
 
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                ModelState.AddModelError(string.Empty, "Invalid credentials.");
                 return Page();
             }
 

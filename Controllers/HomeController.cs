@@ -15,6 +15,13 @@ namespace WEB_Sentro.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                if (User.IsInRole("SuperAdmin")) return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
+                if (User.IsInRole("Admin")) return LocalRedirect(Url.Content("~/Client/Dashboard"));
+                if (User.IsInRole("Employee")) return LocalRedirect(Url.Content("~/Client/MyWork"));
+                return LocalRedirect(Url.Content("~/Client/Dashboard"));
+            }
             return View();
         }
         public IActionResult Privacy()

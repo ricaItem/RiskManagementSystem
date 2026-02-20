@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model LoginModel
 @{
     ViewData["Title"] = "Login";
@@ -15,7 +15,7 @@
 
         <div class="mx-auto w-full max-w-md">
             <div class="flex justify-center">
-                <a asp-controller="Home" asp-action="Index" class="flex flex-col items-center">
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="flex flex-col items-center">
                     <div class="flex items-center gap-3">
                         <img src="~/images/logo1.png"
                              alt="Sentro Logo"
@@ -36,10 +36,13 @@
             <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-lg ring-1 ring-slate-900/5
                         dark:border-slate-800 dark:bg-slate-900 dark:ring-white/10">
                 <form method="post" class="space-y-5">
-                    <div asp-validation-summary="ModelOnly"
-                         class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
-                                dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200">
-                    </div>
+                    @if (ViewData.ModelState[""]?.Errors?.Count > 0)
+                    {
+                        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
+                                    dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200" role="alert">
+                            <div asp-validation-summary="ModelOnly" class="[&>ul]:list-none [&>ul]:m-0 [&>ul]:p-0"></div>
+                        </div>
+                    }
 
                     <div>
                         <label asp-for="Input.Email" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>

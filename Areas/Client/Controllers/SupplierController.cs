@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Web_Sentro.Areas.Client.Models;
 
 [Area("Client")]
+[Authorize]
 public class SupplierController : Controller
 {
     public IActionResult Index()

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
@@ -40,11 +40,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 return LocalRedirect(returnUrl);
             }
-            else
-            {
-                // Redirect to the home page instead of just reloading the same page
-                return RedirectToPage("/Index");
-            }
+            return LocalRedirect(Url.Content("~/"));
         }
     }
 }
