@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Web_Sentro.Areas.Client.Models;
 
 [Area("Client")]
@@ -65,6 +65,7 @@ public class SupplierController : Controller
 
         // 2. Add a visual alert to the next page load
         TempData["Alert"] = "Dispute case filed successfully. Legal team notified.";
+        TempData["AlertType"] = "success";
 
         return RedirectToAction("Index");
     }

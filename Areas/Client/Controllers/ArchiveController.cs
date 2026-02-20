@@ -89,6 +89,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (string.IsNullOrWhiteSpace(id))
             {
                 TempData["Alert"] = "Invalid employee.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -96,6 +97,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -107,10 +109,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!updateRes.Succeeded)
             {
                 TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
             TempData["Alert"] = $"{target.FirstName} {target.LastName} has been restored and is active again.";
+            TempData["AlertType"] = "success";
             return RedirectToAction(nameof(Index));
         }
 

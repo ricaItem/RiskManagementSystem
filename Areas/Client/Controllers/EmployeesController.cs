@@ -98,6 +98,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 string.IsNullOrWhiteSpace(role))
             {
                 TempData["Alert"] = "Missing required fields (first name, email, role).";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -109,6 +110,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (existing != null)
             {
                 TempData["Alert"] = "Email is already used by another account.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -139,6 +141,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!createRes.Succeeded)
             {
                 TempData["Alert"] = string.Join(" | ", createRes.Errors.Select(e => e.Description));
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -153,6 +156,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (!allowed.Contains(role))
                 {
                     TempData["Alert"] = "You are not allowed to assign that role.";
+                    TempData["AlertType"] = "error";
                     await _userManager.DeleteAsync(user);
                     return RedirectToAction(nameof(Index));
                 }
@@ -163,6 +167,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
             TempData["Alert"] =
                 $"Created employee account for {displayName}. Temporary password: {tempPassword}";
+            TempData["AlertType"] = "success";
 
             return RedirectToAction(nameof(Index));
         }
@@ -177,6 +182,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (string.IsNullOrWhiteSpace(id))
             {
                 TempData["Alert"] = "Invalid employee.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -184,6 +190,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -208,6 +215,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (existing != null && existing.Id != target.Id)
                 {
                     TempData["Alert"] = "Email is already used by another account.";
+                    TempData["AlertType"] = "error";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -226,6 +234,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     if (!allowed.Contains(role))
                     {
                         TempData["Alert"] = "You are not allowed to assign that role.";
+                        TempData["AlertType"] = "error";
                         return RedirectToAction(nameof(Index));
                     }
                 }
@@ -245,10 +254,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!updateRes.Succeeded)
             {
                 TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
             TempData["Alert"] = "Employee updated successfully.";
+            TempData["AlertType"] = "success";
             return RedirectToAction(nameof(Index));
         }
 
@@ -261,6 +272,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (string.IsNullOrWhiteSpace(id))
             {
                 TempData["Alert"] = "Invalid employee.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -268,6 +280,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -289,10 +302,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!updateRes.Succeeded)
             {
                 TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
+                TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
             }
 
             TempData["Alert"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";
+            TempData["AlertType"] = "success";
             return RedirectToAction(nameof(Index));
         }
 
