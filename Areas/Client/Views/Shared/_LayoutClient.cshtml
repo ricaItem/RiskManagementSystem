@@ -5,9 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Sentro Client</title>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="~/js/theme.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -21,15 +23,18 @@
             }
         }
     </script>
+
     <style>
+        /* ============ Smooth layout transitions ============ */
         .sidebar-transition {
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 260ms cubic-bezier(0.4, 0, 0.2, 1), transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .content-transition {
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: margin-left 260ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* ============ Scrollbar ============ */
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
         }
@@ -47,6 +52,28 @@
             background: #334155;
         }
 
+        /* ============ Typography consistency (sidebar) ============ */
+        :root {
+            --sb-text-size: 12px; /* one size for ALL sidebar text */
+            --sb-font-weight: 700; /* one weight for ALL sidebar text */
+            --sb-tracking: 0.04em;
+        }
+
+        .sb-text {
+            font-size: var(--sb-text-size);
+            font-weight: var(--sb-font-weight);
+            letter-spacing: var(--sb-tracking);
+            line-height: 1.2rem;
+        }
+
+        .sb-section {
+            font-size: var(--sb-text-size);
+            font-weight: var(--sb-font-weight);
+            letter-spacing: var(--sb-tracking);
+            text-transform: uppercase;
+        }
+
+        /* ============ Sidebar collapsed behavior ============ */
         .sidebar-collapsed .sidebar-label,
         .sidebar-collapsed .sidebar-header-text {
             display: none;
@@ -72,25 +99,94 @@
             display: none !important;
         }
 
-        /* Smooth appearance of main content on navigation (reduces "full refresh" feel) */
+        /* ============ Menu item (active + hover) ============ */
+        .nav-item {
+            transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+            will-change: transform;
+        }
+
+            .nav-item:hover {
+                transform: translateY(-1px);
+            }
+
+            /* active indicator bar */
+            .nav-item.is-active {
+                position: relative;
+            }
+
+                .nav-item.is-active::before {
+                    content: "";
+                    position: absolute;
+                    left: 8px;
+                    top: 10px;
+                    bottom: 10px;
+                    width: 3px;
+                    border-radius: 999px;
+                    background: currentColor;
+                    opacity: .9;
+                }
+
+        /* ============ Accordion smooth open/close ============ */
+        .accordion-panel {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: max-height 220ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease, transform 180ms ease;
+        }
+
+            .accordion-panel.is-open {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
         .main-content-wrap {
-            animation: mainContentFadeIn 0.25s ease-out;
+            animation: mainContentFadeIn 220ms ease-out;
         }
         @@keyframes mainContentFadeIn {
-            from { opacity: 0.6; }
-            to { opacity: 1; }
+            from
+
+        {
+            opacity: .65;
+        }
+
+        to {
+            opacity: 1;
+        }
+
+        }
+
+        .nav-leaving .main-content-wrap {
+            opacity: .65;
+            transition: opacity 140ms ease;
+        }
+
+        /* ============ Better focus ring ============ */
+        .focus-ring:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, .25);
         }
     </style>
 </head>
+
 <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#020617] dark:text-white overflow-x-hidden">
 
     @{
         string IsActive(string path)
         {
             var currentPath = Context.Request.Path.ToString();
-            return currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/15 border-emerald-500/20"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent";
+
+            var isActive = currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+
+            return isActive
+            ? "is-active bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/15 border-emerald-500/20"
+            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent";
+        }
+
+        string IsGroupActive(params string[] prefixes)
+        {
+            var p = Context.Request.Path.ToString();
+            return prefixes.Any(x => p.StartsWith(x, StringComparison.OrdinalIgnoreCase)) ? "true" : "false";
         }
     }
 
@@ -99,13 +195,15 @@
     <div class="flex min-h-screen relative">
         <aside id="mainSidebar"
                class="sidebar-transition fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white/80 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80
-                      w-sidebar-expanded -translate-x-full md:translate-x-0 md:sticky md:top-0 md:h-screen">
+                  w-sidebar-expanded -translate-x-full md:translate-x-0 md:sticky md:top-0 md:h-screen">
 
             <button onclick="toggleSidebar()"
-                    class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800 transition-transform"
-                    id="sidebarToggleBtn">
+                    class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800 transition-transform focus-ring"
+                    id="sidebarToggleBtn" type="button">
                 <span class="text-[10px]" id="toggleIcon">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path>
+                    </svg>
                 </span>
             </button>
 
@@ -115,25 +213,42 @@
                 </div>
 
                 <nav class="space-y-1 pb-4 overflow-y-auto flex-1 custom-scrollbar">
+
                     @if (User.IsInRole("Employee"))
                     {
                         <div class="pt-0">
-                            <span class="sidebar-header-text sidebar-section-header px-4 text-slate-400">My Work</span>
+                            <span class="sidebar-header-text sb-section px-4 text-slate-400">My Work</span>
+
                             <div class="mt-1 space-y-1 pl-0">
-                                <a href="/Client/MyWork" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                                <a data-nav href="/Client/MyWork"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                    </svg>
                                     <span class="sidebar-label">Dashboard</span>
                                 </a>
-                                <a href="/Client/MyWork/MyRisks" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyRisks")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+
+                                <a data-nav href="/Client/MyWork/MyRisks"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyRisks")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
                                     <span class="sidebar-label">My Risks</span>
                                 </a>
-                                <a href="/Client/MyWork/MyTasks" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyTasks")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+
+                                <a data-nav href="/Client/MyWork/MyTasks"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyTasks")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                    </svg>
                                     <span class="sidebar-label">My Tasks</span>
                                 </a>
-                                <a href="/Client/MyWork/MyAssessments" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyAssessments")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+
+                                <a data-nav href="/Client/MyWork/MyAssessments"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/MyWork/MyAssessments")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
                                     <span class="sidebar-label">My Assessments</span>
                                 </a>
                             </div>
@@ -141,121 +256,180 @@
                     }
                     else
                     {
-                    <a href="/Client/Dashboard" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Dashboard")">
-                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                        <span class="sidebar-label">Dashboard</span>
-                    </a>
-
-                    <div class="pt-4">
-                        <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
-                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
-                                onclick="toggleAccordion('rmAccordion')"
-                                aria-controls="rmAccordion"
-                                aria-expanded="false">
+                        <a data-nav href="/Client/Dashboard"
+                           class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Dashboard")">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                             </svg>
-                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Risk Management</span>
-                            <svg id="rmChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
+                            <span class="sidebar-label">Dashboard</span>
+                        </a>
 
-                        <div id="rmAccordion" class="accordion-panel mt-1 space-y-1 pl-2 hidden">
-                            <a href="/Client/Risks/Identification" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Identification")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                <span class="sidebar-label">Risk Identification</span>
+                        <!-- Risk Management Accordion -->
+                        <div class="pt-4">
+                            <button type="button"
+                                    class="sidebar-nav-item nav-item sb-text focus-ring w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                    onclick="toggleAccordion('rmAccordion')"
+                                    aria-controls="rmAccordion"
+                                    aria-expanded="false"
+                                    data-acc-btn="rmAccordion">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" />
+                                </svg>
+                                <span class="sidebar-label sb-section whitespace-nowrap flex-1 text-left text-slate-400">Risk Management</span>
+                                <svg id="rmChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+
+                            <div id="rmAccordion" class="accordion-panel mt-1 space-y-1 pl-2">
+                                <a data-nav href="/Client/Risks/Identification"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Identification")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <span class="sidebar-label">Risk Identification</span>
+                                </a>
+
+                                <a data-nav href="/Client/Risks/Assess"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Assess")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span class="sidebar-label">Risk Assessment</span>
+                                </a>
+
+                                <a data-nav href="/Client/Mitigation"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Mitigation")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    <span class="sidebar-label">Mitigation Planning</span>
+                                </a>
+
+                                <a data-nav href="/Client/Risks/Monitoring"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Monitoring")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                    </svg>
+                                    <span class="sidebar-label">Risk Monitoring</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Operations Accordion -->
+                        <div class="pt-4">
+                            <button type="button"
+                                    class="sidebar-nav-item nav-item sb-text focus-ring w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                    onclick="toggleAccordion('opsAccordion')"
+                                    aria-controls="opsAccordion"
+                                    aria-expanded="false"
+                                    data-acc-btn="opsAccordion">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                <span class="sidebar-label sb-section whitespace-nowrap flex-1 text-left text-slate-400">Operations</span>
+                                <svg id="opsChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+
+                            <div id="opsAccordion" class="accordion-panel mt-1 space-y-1 pl-2">
+                                <a data-nav href="@Url.Action("Index", "Archive", new { area = "Client" })"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Archive")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <span class="sidebar-label">Archive</span>
+                                </a>
+
+                                <a data-nav href="@Url.Action("Index", "Audit", new { area = "Client" })"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Audit")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <span class="sidebar-label">Audit</span>
+                                </a>
+                            </div>
+
+                            <a data-nav href="@Url.Action("Index", "Employees", new { area = "Client" })"
+                               class="mt-1 sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Employees")">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M8 7a4 4 0 108 0 4 4 0 00-8 0zm13 14v-2a4 4 0 00-3-3.87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span class="sidebar-label">Employee</span>
                             </a>
-                            <a href="/Client/Risks/Assess" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Assess")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                <span class="sidebar-label">Risk Assessment</span>
+
+                            <a data-nav href="@Url.Action("Expenses", "Inventory", new { area = "Client" })"
+                               class="mt-1 sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Inventory/Expenses")">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span class="sidebar-label">Expenses</span>
                             </a>
-                            <a href="/Client/Mitigation" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Mitigation")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                <span class="sidebar-label">Mitigation Planning</span>
-                            </a>
-                            <a href="/Client/Risks/Monitoring" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Risks/Monitoring")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>
-                                <span class="sidebar-label">Risk Monitoring</span>
+
+                            <a data-nav href="/Client/Supplier/Index"
+                               class="mt-1 sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Supplier")">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <span class="sidebar-label">Supplier Risk</span>
                             </a>
                         </div>
-                    </div>
 
-                    <div class="pt-4">
-                        <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
-                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
-                                onclick="toggleAccordion('opsAccordion')"
-                                aria-controls="opsAccordion"
-                                aria-expanded="false">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Operations</span>
-                            <svg id="opsChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
+                        <!-- Intelligence Accordion -->
+                        <div class="pt-4">
+                            <button type="button"
+                                    class="sidebar-nav-item nav-item sb-text focus-ring w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
+                                    onclick="toggleAccordion('intelAccordion')"
+                                    aria-controls="intelAccordion"
+                                    aria-expanded="false"
+                                    data-acc-btn="intelAccordion">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                <span class="sidebar-label sb-section whitespace-nowrap flex-1 text-left text-slate-400">Intelligence</span>
+                                <svg id="intelChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
 
-                        <div id="opsAccordion" class="accordion-panel mt-1 space-y-1 pl-2 hidden">
-                            <a href="@Url.Action("Index", "Archive", new { area = "Client" })" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Archive/Index")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                                <span class="sidebar-label">Archive</span>
-                            </a>
-                            <a href="@Url.Action("Index", "Audit", new { area = "Client" })" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Audit/Index")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                                <span class="sidebar-label">Audit</span>
-                            </a>
+                            <div id="intelAccordion" class="accordion-panel mt-1 space-y-1 pl-2">
+                                <a data-nav href="/Client/Projects/Map"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span class="sidebar-label">Geolocation Hub</span>
+                                </a>
+
+                                <a data-nav href="/Client/Weather"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Weather")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                                    </svg>
+                                    <span class="sidebar-label">Site Weather</span>
+                                </a>
+                            </div>
                         </div>
-                        <a href="@Url.Action("Index", "Employees", new { area = "Client" })" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Employees/Index")">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                            <span class="sidebar-label">Employee</span>
-                        </a>
-                        <a href="@Url.Action("Expenses", "Inventory", new { area = "Client" })" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Inventory/Expenses")">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                            <span class="sidebar-label">Expenses</span>
-                        </a>
-                        <a href="/Client/Supplier/Index" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold border transition-all @IsActive("/Client/Supplier")">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            <span class="sidebar-label">Supplier Risk</span>
-                        </a>
-                    </div>
-
-                    <div class="pt-4">
-                        <button type="button"
-                                class="sidebar-nav-item w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border
-                                       text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent"
-                                onclick="toggleAccordion('intelAccordion')"
-                                aria-controls="intelAccordion"
-                                aria-expanded="false">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            <span class="sidebar-label sidebar-section-header whitespace-nowrap flex-1 text-left text-slate-400">Intelligence</span>
-                            <svg id="intelChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
-
-                        <div id="intelAccordion" class="accordion-panel mt-1 space-y-1 pl-2 hidden">
-                            <a href="/Client/Projects/Map" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                <span class="sidebar-label">Geolocation Hub</span>
-                            </a>
-                            <a href="/Client/Weather" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Weather")">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-                                <span class="sidebar-label">Site Weather</span>
-                            </a>
-                        </div>
-                    </div>
                     }
                 </nav>
 
                 <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                    <button type="button" onclick="window.__toggleTheme()" class="sidebar-nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 sidebar-section-header text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="dark:hidden flex items-center gap-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg><span class="sidebar-label">Dark</span></span>
-                        <span class="hidden dark:flex items-center gap-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="sidebar-label">Light</span></span>
+                    <button type="button" onclick="window.__toggleTheme()"
+                            class="sidebar-nav-item nav-item sb-text focus-ring flex w-full items-center gap-3 rounded-xl px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <span class="dark:hidden flex items-center gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                            <span class="sidebar-label">Dark</span>
+                        </span>
+                        <span class="hidden dark:flex items-center gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span class="sidebar-label">Light</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -264,8 +438,10 @@
         <main class="main-content-wrap flex-1 flex flex-col min-w-0 bg-inherit content-transition">
             <header class="flex h-16 items-center justify-between border-b border-slate-200 px-4 md:px-8 bg-white/30 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/30 sticky top-0 z-30">
                 <div class="flex items-center gap-4">
-                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300 focus-ring rounded-lg" type="button">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
                     </button>
                     <div class="text-xs font-bold text-slate-500 uppercase tracking-widest truncate">
                         Client Portal / <span class="text-slate-900 dark:text-white">@ViewData["Title"]</span>
@@ -273,7 +449,7 @@
                 </div>
 
                 <div class="relative">
-                    <button onclick="toggleUserDropdown()" id="userDropdownBtn" class="flex items-center gap-4 hover:opacity-80 transition-opacity focus:outline-none group">
+                    <button onclick="toggleUserDropdown()" id="userDropdownBtn" class="flex items-center gap-4 hover:opacity-80 transition-opacity focus:outline-none group focus-ring rounded-xl p-1" type="button">
                         <div class="hidden sm:flex flex-col items-end mr-2">
                             <span class="text-xs font-bold">Client User</span>
                             <span class="text-[10px] text-emerald-600 font-bold uppercase">Organization Member</span>
@@ -284,13 +460,18 @@
                     </button>
 
                     <div id="userDropdown" class="absolute right-0 mt-3 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-900 hidden animate-in fade-in zoom-in duration-200">
-                        <a href="/Client/Account" class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <a data-nav href="/Client/Account" class="sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
                             My Account
                         </a>
                         <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
-                        <button type="button" onclick="openLogoutModal()" class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <button type="button" onclick="openLogoutModal()"
+                                class="sb-text focus-ring flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
                             Logout
                         </button>
                     </div>
@@ -303,19 +484,22 @@
         </main>
     </div>
 
+    <!-- Logout modal -->
     <div id="logoutModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
         <div class="relative w-full max-w-sm rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in duration-200">
             <div class="text-center">
                 <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/10">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
                 </div>
                 <h3 class="text-lg font-black text-slate-900 dark:text-white">Signing Out?</h3>
                 <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">Are you sure you want to end your session?</p>
             </div>
             <div class="mt-8 flex flex-col gap-3">
-                <button onclick="confirmLogout()" class="w-full rounded-2xl bg-rose-500 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-rose-600">Yes, Sign Me Out</button>
-                <button onclick="closeLogoutModal()" class="w-full rounded-2xl border border-slate-200 py-4 text-xs font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400">Cancel</button>
+                <button onclick="confirmLogout()" class="w-full rounded-2xl bg-rose-500 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-rose-600 focus-ring" type="button">Yes, Sign Me Out</button>
+                <button onclick="closeLogoutModal()" class="w-full rounded-2xl border border-slate-200 py-4 text-xs font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 focus-ring" type="button">Cancel</button>
             </div>
         </div>
     </div>
@@ -331,20 +515,30 @@
         const toggleIcon = document.getElementById('toggleIcon');
         const dropdown = document.getElementById('userDropdown');
 
+        // ===== Accordion: open/close with smooth height =====
+        function measurePanel(panel) {
+            panel.style.maxHeight = 'none';
+            const h = panel.scrollHeight;
+            panel.style.maxHeight = '';
+            return h;
+        }
+
         function setAccordionOpen(id, open) {
             const panel = document.getElementById(id);
             if (!panel) return;
 
             const chevronId = id.replace('Accordion', 'Chevron');
             const chevron = document.getElementById(chevronId);
-            const btn = document.querySelector(`[aria-controls="${id}"]`);
+            const btn = document.querySelector(`[data-acc-btn="${id}"]`);
 
             if (open) {
-                panel.classList.remove('hidden');
+                panel.classList.add('is-open');
+                panel.style.maxHeight = measurePanel(panel) + 'px';
                 if (chevron) chevron.classList.add('rotate-90');
                 if (btn) btn.setAttribute('aria-expanded', 'true');
             } else {
-                panel.classList.add('hidden');
+                panel.classList.remove('is-open');
+                panel.style.maxHeight = '0px';
                 if (chevron) chevron.classList.remove('rotate-90');
                 if (btn) btn.setAttribute('aria-expanded', 'false');
             }
@@ -356,19 +550,19 @@
 
             if (sidebar.classList.contains('sidebar-collapsed')) return;
 
-            const willOpen = panel.classList.contains('hidden');
+            const willOpen = !panel.classList.contains('is-open');
             setAccordionOpen(id, willOpen);
         }
 
-               function toggleSidebar() {
+        function toggleSidebar() {
             const isMobile = window.innerWidth < 768;
             if (isMobile) {
                 sidebar.classList.toggle('-translate-x-full');
                 overlay.classList.toggle('hidden');
             } else {
-                const isCurrentlyExpanded = sidebar.classList.contains('w-sidebar-expanded');
+                const isExpanded = sidebar.classList.contains('w-sidebar-expanded');
 
-                if (isCurrentlyExpanded) {
+                if (isExpanded) {
                     sidebar.classList.remove('w-sidebar-expanded');
                     sidebar.classList.add('w-sidebar-collapsed', 'sidebar-collapsed');
                     toggleIcon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
@@ -380,10 +574,16 @@
                     sidebar.classList.remove('w-sidebar-collapsed', 'sidebar-collapsed');
                     sidebar.classList.add('w-sidebar-expanded');
                     toggleIcon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
+
+                    ['rmAccordion', 'opsAccordion', 'intelAccordion'].forEach(id => {
+                        const p = document.getElementById(id);
+                        if (p && p.classList.contains('is-open')) p.style.maxHeight = measurePanel(p) + 'px';
+                    });
                 }
             }
         }
 
+        // ===== User dropdown =====
         function toggleUserDropdown() {
             dropdown?.classList.toggle('hidden');
         }
@@ -403,20 +603,43 @@
             document.getElementById('clientLogoutForm').submit();
         }
 
-             document.addEventListener('DOMContentLoaded', () => {
+        function enableSoftNav() {
+            const links = document.querySelectorAll('a[data-nav]');
+            links.forEach(a => {
+                a.addEventListener('click', (e) => {
+                    if (e.defaultPrevented) return;
+                    if (e.button !== 0) return; 
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    const href = a.getAttribute('href');
+                    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+                    const current = window.location.pathname.toLowerCase();
+                    const targetPath = new URL(href, window.location.origin).pathname.toLowerCase();
+                    if (current === targetPath) { e.preventDefault(); return; }
+
+                    document.documentElement.classList.add('nav-leaving');
+                }, { passive: true });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            enableSoftNav();
+
             const path = window.location.pathname.toLowerCase();
             const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
 
             if (!isCollapsed) {
-                if (path.startsWith('/client/risks') || path.startsWith('/client/mitigation')) {
-                    setAccordionOpen('rmAccordion', true);
-                }
-                if (path.startsWith('/client/archive') || path.startsWith('/client/audit')) {
-                    setAccordionOpen('opsAccordion', true);
-                }
-                if (path.startsWith('/client/projects') || path.startsWith('/client/weather')) {
-                    setAccordionOpen('intelAccordion', true);
-                }
+                const rmActive = (path.startsWith('/client/risks') || path.startsWith('/client/mitigation'));
+                const opsActive = (path.startsWith('/client/archive') || path.startsWith('/client/audit'));
+                const intelActive = (path.startsWith('/client/projects') || path.startsWith('/client/weather'));
+
+                setAccordionOpen('rmAccordion', rmActive);
+                setAccordionOpen('opsAccordion', opsActive);
+                setAccordionOpen('intelAccordion', intelActive);
+            } else {
+                setAccordionOpen('rmAccordion', false);
+                setAccordionOpen('opsAccordion', false);
+                setAccordionOpen('intelAccordion', false);
             }
         });
 
@@ -426,7 +649,17 @@
                 dropdown.classList.add('hidden');
             }
         });
+
+        window.addEventListener('resize', () => {
+            ['rmAccordion', 'opsAccordion', 'intelAccordion'].forEach(id => {
+                const p = document.getElementById(id);
+                if (p && p.classList.contains('is-open') && !sidebar.classList.contains('sidebar-collapsed')) {
+                    p.style.maxHeight = measurePanel(p) + 'px';
+                }
+            });
+        });
     </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
