@@ -50,6 +50,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("VendorOnly", p => p.RequireRole("SuperAdmin"));
+    options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
+});
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();

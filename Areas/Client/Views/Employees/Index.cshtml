@@ -1,7 +1,14 @@
-@model IEnumerable<dynamic>
+@using Web_Sentro.Areas.Client.Controllers
+@model IEnumerable<EmployeeRowVm>
+
 @{
     Layout = "_LayoutClient";
     ViewData["Title"] = "Workforce Directory";
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
 }
 
 @if (TempData["Alert"] != null)
@@ -33,7 +40,7 @@
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2.5" stroke-linecap="round" /></svg>
                 </span>
-                <input type="text" id="empSearch" placeholder="Search by Name, Role, or Department..."
+                <input type="text" id="empSearch" placeholder="Search by Name or Role..."
                        class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
             </div>
 
@@ -41,8 +48,7 @@
                 <select id="statusFilter" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
-                    <option value="warning">Warning (Performance)</option>
-                    <option value="critical">Critical (Inactive)</option>
+                    <option value="inactive">Inactive</option>
                 </select>
             </div>
 
@@ -59,20 +65,22 @@
             <thead>
                 <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                     <th class="px-6 py-4">Employee</th>
-                    <th class="px-6 py-4">Position</th>
-                    <th class="px-6 py-4">Performance</th>
-                    <th class="px-6 py-4">Utilization</th>
+                    <th class="px-6 py-4">Role</th>
                     <th class="px-6 py-4 text-right">Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
                 @foreach (var emp in Model)
                 {
-                    <tr onclick='openProfile(@Json.Serialize(emp))' class="hover:bg-slate-50/50 dark:hover:bg-blue-500/5 transition-all group emp-row cursor-pointer">
+                    var empJson = System.Text.Json.JsonSerializer.Serialize(emp, jsonOptions);
+                    var initials = (emp.Name ?? "??");
+                    initials = initials.Length >= 2 ? initials.Substring(0, 2) : initials;
+
+                    <tr onclick='openProfile(@Html.Raw(empJson))' class="hover:bg-slate-50/50 dark:hover:bg-blue-500/5 transition-all group emp-row cursor-pointer">
                         <td class="px-6 py-5">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[11px] font-black text-blue-600 uppercase">
-                                    @emp.Name.Substring(0, 2)
+                                    @initials
                                 </div>
                                 <div>
                                     <div class="text-xs font-black text-slate-900 dark:text-white emp-name">@emp.Name</div>
@@ -80,31 +88,20 @@
                                 </div>
                             </div>
                         </td>
+
                         <td class="px-6 py-5">
                             <div class="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300 emp-role">@emp.Role</div>
-                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 emp-dept">@emp.Department</span>
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 emp-dept">N/A</span>
                         </td>
-                        <td class="px-6 py-5">
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden max-w-[80px]">
-                                    @{
-                                        var barColor = emp.Performance > 80 ? "bg-emerald-500" : (emp.Performance > 50 ? "bg-amber-500" : "bg-rose-500");
-                                    }
-                                    <div class="h-full @barColor" style="width: @emp.Performance%"></div>
-                                </div>
-                                <span class="text-[10px] font-black text-slate-900 dark:text-white">@emp.Performance%</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-5">
-                            <div class="text-xs font-bold text-slate-700 dark:text-slate-200">@emp.Utilization</div>
-                            <p class="text-[9px] text-slate-400 uppercase font-black tracking-tighter">Capacity</p>
-                        </td>
+
                         <td class="px-6 py-5 text-right">
                             @{
-                                var sc = emp.Status.ToLower() == "active" ? "emerald" : (emp.Status.ToLower() == "warning" ? "amber" : "rose");
-                                var icon = emp.Status.ToLower() == "active" ? "✓" : (emp.Status.ToLower() == "warning" ? "!" : "✕");
+                                var statusLower = (emp.Status ?? "").ToLower();
+                                var sc = statusLower == "active" ? "emerald" : "rose";
+                                var icon = statusLower == "active" ? "✓" : "✕";
                             }
-                            <button onclick="toggleStatus(@emp.Id, '@emp.Status')" class="group relative focus:outline-none">
+
+                            <button type="button" onclick="event.stopPropagation(); toggleStatus('@emp.UserId', '@emp.Status')" class="group relative focus:outline-none">
                                 <span class="emp-status inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-@sc-500/10 text-@sc-600 text-[9px] font-black uppercase tracking-tighter border border-@sc-500/20 hover:bg-@sc-500 hover:text-white transition-all">
                                     <span class="text-[10px]">@icon</span> @emp.Status
                                 </span>
@@ -116,10 +113,11 @@
         </table>
     </div>
 </div>
-    
+
+<!-- Deploy Modal -->
 <div id="deployModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300" id="deployModal">
-        <form asp-action="Deploy" method="post" class="p-10">
+        <form action="@Url.Action("Deploy", "Employees", new { area = "Client" })" method="post" class="p-10">
             @Html.AntiForgeryToken()
             <div class="flex justify-between items-center mb-8">
                 <div>
@@ -143,7 +141,11 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Role</label>
-                        <input type="text" name="role" required class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. Engineer">
+                        <select name="role" required class="w-full ...">
+                            <option value="Employee">Employee</option>
+                            <option value="Manager">Manager</option>
+                            <option value="ProcurementOfficer">ProcurementOfficer</option>
+                        </select>
                     </div>
                     <div>
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">Department</label>
@@ -166,9 +168,11 @@
     </div>
 </div>
 
+<!-- Status Modal (Archive) -->
 <div id="statusModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 border border-slate-200">
-        <form asp-action="UpdateStatus" method="post">
+        <form action="@Url.Action("UpdateStatus", "Employees", new { area = "Client" })" method="post">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="statusEmpId" />
             <input type="hidden" name="newStatus" value="Inactive" />
 
@@ -185,8 +189,18 @@
     </div>
 </div>
 
+<!-- Reactivate hidden form (POST + antiforgery) -->
+<form id="reactivateForm" action="@Url.Action("UpdateStatus", "Employees", new { area = "Client" })" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="reactivateId" />
+    <input type="hidden" name="newStatus" value="Active" />
+    <input type="hidden" name="reason" value="Reactivation" />
+</form>
+
+<!-- Side panel overlay -->
 <div id="sidePanelOverlay" onclick="closeProfile()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
 
+<!-- Side panel -->
 <div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
     <div class="h-full flex flex-col p-8">
 
@@ -233,7 +247,8 @@
                 </div>
             </div>
 
-            <form id="editMode" asp-action="UpdateEmployee" method="post" class="hidden space-y-4">
+            <form id="editMode" action="@Url.Action("UpdateEmployee", "Employees", new { area = "Client" })" method="post" class="hidden space-y-4">
+                @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="editId" />
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Full Name</label>
@@ -260,7 +275,7 @@
         </div>
 
         <div id="panelFooter" class="mt-auto pt-8">
-            <button class="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
+            <button type="button" class="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
                 Generate Performance Report
             </button>
         </div>
@@ -271,13 +286,12 @@
     let isEditMode = false;
     const searchInput = document.getElementById('empSearch');
     const statusFilter = document.getElementById('statusFilter');
-    const rows = document.querySelectorAll('.emp-row');
 
     function filterEmployees() {
         const searchTerm = searchInput.value.toLowerCase();
         const statusTerm = statusFilter.value.toLowerCase();
 
-        rows.forEach(row => {
+        document.querySelectorAll('.emp-row').forEach(row => {
             const name = row.querySelector('.emp-name').innerText.toLowerCase();
             const role = row.querySelector('.emp-role').innerText.toLowerCase();
             const status = row.querySelector('.emp-status').innerText.toLowerCase();
@@ -296,7 +310,7 @@
         filterEmployees();
     }
 
-           function openProfile(emp) {
+    function openProfile(emp) {
         isEditMode = false;
         document.getElementById('viewMode').classList.remove('hidden');
         document.getElementById('editMode').classList.add('hidden');
@@ -304,25 +318,27 @@
         document.getElementById('editBtn').classList.remove('bg-blue-600', 'text-white');
         document.getElementById('editBtn').classList.add('text-blue-600');
 
-        document.getElementById('panelName').innerText = emp.name;
-        document.getElementById('panelRole').innerText = emp.role + " • " + emp.department;
-        document.getElementById('panelInitial').innerText = emp.name.substring(0, 2);
-        document.getElementById('panelBio').innerText = emp.bio || "No biography available.";
-        document.getElementById('panelUtil').innerText = emp.utilization;
-        document.getElementById('panelPerf').innerText = emp.performance + "%";
+        document.getElementById('panelName').innerText = emp.name ?? "";
+        document.getElementById('panelRole').innerText = (emp.role ?? "Employee") + " • " + (emp.department ?? "N/A");
+        document.getElementById('panelInitial').innerText = (emp.name ?? "??").substring(0, 2);
+        document.getElementById('panelBio').innerText = emp.bio ?? "No biography available.";
+        document.getElementById('panelUtil').innerText = emp.utilization ?? "0%";
+        document.getElementById('panelPerf').innerText = (emp.performance ?? 0) + "%";
 
-        document.getElementById('editId').value = emp.id;
-        document.getElementById('editName').value = emp.name;
-        document.getElementById('editEmail').value = emp.email;
-        document.getElementById('editRole').value = emp.role;
-        document.getElementById('editBio').value = emp.bio || "";
+        document.getElementById('editId').value = emp.userId ?? emp.id ?? "";
+        document.getElementById('editName').value = emp.name ?? "";
+        document.getElementById('editEmail').value = emp.email ?? "";
+        document.getElementById('editRole').value = emp.role ?? "Employee";
+        document.getElementById('editBio').value = emp.bio ?? "";
 
         const skillsContainer = document.getElementById('panelSkills');
         skillsContainer.innerHTML = '';
-        if (emp.skills) {
+        if (emp.skills && emp.skills.length) {
             emp.skills.forEach(skill => {
                 skillsContainer.innerHTML += `<span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-black uppercase rounded-lg border border-blue-100 dark:border-blue-800">${skill}</span>`;
             });
+        } else {
+            skillsContainer.innerHTML = `<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase rounded-lg border border-slate-200 dark:border-slate-700">No skills set</span>`;
         }
 
         const panel = document.getElementById('sidePanel');
@@ -332,14 +348,15 @@
         panel.classList.remove('translate-x-full');
     }
 
-     function closeProfile() {
+    function closeProfile() {
         const panel = document.getElementById('sidePanel');
         const overlay = document.getElementById('sidePanelOverlay');
         panel.classList.add('translate-x-full');
         overlay.classList.replace('opacity-100', 'opacity-0');
         setTimeout(() => overlay.classList.add('hidden'), 300);
     }
-        function openDeployModal() {
+
+    function openDeployModal() {
         const overlay = document.getElementById('deployModalOverlay');
         const modal = document.getElementById('deployModal');
         overlay.classList.remove('hidden');
@@ -357,15 +374,16 @@
         setTimeout(() => overlay.classList.add('hidden'), 300);
     }
 
-        function toggleStatus(id, currentStatus) {
+    function toggleStatus(id, currentStatus) {
         if (currentStatus === "Active") {
             document.getElementById('statusEmpId').value = id;
             const overlay = document.getElementById('statusModalOverlay');
             overlay.classList.remove('hidden');
             setTimeout(() => overlay.classList.add('opacity-100'), 10);
         } else {
-            if(confirm("Reactivate this employee?")) {
-                window.location.href = `/Client/Employees/UpdateStatus?id=${id}&newStatus=Active&reason=Reactivation`;
+            if (confirm("Reactivate this employee?")) {
+                document.getElementById('reactivateId').value = id;
+                document.getElementById('reactivateForm').submit();
             }
         }
     }
@@ -376,7 +394,7 @@
         setTimeout(() => overlay.classList.add('hidden'), 300);
     }
 
-            function toggleEditMode() {
+    function toggleEditMode() {
         isEditMode = !isEditMode;
         const viewDiv = document.getElementById('viewMode');
         const editForm = document.getElementById('editMode');
@@ -397,6 +415,4 @@
             editBtn.classList.remove('text-white');
         }
     }
-    
-
 </script>
