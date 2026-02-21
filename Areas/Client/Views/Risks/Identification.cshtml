@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
+@model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
 @{
     Layout = "_LayoutClient";
 }
@@ -51,15 +51,15 @@
     <div class="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
         <div class="flex-1 min-w-[240px] relative">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <input type="text" placeholder="Search risks, locations, or tags..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+            <input type="text" placeholder="Search risks, locations, or tags..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-normal focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
         </div>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
             <option>All Categories</option>
             <option>Operational</option>
             <option>Financial</option>
             <option>Safety</option>
         </select>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
             <option>All Priorities</option>
             <option>Critical</option>
             <option>Medium</option>
@@ -84,13 +84,13 @@
                     {
                         <tr class="group hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all">
                             <td class="px-6 py-5">
-                                <div class="font-black text-slate-900 dark:text-white mb-0.5">@risk.Title</div>
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                <div class="font-medium text-slate-900 dark:text-white mb-0.5">@risk.Title</div>
+                                <div class="text-[10px] font-medium text-slate-400 uppercase tracking-tight">
                                     <span class="text-emerald-500">📍</span> @risk.ProjectSite
                                 </div>
                             </td>
                             <td class="px-6 py-5">
-                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase tracking-tighter">@risk.Category</span>
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium uppercase tracking-tighter">@risk.Category</span>
                             </td>
                             <td class="px-6 py-5">
                                 <div class="flex items-center gap-2">
@@ -100,11 +100,11 @@
                                     <div class="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                         <div class="bg-@color-500 h-full w-[@(risk.Priority == "Critical" ? "95" : "50")%]"></div>
                                     </div>
-                                    <span class="text-[10px] font-black text-@color-500 uppercase">@risk.Priority</span>
+                                    <span class="text-[10px] font-semibold text-@color-500 uppercase">@risk.Priority</span>
                                 </div>
                             </td>
                             <td class="px-6 py-5">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase">@DateTime.Now.ToString("MMM dd, yyyy")</span>
+                                <span class="text-[10px] font-medium text-slate-500 uppercase">@DateTime.Now.ToString("MMM dd, yyyy")</span>
                             </td>
                             <td class="px-6 py-5 text-right">
                                 <button onclick="openEditModal('@risk.Title', '@risk.Category', '@risk.Priority', '@risk.ProjectSite', '@DateTime.Now.ToString("yyyy-MM-dd")')"
@@ -120,12 +120,12 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <p class="text-[10px] font-bold text-slate-400 uppercase">Showing 1 to 10 of 24 entries</p>
+            <p class="text-[10px] font-medium text-slate-400 uppercase">Showing 1 to 10 of 24 entries</p>
             <div class="flex gap-2">
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase text-slate-400 hover:bg-slate-50 transition-all">Prev</button>
-                <button class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black uppercase shadow-md shadow-emerald-500/20">1</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase text-slate-400 hover:bg-slate-50 transition-all">2</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase text-slate-400 hover:bg-slate-50 transition-all">Next</button>
+                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Prev</button>
+                <button class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-semibold uppercase shadow-md shadow-emerald-500/20">1</button>
+                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">2</button>
+                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Next</button>
             </div>
         </div>
     </div>

@@ -45,7 +45,7 @@
                     @foreach (var t in Model.MyTasks.Take(5))
                     {
                         <li class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">@t.Title</span>
+                            <span class="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">@t.Title</span>
                             <span class="px-2 py-0.5 rounded-full text-[9px] font-black @(t.Status == "ToDo" || (t.DueDate != default && t.DueDate < DateTime.UtcNow) ? "bg-rose-100 text-rose-600 dark:bg-rose-500/20" : "bg-slate-100 text-slate-600 dark:bg-slate-600")">@t.Status</span>
                         </li>
                     }
@@ -67,7 +67,7 @@
                     @foreach (var a in Model.AssignedAssessments.Take(5))
                     {
                         <li class="py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <a href="/Client/Risks/Assess/@a.RiskId" class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 truncate block">@a.RiskTitle</a>
+                            <a href="/Client/Risks/Assess/@a.RiskId" class="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 truncate block">@a.RiskTitle</a>
                             <span class="text-[10px] text-slate-500 dark:text-slate-400">@a.Status</span>
                         </li>
                     }
@@ -88,7 +88,7 @@
                     @foreach (var r in Model.MyRecentRisks.Take(5))
                     {
                         <li class="py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">@r.Title</span>
+                            <span class="text-xs font-medium text-slate-700 dark:text-slate-300 block">@r.Title</span>
                             <span class="text-[10px] text-slate-500 dark:text-slate-400">@r.Category · @r.Priority</span>
                         </li>
                     }

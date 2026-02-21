@@ -1,4 +1,4 @@
-﻿@model IEnumerable<dynamic>
+@model IEnumerable<dynamic>
 @{
     Layout = "_LayoutClient";
 }
@@ -35,11 +35,11 @@
                 {
                     <tr class="hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all">
                         <td class="px-6 py-5">
-                            <div class="font-black text-slate-900 dark:text-white">@item.Name</div>
-                            <div class="text-[10px] font-bold text-slate-400 uppercase">SKU: @item.SKU</div>
+                            <div class="font-medium text-slate-900 dark:text-white">@item.Name</div>
+                            <div class="text-[10px] font-medium text-slate-400 uppercase">SKU: @item.SKU</div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="text-sm font-black text-slate-700 dark:text-slate-200">@item.Stock <span class="text-[10px] font-bold text-slate-400 uppercase">@item.Unit</span></div>
+                            <div class="text-sm font-medium text-slate-700 dark:text-slate-200">@item.Stock <span class="text-[10px] font-medium text-slate-400 uppercase">@item.Unit</span></div>
                             <div class="w-24 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1">
                                 <div class="h-full rounded-full @(item.Stock < item.MinLevel ? "bg-rose-500" : "bg-emerald-500")" style="width: @(Math.Min((item.Stock / (double)item.MinLevel) * 50, 100))%"></div>
                             </div>
@@ -48,7 +48,7 @@
                             @{
                                 var statusColor = item.Status == "In Stock" ? "emerald" : (item.Status == "Low Stock" ? "amber" : "rose");
                             }
-                            <span class="px-2.5 py-1 rounded-lg bg-@statusColor-500/10 text-@statusColor-600 text-[10px] font-black uppercase">@item.Status</span>
+                            <span class="px-2.5 py-1 rounded-lg bg-@statusColor-500/10 text-@statusColor-600 text-[10px] font-semibold uppercase">@item.Status</span>
                         </td>
                         <td class="px-6 py-5 text-right">
                             <button onclick="openUpdateModal('@item.Name', '@item.SKU', '@item.Stock', '@item.MinLevel', '@item.Unit')"

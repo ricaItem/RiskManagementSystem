@@ -87,15 +87,15 @@
                 {
                     <tr class="archive-row hover:bg-rose-50/20 dark:hover:bg-rose-500/5 transition-all group" data-category="Employee">
                         <td class="px-6 py-5">
-                            <div class="text-[10px] font-black text-slate-400">@(item.UserId.Length > 8 ? item.UserId.Substring(0, 8) + "…" : item.UserId)</div>
-                            <div class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 w-fit">@item.Module</div>
+                            <div class="text-[10px] font-medium text-slate-400">@(item.UserId.Length > 8 ? item.UserId.Substring(0, 8) + "…" : item.UserId)</div>
+                            <div class="text-[9px] font-medium uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 w-fit">@item.Module</div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="font-black text-slate-900 dark:text-white text-xs">@item.Name</div>
-                            <div class="text-[10px] font-bold text-slate-400">@item.Email</div>
+                            <div class="font-medium text-slate-900 dark:text-white text-xs">@item.Name</div>
+                            <div class="text-[10px] font-medium text-slate-400">@item.Email</div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="font-black text-slate-700 dark:text-slate-300 text-[10px] uppercase">@item.Role</div>
+                            <div class="font-medium text-slate-700 dark:text-slate-300 text-[10px] uppercase">@item.Role</div>
                         </td>
                         <td class="px-6 py-5 text-[11px] font-bold text-rose-500/70">
                             @item.CreatedAt.ToString("dd MMM yyyy")

@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Firm Overview";
     Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
 }
@@ -9,49 +9,48 @@
             <h1 class="text-2xl font-black text-slate-900 dark:text-white">BuildCraft <span class="text-emerald-600">Command</span></h1>
         </div>
         <div class="flex gap-2">
-            <select class="rounded-lg border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase shadow-sm dark:bg-slate-800 dark:border-slate-700">
+            <select class="rounded-lg border-slate-200 bg-white px-3 py-2 text-[10px] font-medium uppercase shadow-sm dark:bg-slate-800 dark:border-slate-700">
                 <option>All Projects</option>
                 <option>Sky Tower</option>
                 <option>River Bridge</option>
             </select>
-            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-black text-white hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20">
+            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-semibold text-white hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20">
                 EXPORT DATA
             </button>
         </div>
     </div>
-
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+        <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Overdue Mitigations</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">12</h3>
-            <p class="mt-2 text-[10px] font-bold text-rose-500 uppercase tracking-tighter italic">⚠️ Immediate Action</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">12</h3>
+            <p class="mt-2 text-[10px] font-medium text-rose-500 uppercase tracking-tighter italic">⚠️ Immediate Action</p>
+        </a>
+        <a href="@Url.Action("Expenses", "Inventory", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Pending Approvals</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">08</h3>
+            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">08</h3>
             <div class="mt-2 flex gap-1">
-                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[8px] font-black italic">6 NEW REQUESTS</span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[8px] font-semibold italic">6 NEW REQUESTS</span>
             </div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+        </a>
+        <a href="@Url.Action("Index", "Audit", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Compliance Health</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">98.2%</h3>
+            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">98.2%</h3>
             <div class="mt-3 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
                 <div class="h-full bg-emerald-500 rounded-full" style="width: 98%"></div>
             </div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
+        </a>
+        <a href="@Url.Action("Index", "Supplier", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor Incidents</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">02</h3>
-            <p class="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tighter">✔ Normal Range</p>
-        </div>
+            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">02</h3>
+            <p class="mt-2 text-[10px] font-medium text-emerald-500 uppercase tracking-tighter">✔ Normal Range</p>
+        </a>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-12">
+    <div class="grid gap-6 lg:grid-cols-12 mt-6">
         <div class="lg:col-span-8 rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
             <div class="mb-6">
                 <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Risk Exposure Trend</h3>
-                <p class="text-[10px] font-bold text-slate-400 uppercase">Monthly Critical vs Resolved Risks</p>
+                <p class="text-[10px] font-medium text-slate-400 uppercase">Monthly Critical vs Resolved Risks</p>
             </div>
             <div class="h-64">
                 <canvas id="riskTrendChart"></canvas>
@@ -66,7 +65,7 @@
         </div>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2">
+    <div class="grid gap-6 md:grid-cols-2 mt-6">
         <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
             <h3 class="text-sm font-black uppercase tracking-widest mb-6">Mitigation Rate (By Dept)</h3>
             <div class="space-y-5">
@@ -107,20 +106,19 @@
                         <td class="py-3">
                             <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[9px] font-black">CRITICAL</span>
                         </td>
-                        <td class="py-3 text-right font-medium text-slate-400">Insurance Expired</td>
+                        <td class="py-3 text-right font-bold text-slate-400">Insurance Expired</td>
                     </tr>
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="py-3 font-bold">Apex Concrete</td>
                         <td class="py-3">
                             <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[9px] font-black">ELEVATED</span>
                         </td>
-                        <td class="py-3 text-right font-medium text-slate-400">Audit Pending</td>
+                        <td class="py-3 text-right font-bold text-slate-400">Audit Pending</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
 <script>
     // Initialize Trend Line Chart
