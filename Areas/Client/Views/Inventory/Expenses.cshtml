@@ -103,7 +103,7 @@
                 </button>
             </div>
 
-            <form id="expenseForm" asp-action="LogExpense" method="post" enctype="multipart/form-data" class="space-y-4">
+            <form id="expenseForm" asp-action="LogExpense" method="post" enctype="multipart/form-data" class="space-y-4" onsubmit="var b=document.getElementById('expSubmitBtn');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\'></span> Saving...';">
                 <input type="hidden" name="Id" id="expId" />
 
                 <div class="space-y-1">
@@ -150,7 +150,7 @@
                     </div>
                 </div>
 
-                <button type="submit" id="expSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg mt-2 transition-transform active:scale-95">Log Transaction</button>
+                <button type="submit" id="expSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg mt-2 transition-transform active:scale-95 disabled:opacity-70">Log Transaction</button>
             </form>
         </div>
     </div>

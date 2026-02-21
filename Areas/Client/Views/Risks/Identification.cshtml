@@ -139,7 +139,7 @@
                 <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Identify New Risk</h2>
                 <button onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
             </div>
-            <form asp-action="IdentifyNewRisk" method="post" class="space-y-4">
+            <form asp-action="IdentifyNewRisk" method="post" class="space-y-4" onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\'></span> Saving...';">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Date Reported</label>
@@ -164,7 +164,7 @@
                     </div>
                     <div id="addMap" class="h-40 w-full rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"></div>
                 </div>
-                <button type="submit" class="w-full rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg">Log Risk Entry</button>
+                <button type="submit" id="newRiskSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-70">Log Risk Entry</button>
             </form>
         </div>
     </div>

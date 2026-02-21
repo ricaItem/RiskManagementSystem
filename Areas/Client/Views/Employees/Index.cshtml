@@ -152,7 +152,7 @@
 <!-- Deploy Modal -->
 <div id="deployModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300" id="deployModal">
-        <form action="@Url.Action("Deploy", "Employees", new { area = "Client" })" method="post" class="p-10">
+        <form action="@Url.Action("Deploy", "Employees", new { area = "Client" })" method="post" class="p-10" onsubmit="var b=document.getElementById('addEmpSubmitBtn');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\'></span> Saving...';">
             @Html.AntiForgeryToken()
             <div class="flex justify-between items-center mb-8">
                 <div>
@@ -201,7 +201,7 @@
             </div>
 
             <div class="mt-10">
-                <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-[1.01] active:scale-[0.98] transition-all">
+                <button type="submit" id="addEmpSubmitBtn" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-70">
                     Save Employee
                 </button>
             </div>

@@ -95,7 +95,7 @@
                     </button>
                 </div>
 
-                <form asp-action="AddSupplier" method="post" class="space-y-4">
+                <form asp-action="AddSupplier" method="post" class="space-y-4" onsubmit="var b=document.getElementById('addSupplierSubmitBtn');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\'></span> Saving...';">
                     <div>
                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block px-1">Legal Company Name</label>
                         <input type="text" name="SupplierName" placeholder="e.g. Davao Industrial Steel" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-800 transition-all text-slate-700 dark:text-white" required />
@@ -123,7 +123,7 @@
                         </p>
                     </div>
 
-                    <button type="submit" class="w-full rounded-xl bg-amber-500 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600 hover:scale-[1.01] active:scale-95">
+                    <button type="submit" id="addSupplierSubmitBtn" class="w-full rounded-xl bg-amber-500 py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600 hover:scale-[1.01] active:scale-95 disabled:opacity-70">
                         Register Supplier
                     </button>
                 </form>
@@ -157,7 +157,7 @@
                         <span id="disputeSupplierNameDisplay" class="text-sm font-black text-rose-600 uppercase italic">Loading...</span>
                     </div>
 
-                    <form asp-action="FileDispute" method="post" class="space-y-6">
+                    <form asp-action="FileDispute" method="post" class="space-y-6" onsubmit="var b=document.getElementById('fileDisputeBtn');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\' style=\'border-color:rgba(255,255,255,.4);border-top-color:#fff\'></span> Saving...';">
                         <input type="hidden" id="disputeSupplierId" name="supplierId" />
 
                         <div>
@@ -172,8 +172,8 @@
                                     class="w-full rounded-2xl bg-slate-100 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
                                 Cancel
                             </button>
-                            <button type="submit"
-                                    class="w-full rounded-2xl bg-slate-900 dark:bg-white py-4 text-[10px] font-black uppercase tracking-widest text-white dark:text-slate-900 shadow-xl hover:bg-rose-600 hover:text-white transition-all">
+                            <button type="submit" id="fileDisputeBtn"
+                                    class="w-full rounded-2xl bg-slate-900 dark:bg-white py-4 text-[10px] font-black uppercase tracking-widest text-white dark:text-slate-900 shadow-xl hover:bg-rose-600 hover:text-white transition-all disabled:opacity-70">
                                 File Dispute
                             </button>
                         </div>
