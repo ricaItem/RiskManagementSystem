@@ -53,7 +53,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return orgId != null && target.OrganizationId == orgId.Value;
         }
 
-        // GET: /Client/Archive/Index — archived employees (inactive users)
         public async Task<IActionResult> Index()
         {
             var q = await TenantUsersQueryAsync();
@@ -81,7 +80,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return View(data);
         }
 
-        // POST: Restore archived employee — sets IsActive = true so they reappear in Employees
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreEmployee(string id)
@@ -118,7 +116,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: Permanent delete (optional; keeps mock behavior for non-employee items)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult PermanentDelete(int id)

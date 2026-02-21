@@ -89,7 +89,6 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             if (!ModelState.IsValid)
                 return Page();
 
-            // Try to find user first
             var user = await _userManager.FindByEmailAsync(Input.Email);
 
             if (user == null)
@@ -98,7 +97,6 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            // Validate password (does not sign-in)
             var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: false);
             if (!check.Succeeded)
             {
@@ -117,11 +115,16 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            // Explicitly sign-in (issues authentication cookie with up-to-date claims)
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("Inactive user attempted login. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
+                ModelState.AddModelError(string.Empty, "This account has been deactivated. You are not able to log in. Please contact your administrator.");
+                return Page();
+            }
+
             await _signInManager.SignInAsync(user, Input.RememberMe);
             _logger.LogInformation("User logged in (explicit sign-in). UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
 
-            // Double-check roles directly from store
             var roles = await _userManager.GetRolesAsync(user);
             _logger.LogDebug("Roles for user {UserName}: {Roles}", user.UserName, string.Join(",", roles));
 
@@ -138,7 +141,6 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return LocalRedirect(Url.Content("~/Client/MyWork"));
             }
 
-            // Manager, ProcurementOfficer, etc.: respect ReturnUrl if local; else default
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return LocalRedirect(returnUrl);
             return LocalRedirect(Url.Content("~/Client/Dashboard"));

@@ -6,6 +6,12 @@
     var initials = parts.Length >= 2
         ? $"{parts[0][0]}{parts[parts.Length - 1][0]}".ToUpperInvariant()
         : (parts.Length == 1 && parts[0].Length > 0 ? parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant() : "CU");
+    var roleLabel = "Organization Member";
+    if (User.IsInRole("SuperAdmin")) { roleLabel = "Super Admin"; }
+    else if (User.IsInRole("Admin")) { roleLabel = "Admin"; }
+    else if (User.IsInRole("Employee")) { roleLabel = "Employee"; }
+    else if (User.IsInRole("Manager")) { roleLabel = "Manager"; }
+    else if (User.IsInRole("ProcurementOfficer")) { roleLabel = "Procurement Officer"; }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -466,7 +472,7 @@
                         <button onclick="toggleUserDropdown()" id="userDropdownBtn" class="flex items-center gap-4 hover:opacity-80 transition-opacity focus:outline-none group focus-ring rounded-xl p-1" type="button">
                             <div class="hidden sm:flex flex-col items-end mr-2">
                                 <span class="text-xs font-bold max-w-[140px] truncate" title="@displayName">@displayName</span>
-                                <span class="text-[10px] text-emerald-600 font-bold uppercase">Organization Member</span>
+                                <span class="text-[10px] text-emerald-600 font-bold uppercase">@roleLabel</span>
                             </div>
                             <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center font-black text-slate-500 text-sm">
                                 @initials

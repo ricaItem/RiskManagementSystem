@@ -8,7 +8,7 @@ using WEB_Sentro.Models.Identity;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize(Policy = "AdminOrVendor")] // SuperAdmin (vendor) OR Admin (org admin)
+    [Authorize(Policy = "AdminOrVendor")]
     public class EmployeesController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -53,20 +53,15 @@ namespace Web_Sentro.Areas.Client.Controllers
             return orgId != null && target.OrganizationId == orgId.Value;
         }
 
-        // GET: /Client/Employees
         public async Task<IActionResult> Index()
         {
             var q = await TenantUsersQueryAsync();
 
-            // Show active employees by default (archive = inactive)
             var users = await q.AsNoTracking()
                 .Where(u => u.IsActive)
                 .OrderBy(u => u.LastName)
                 .ThenBy(u => u.FirstName)
                 .ToListAsync();
-
-            // If your UI needs Role/Department etc:
-            // You can fetch roles per user (slower, but OK for small lists).
 
             var data = new List<EmployeeRowVm>();
             foreach (var u in users)
@@ -87,8 +82,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return View(data);
         }
 
-        // POST: /Client/Employees/Deploy
-        // This creates a NEW login account + assigns role + org id
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Deploy(string firstName, string lastName, string email, string role, string department)
@@ -117,10 +110,8 @@ namespace Web_Sentro.Areas.Client.Controllers
             var me = await GetMeAsync();
             if (me == null) return Challenge();
 
-            // Tenant enforcement: Admin can only create inside their org
             var orgId = IsVendor() ? 0 : me.OrganizationId;
 
-            // Create user
             var user = new ApplicationUser
             {
                 UserName = email,
@@ -133,9 +124,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            // TEMP password ù you can change this to something generated.
-            // If your UI collects password, pass it instead.
-            var tempPassword = "Temp@12345"; // change later
+            var tempPassword = "Temp@12345"; 
             var createRes = await _userManager.CreateAsync(user, tempPassword);
 
             if (!createRes.Succeeded)
@@ -145,9 +134,6 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Ensure role is valid (optional safety)
-            // Only allow these roles to be assigned by Admin.
-            // SuperAdmin can assign anything.
             if (!IsVendor())
             {
                 var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -172,13 +158,10 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Client/Employees/UpdateEmployee
-        // Update profile basics
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateEmployee(string id, string name, string email, string role, string bio)
+        public async Task<IActionResult> UpdateEmployee(string id, string name, string email, string role)
         {
-            // bio/department not stored yet; ignore unless you add fields/table
             if (string.IsNullOrWhiteSpace(id))
             {
                 TempData["Alert"] = "Invalid employee.";
@@ -197,7 +180,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!await CanTouchUserAsync(target))
                 return Forbid();
 
-            // Update name
             if (!string.IsNullOrWhiteSpace(name))
             {
                 var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -205,12 +187,10 @@ namespace Web_Sentro.Areas.Client.Controllers
                 target.LastName = parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : target.LastName;
             }
 
-            // Update email
             if (!string.IsNullOrWhiteSpace(email))
             {
                 var newEmail = email.Trim().ToLowerInvariant();
 
-                // prevent duplicates
                 var existing = await _userManager.FindByEmailAsync(newEmail);
                 if (existing != null && existing.Id != target.Id)
                 {
@@ -223,7 +203,6 @@ namespace Web_Sentro.Areas.Client.Controllers
                 target.UserName = newEmail;
             }
 
-            // Update role (single role model)
             if (!string.IsNullOrWhiteSpace(role))
             {
                 if (!IsVendor())
@@ -240,7 +219,6 @@ namespace Web_Sentro.Areas.Client.Controllers
                 }
 
                 var currentRoles = await _userManager.GetRolesAsync(target);
-                // remove all then add one (your system seems like one primary role per user)
                 if (!currentRoles.Contains(role))
                 {
                     if (currentRoles.Count > 0)
@@ -263,8 +241,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Client/Employees/UpdateStatus
-        // Archive/activate (soft delete)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(string id, string newStatus, string reason)
@@ -287,7 +263,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!await CanTouchUserAsync(target))
                 return Forbid();
 
-            // Treat "Inactive" as archive
             if (!string.IsNullOrWhiteSpace(newStatus) &&
                 newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
             {
@@ -311,8 +286,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // Optional: Archive page list
-        // GET: /Client/Employees/Archive
         public async Task<IActionResult> Archive()
         {
             var q = await TenantUsersQueryAsync();
@@ -343,7 +316,6 @@ namespace Web_Sentro.Areas.Client.Controllers
         }
     }
 
-    // Simple VM for your UI table
     public class EmployeeRowVm
     {
         public string UserId { get; set; } = "";
