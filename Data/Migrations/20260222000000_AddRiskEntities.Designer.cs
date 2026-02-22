@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WEB_Sentro.Data;
 
@@ -11,9 +12,11 @@ using WEB_Sentro.Data;
 namespace WEB_Sentro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260222000000_AddRiskEntities")]
+    partial class AddRiskEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -367,42 +370,6 @@ namespace WEB_Sentro.Data.Migrations
                     b.ToTable("Risks", (string)null);
                 });
 
-            modelBuilder.Entity("WEB_Sentro.Data.Entities.Attachment", b =>
-                {
-                    b.Property<int>("AttachmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttachmentId"));
-
-                    b.Property<string>("FileRef")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FileName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("OrgId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RiskId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UploadedByUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("AttachmentId");
-
-                    b.HasIndex("RiskId");
-
-                    b.ToTable("Attachments", (string)null);
-                });
-
             modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskEvaluation", b =>
                 {
                     b.Property<int>("EvalId")
@@ -507,15 +474,6 @@ namespace WEB_Sentro.Data.Migrations
                         .WithMany("Evaluations")
                         .HasForeignKey("RiskId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("WEB_Sentro.Data.Entities.Attachment", b =>
-                {
-                    b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
-                        .WithMany("Attachments")
-                        .HasForeignKey("RiskId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

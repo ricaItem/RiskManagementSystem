@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using WEB_Sentro.Models.Identity;
+using WEB_Sentro.Services;
 using Web_Sentro.Areas.Client.Models;
 
 namespace Web_Sentro.Areas.Client.Controllers
@@ -8,100 +11,175 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize]
     public class RisksController : Controller
     {
-        public IActionResult Identification()
+        private readonly RiskService _riskService;
+        private readonly RiskEvaluationService _evaluationService;
+        private readonly RiskAttachmentService _attachmentService;
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, UserManager<ApplicationUser> userManager)
+        {
+            _riskService = riskService;
+            _evaluationService = evaluationService;
+            _attachmentService = attachmentService;
+            _userManager = userManager;
+        }
+
+        private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
+
+        private async Task<int?> GetMyOrgIdAsync()
+        {
+            var me = await GetCurrentUserAsync();
+            return me?.OrganizationId;
+        }
+
+        private bool IsSuperAdmin() => User.IsInRole("SuperAdmin");
+        private bool IsAdmin() => User.IsInRole("Admin");
+        private bool IsRiskManager() => User.IsInRole("RiskManager");
+        private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
+
+        public async Task<IActionResult> Identification(string? search, string? status, string? category)
         {
             ViewData["Title"] = "Risk Identification";
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
 
-            // Mock Data for UI Testing
-            var risks = new List<RiskIdentificationViewModel>
-            {
-                new RiskIdentificationViewModel {
-                    Id = 1, Title = "Tower Crane Fatigue", Category = "Operational",
-                    Priority = "Critical", DetectedBy = "J. Dela Cruz", ProjectSite = "North Wing"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 2, Title = "Steel Price Volatility", Category = "Financial",
-                    Priority = "Medium", DetectedBy = "A. Santos", ProjectSite = "Global"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 3, Title = "Foundation Seepage", Category = "Operational",
-                    Priority = "Critical", DetectedBy = "M. Rivera", ProjectSite = "Basement Level B2"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 4, Title = "Scaffolding Stability", Category = "No Category",
-                    Priority = "Critical", DetectedBy = "R. Gomez", ProjectSite = "West Tower Facade"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 5, Title = "Supply Chain Delay (Cement)", Category = "Operational",
-                    Priority = "Medium", DetectedBy = "L. Tan", ProjectSite = "Logistics Hub"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 6, Title = "Labor Shortage (Welding)", Category = "No Category",
-                    Priority = "Medium", DetectedBy = "K. Sy", ProjectSite = "Structural Phase 3"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 7, Title = "Unprotected Floor Openings", Category = "Safety",
-                    Priority = "Critical", DetectedBy = "J. Reyes", ProjectSite = "East Wing Floor 12"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 8, Title = "Currency Exchange Flux", Category = "Financial",
-                    Priority = "Low", DetectedBy = "C. Puno", ProjectSite = "Procurement"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 9, Title = "Inadequate Site Lighting", Category = "No Category",
-                    Priority = "Medium", DetectedBy = "D. Lim", ProjectSite = "Parking Annex"
-                },
-                new RiskIdentificationViewModel {
-                    Id = 10, Title = "Utility Line Encroachment", Category = "Operational",
-                    Priority = "Critical", DetectedBy = "S. Bautista", ProjectSite = "South Site Boundary"
-                }
-            };
-
-            return View(risks);
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var employeeOnly = EmployeeOnly();
+            var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category);
+            ViewBag.CurrentUserId = user.Id;
+            ViewBag.IsEmployeeOnly = employeeOnly;
+            return View(list);
         }
 
         [HttpPost]
-        public IActionResult IdentifyNewRisk(RiskIdentificationViewModel model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> IdentifyNewRisk([Bind("Title,Category,ProjectSite,Description,SourceType")] RiskIdentificationViewModel model, string? submitType)
         {
-            // Logic: Save to Database here
-            // _context.Risks.Add(model);
-            // _context.SaveChanges();
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            if (string.IsNullOrWhiteSpace(model?.Title))
+                return RedirectToAction("Identification");
+
+            var status = (submitType == "Submit") ? "Submitted" : "Draft";
+            var risk = await _riskService.CreateRiskAsync(
+                user.OrganizationId,
+                user.Id,
+                model.Title.Trim(),
+                model.Category,
+                model.SourceType,
+                model.ProjectSite?.Trim(),
+                model.Description?.Trim(),
+                status);
+
+            var auditAction = status == "Submitted" ? "RiskCreatedSubmitted" : "RiskCreatedDraft";
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", risk.RiskId, auditAction, $"Risk created: {model.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+
+            var attachmentFiles = Request.Form.Files.Where(f => f.Name == "Attachments").ToList();
+            if (attachmentFiles.Count > 0)
+            {
+                var attachResult = await _attachmentService.SaveAttachmentsAsync(risk.RiskId, user.OrganizationId, user.Id, attachmentFiles, HttpContext.Connection.RemoteIpAddress?.ToString());
+                if (!attachResult.Ok && !string.IsNullOrEmpty(attachResult.Error))
+                    TempData["AttachmentError"] = attachResult.Error;
+            }
             return RedirectToAction("Identification");
         }
+
         [HttpGet]
-        public IActionResult Assess(int id)
+        public async Task<IActionResult> Assess(int id)
         {
             ViewData["Title"] = "Risk Assessment";
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
 
-            // In production: Fetch the specific risk by ID
-            var model = new RiskAssessmentViewModel
-            {
-                RiskId = id,
-                RiskTitle = "Tower Crane Mechanical Fatigue", // Example
-                Likelihood = 1,
-                Impact = 1
-            };
-
-            return View(model);
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var vm = await _evaluationService.GetAssessmentViewModelAsync(id, orgId, IsSuperAdmin());
+            if (vm == null) return NotFound();
+            return View(vm);
         }
 
         [HttpPost]
-        public IActionResult SaveAssessment(RiskAssessmentViewModel model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveAssessment(RiskAssessmentViewModel model)
         {
-            // Logic: If Score > 15, automatically flag for Mitigation Board
-            if (model.RiskScore >= 15)
-            {
-                // Code to push to Mitigation Board
-            }
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
 
-            // Save to DB logic here...
+            if (!IsRiskManager() && !IsAdmin())
+                return Forbid();
+
+            var orgId = user.OrganizationId;
+            var ok = await _evaluationService.SaveAssessmentAsync(
+                model.RiskId,
+                orgId,
+                user.Id,
+                model.Likelihood,
+                model.Impact,
+                null,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                IsSuperAdmin());
+            if (!ok) return NotFound();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitRisk(int RiskId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var submitted = await _riskService.SubmitRiskAsync(RiskId, orgId, user.Id, EmployeeOnly());
+            if (!submitted) return NotFound();
+
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", RiskId, "RiskSubmitted", "Risk submitted", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAttachment(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var deleted = await _attachmentService.DeleteAttachmentAsync(id, orgId, user.Id, IsAdmin() || IsSuperAdmin());
+            if (!deleted) return NotFound();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string Priority, string ProjectSite, string? ReportedDate)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var risk = await _riskService.GetByIdForOrgAsync(RiskId, orgId, IsSuperAdmin());
+            if (risk == null) return NotFound();
+
+            if (EmployeeOnly() && (risk.ReportByUserId != user.Id || risk.Status != "Draft"))
+                return Forbid();
+
+            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, Priority, ProjectSite, IsSuperAdmin());
             return RedirectToAction("Identification");
         }
 
         [HttpGet]
-        public IActionResult Monitoring()
+        public async Task<IActionResult> Monitoring()
         {
             ViewData["Title"] = "Risk Monitoring Hub";
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var activeCount = await _riskService.GetActiveRisksCountAsync(orgId, IsSuperAdmin());
+            var highPriority = await _riskService.GetHighPriorityRisksAsync(orgId, IsSuperAdmin(), 10);
 
             var model = new RiskMonitoringViewModel
             {
@@ -110,27 +188,11 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Longitude = 125.6083,
                 Temperature = 31,
                 WeatherCondition = "Thunderstorm Warning",
-                WindSpeed = 45.5, // km/h
-                ActiveRisksCount = 12,
-                HighPriorityRisks = new List<RiskIdentificationViewModel>() // Populate from DB
+                WindSpeed = 45.5,
+                ActiveRisksCount = activeCount,
+                HighPriorityRisks = highPriority
             };
-
-
-            model.HighPriorityRisks = new List<RiskIdentificationViewModel>
-    {
-        new RiskIdentificationViewModel {
-            Title = "Tower Crane Fatigue", ProjectSite = "North Wing",
-            Category = "Operational", Priority = "Critical", DetectedBy = "J. Dela Cruz"
-        },
-        new RiskIdentificationViewModel {
-            Title = "Steel Price Volatility", ProjectSite = "Global",
-            Category = "Financial", Priority = "Medium", DetectedBy = "System Auth"
-        }
-    };
-
             return View(model);
         }
-
-
     }
 }

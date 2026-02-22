@@ -1,4 +1,4 @@
-﻿@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
+@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
 @{
     Layout = "_LayoutClient";
 }
@@ -75,10 +75,11 @@
                 </div>
             </div>
 
-            <form asp-action="SaveAssessment" method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                <input type="hidden" asp-for="RiskId" />
-                <input type="hidden" asp-for="Likelihood" id="hiddenL" value="1" />
-                <input type="hidden" asp-for="Impact" id="hiddenI" value="1" />
+            <form action="@Url.Action("SaveAssessment", "Risks", new { area = "Client" })" method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RiskId" value="@Model.RiskId" />
+                <input type="hidden" name="Likelihood" id="hiddenL" value="@Model.Likelihood" />
+                <input type="hidden" name="Impact" id="hiddenI" value="@Model.Impact" />
 
                 <div class="space-y-4">
                     <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Risk Response Strategy</label>

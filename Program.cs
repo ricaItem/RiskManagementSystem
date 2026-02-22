@@ -58,6 +58,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
 });
 
+builder.Services.AddScoped<WEB_Sentro.Services.RiskService>();
+builder.Services.AddScoped<WEB_Sentro.Services.RiskAttachmentService>();
+builder.Services.AddScoped<WEB_Sentro.Services.RiskEvaluationService>();
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
