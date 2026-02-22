@@ -20,5 +20,6 @@ namespace WEB_Sentro.Data.Entities
 
         public ICollection<RiskEvaluation> Evaluations { get; set; } = new List<RiskEvaluation>();
         public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+        public MitigationPlan? MitigationPlan { get; set; }
     }
 }

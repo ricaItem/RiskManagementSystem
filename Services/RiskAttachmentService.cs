@@ -91,5 +91,26 @@ namespace WEB_Sentro.Services
             await _db.SaveChangesAsync(ct);
             return true;
         }
+
+        /// <summary>Remove all attachments for a risk: delete files from disk and remove DB rows. Call before HardDelete risk.</summary>
+        public async Task DeleteAllAttachmentsForRiskAsync(int riskId, int orgId, CancellationToken ct = default)
+        {
+            var list = await _db.Attachments.Where(a => a.RiskId == riskId && a.OrgId == orgId).ToListAsync(ct);
+            var root = _env.WebRootPath ?? _env.ContentRootPath;
+            foreach (var att in list)
+            {
+                if (!string.IsNullOrEmpty(att.FileRef))
+                {
+                    var fullPath = Path.Combine(root, att.FileRef.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                    if (System.IO.File.Exists(fullPath))
+                        try { System.IO.File.Delete(fullPath); } catch { }
+                }
+                _db.Attachments.Remove(att);
+            }
+            var dir = Path.Combine(root, "uploads", "risks", orgId.ToString(), riskId.ToString());
+            if (Directory.Exists(dir))
+                try { Directory.Delete(dir, true); } catch { }
+            await _db.SaveChangesAsync(ct);
+        }
     }
 }

@@ -148,7 +148,6 @@
 </form>
 
 <script>
-    // Toast auto-dismiss after 4 seconds
     (function () {
         const toast = document.getElementById('toastAlert');
         if (toast) {
@@ -217,7 +216,6 @@
         document.getElementById('logSearch').dispatchEvent(event);
     }
 
-    // Restore confirmation modal
     function openRestoreModal(userId, userName) {
         document.getElementById('restoreEmployeeId').value = userId;
         document.getElementById('restoreModalName').textContent = userName || 'this employee';

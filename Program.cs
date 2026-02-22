@@ -9,11 +9,9 @@ using WEB_Sentro.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Database Service (Added retry handling for hosting environments)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sql =>
     {
@@ -25,7 +23,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Identity Configuration
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -34,7 +31,6 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
-// Force Session-Only Authentication
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Identity/Account/Login";
@@ -66,8 +62,6 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-
-
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -83,8 +77,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-
-// HTTP Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -103,7 +95,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Routing Patterns
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");

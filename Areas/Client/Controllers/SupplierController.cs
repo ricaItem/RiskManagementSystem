@@ -23,10 +23,6 @@ public class SupplierController : Controller
     [HttpPost]
     public IActionResult AddSupplier(SupplierRiskViewModel model)
     {
-        // Logic to save the new supplier to the database would go here.
-        // _context.Suppliers.Add(model);
-        // _context.SaveChanges();
-
         return RedirectToAction("Index");
     }
 
@@ -36,7 +32,6 @@ public class SupplierController : Controller
     {
         ViewData["Title"] = "Supplier Audit Trail";
 
-        // Dynamic stats based on mock data
         ViewBag.SupplierName = id == 2 ? "Davao Cement Corp" : "Global Steel Co.";
         ViewBag.TotalAudits = 14;
         ViewBag.PositiveEvents = 9;
@@ -60,12 +55,6 @@ public class SupplierController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult OpenDispute(int supplierId, string reason, string severity)
     {
-        // 1.  save this to the database:
-        // var dispute = new Dispute { SupplierId = supplierId, Reason = reason, Severity = severity, CreatedAt = DateTime.Now };
-        // _context.Disputes.Add(dispute);
-        // _context.SaveChanges();
-
-        // 2. Add a visual alert to the next page load
         TempData["Alert"] = "Dispute case filed successfully. Legal team notified.";
         TempData["AlertType"] = "success";
 

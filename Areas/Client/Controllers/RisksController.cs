@@ -37,7 +37,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         private bool IsRiskManager() => User.IsInRole("RiskManager");
         private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
 
-        public async Task<IActionResult> Identification(string? search, string? status, string? category)
+        public async Task<IActionResult> Identification(string? search, string? status, string? category, bool showDeleted = false)
         {
             ViewData["Title"] = "Risk Identification";
             var user = await GetCurrentUserAsync();
@@ -45,9 +45,13 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var employeeOnly = EmployeeOnly();
-            var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category);
+            var includeDeleted = showDeleted && (IsAdmin() || IsSuperAdmin());
+            var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, includeDeleted);
             ViewBag.CurrentUserId = user.Id;
             ViewBag.IsEmployeeOnly = employeeOnly;
+            ViewBag.IsAdmin = IsAdmin() || IsSuperAdmin();
+            ViewBag.IsRiskManager = IsRiskManager() || IsAdmin() || IsSuperAdmin();
+            ViewBag.ShowDeleted = includeDeleted;
             return View(list);
         }
 
@@ -61,7 +65,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (string.IsNullOrWhiteSpace(model?.Title))
                 return RedirectToAction("Identification");
 
-            var status = (submitType == "Submit") ? "Submitted" : "Draft";
+            var status = (submitType == "Submit") ? "For_Review" : "Draft";
             var risk = await _riskService.CreateRiskAsync(
                 user.OrganizationId,
                 user.Id,
@@ -72,7 +76,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 model.Description?.Trim(),
                 status);
 
-            var auditAction = status == "Submitted" ? "RiskCreatedSubmitted" : "RiskCreatedDraft";
+            var auditAction = status == "For_Review" ? "RiskCreatedForReview" : "RiskCreatedDraft";
             _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", risk.RiskId, auditAction, $"Risk created: {model.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
             await _riskService.SaveChangesAsync();
 
@@ -120,6 +124,15 @@ namespace Web_Sentro.Areas.Client.Controllers
                 HttpContext.Connection.RemoteIpAddress?.ToString(),
                 IsSuperAdmin());
             if (!ok) return NotFound();
+
+            var risk = await _riskService.GetByIdForOrgAsync(model.RiskId, orgId, IsSuperAdmin());
+            var status = risk?.Status ?? "";
+            if (status == "MitigationRequired")
+            {
+                await _riskService.EnsureMitigationPlanExistsAsync(model.RiskId, orgId, user.Id);
+                await _riskService.SaveChangesAsync();
+                return RedirectToAction("Board", "Mitigation", new { area = "Client", riskId = model.RiskId });
+            }
             return RedirectToAction("Identification");
         }
 
@@ -154,7 +167,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string Priority, string ProjectSite, string? ReportedDate)
+        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string? Priority, string ProjectSite, string? ReportedDate)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -166,7 +179,104 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (EmployeeOnly() && (risk.ReportByUserId != user.Id || risk.Status != "Draft"))
                 return Forbid();
 
-            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, Priority, ProjectSite, IsSuperAdmin());
+            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, IsSuperAdmin());
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SoftDelete(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
+            if (risk == null) return NotFound();
+            if (risk.Status == "Draft") return Forbid(); // Draft uses HardDelete only
+            if (EmployeeOnly() && risk.ReportByUserId != user.Id) return Forbid();
+            await _riskService.SoftDeleteAsync(id, orgId, IsSuperAdmin());
+            _riskService.AddAuditLog(risk.OrgId, user.Id, "Risk", id, "RiskSoftDeleted", "Risk moved to trash", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Restore(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            await _riskService.RestoreAsync(id, orgId, IsSuperAdmin());
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskRestored", "Risk restored from trash", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> HardDelete(int id, int orgId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var scopeOrgId = IsSuperAdmin() ? null : (int?)await GetMyOrgIdAsync();
+            if (scopeOrgId.HasValue && scopeOrgId.Value != orgId) return Forbid();
+            var risk = await _riskService.GetByIdForOrgAsync(id, scopeOrgId, IsSuperAdmin());
+            if (risk == null) return NotFound();
+            if (risk.Status != "Draft") return Forbid();
+            if (risk.ReportByUserId != user.Id && !IsAdmin() && !IsSuperAdmin()) return Forbid();
+            await _attachmentService.DeleteAllAttachmentsForRiskAsync(id, orgId);
+            var ok = await _riskService.HardDeleteAsync(id, scopeOrgId, user.Id, IsSuperAdmin(), allowOnlyDraft: true);
+            if (!ok) return NotFound();
+            _riskService.AddAuditLog(orgId, user.Id, "Risk", id, "RiskHardDeleted", "Risk permanently deleted", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Review(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var ok = await _riskService.ReviewRiskAsync(id, orgId, user.Id);
+            if (!ok) return NotFound();
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskReviewed", "Status: Submitted → Reviewed", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var ok = await _riskService.ApproveRiskAsync(id, orgId, user.Id);
+            if (!ok) return NotFound();
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskApproved", "Status: Reviewed → Approved", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
+            return RedirectToAction("Identification");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reject(int id, string? RejectRemarks)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            if (string.IsNullOrWhiteSpace(RejectRemarks)) { TempData["RejectError"] = "Remarks are required when rejecting."; return RedirectToAction("Identification"); }
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var ok = await _riskService.RejectRiskAsync(id, orgId, user.Id, RejectRemarks.Trim());
+            if (!ok) return NotFound();
+            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskRejected", $"Status set to Rejected. Remarks: {RejectRemarks.Trim()}", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _riskService.SaveChangesAsync();
             return RedirectToAction("Identification");
         }
 

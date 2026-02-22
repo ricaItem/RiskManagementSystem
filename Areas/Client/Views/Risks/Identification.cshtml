@@ -1,12 +1,18 @@
 @model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
 @{
     Layout = "_LayoutClient";
+    var isAdmin = ViewBag.IsAdmin == true;
+    var isRiskManager = ViewBag.IsRiskManager == true;
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
+    @if (TempData["RejectError"] != null)
+    {
+        <div class="rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-4 py-3 text-sm">@TempData["RejectError"]</div>
+    }
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -14,7 +20,7 @@
             </h1>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="toggleNewRiskModal()" class="flex items-center gap-2 bg-gradient-to-br from-emerald-600 to-teal-600 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+            <button onclick="toggleNewRiskModal()" class="flex items-center gap-2 bg-gradient-to-br from-emerald-600 to-teal-600 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all" aria-label="New risk entry">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -48,28 +54,57 @@
         }
     </div>
 
-    <div class="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div class="flex-1 min-w-[240px] relative">
+    <form method="get" action="@Url.Action("Identification", "Risks", new { area = "Client" })" id="filterForm" class="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div class="flex-1 min-w-[200px] relative">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <input type="text" placeholder="Search risks, locations, or tags..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-normal focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+            <input type="text" name="search" value="@Context.Request.Query["search"]" placeholder="Search risks..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-normal focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
         </div>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
-            <option>All Categories</option>
-            <option>Operational</option>
-            <option>Financial</option>
-            <option>Safety</option>
+        @if (isAdmin)
+        {
+            <select name="status" id="statusFilter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">All</option>
+                <option value="NeedsAction">Needs Action</option>
+                <option value="Draft" @(Context.Request.Query["status"] == "Draft" ? "selected" : "")>Draft</option>
+                <option value="For_Review" @(Context.Request.Query["status"] == "For_Review" ? "selected" : "")>For review</option>
+                <option value="Monitoring" @(Context.Request.Query["status"] == "Monitoring" ? "selected" : "")>Monitoring</option>
+                <option value="MitigationRequired" @(Context.Request.Query["status"] == "MitigationRequired" ? "selected" : "")>Mitigation Required</option>
+                <option value="Closed_Invalid" @(Context.Request.Query["status"] == "Closed_Invalid" ? "selected" : "")>Closed (Invalid)</option>
+                <option value="Closed_Controlled" @(Context.Request.Query["status"] == "Closed_Controlled" ? "selected" : "")>Closed (Controlled)</option>
+                <option value="Rejected" @(Context.Request.Query["status"] == "Rejected" ? "selected" : "")>Rejected</option>
+            </select>
+        }
+        else
+        {
+            <select name="status" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">All Statuses</option>
+                <option value="Draft" @(Context.Request.Query["status"] == "Draft" ? "selected" : "")>Draft</option>
+                <option value="For_Review" @(Context.Request.Query["status"] == "For_Review" ? "selected" : "")>For review</option>
+                <option value="Monitoring" @(Context.Request.Query["status"] == "Monitoring" ? "selected" : "")>Monitoring</option>
+                <option value="MitigationRequired" @(Context.Request.Query["status"] == "MitigationRequired" ? "selected" : "")>Mitigation Required</option>
+                <option value="Closed_Invalid" @(Context.Request.Query["status"] == "Closed_Invalid" ? "selected" : "")>Closed (Invalid)</option>
+                <option value="Closed_Controlled" @(Context.Request.Query["status"] == "Closed_Controlled" ? "selected" : "")>Closed (Controlled)</option>
+                <option value="Rejected" @(Context.Request.Query["status"] == "Rejected" ? "selected" : "")>Rejected</option>
+            </select>
+        }
+        <select name="category" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">All Categories</option>
+            <option value="Operational" @(Context.Request.Query["category"] == "Operational" ? "selected" : "")>Operational</option>
+            <option value="Financial" @(Context.Request.Query["category"] == "Financial" ? "selected" : "")>Financial</option>
+            <option value="Safety" @(Context.Request.Query["category"] == "Safety" ? "selected" : "")>Safety</option>
         </select>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
-            <option>All Priorities</option>
-            <option>Critical</option>
-            <option>Medium</option>
-            <option>Low</option>
-        </select>
-    </div>
+        @if (isAdmin)
+        {
+            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <input type="checkbox" name="showDeleted" value="true" @(ViewBag.ShowDeleted == true ? "checked" : "") onchange="this.form.submit()" />
+                Show deleted
+            </label>
+        }
+        <button type="submit" class="rounded-xl bg-emerald-600 text-white px-4 py-2 text-xs font-bold uppercase">Filter</button>
+    </form>
 
     <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse" id="risksTable">
                 <thead>
                     <tr class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 border-b border-slate-100 dark:border-slate-800">
                         <th class="px-6 py-4">Risk Detail</th>
@@ -79,36 +114,42 @@
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4">Date Reported</th>
                         <th class="px-6 py-4">Reported by</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
+                        <th class="px-6 py-4 text-right w-48">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
                     @foreach (var risk in Model)
                     {
                         var status = risk.Status ?? "Draft";
+                        var statusDisplay = status == "Rejected" ? "Rejected" : status == "For_Review" || status == "Submitted" || status == "Reviewed" ? "For review" : status == "Approved" ? "Monitoring" : status == "Closed_Invalid" ? "Closed_Invalid" : status;
+                        var actionStatus = status == "Submitted" || status == "Reviewed" ? "For_Review" : status;
                         var dateReported = risk.DateReported ?? risk.DateLogged;
                         var reportedBy = risk.ReportedBy ?? risk.DetectedBy ?? "";
+                        var isDeleted = risk.DeletedAt.HasValue;
+                        var priorityVal = risk.Priority ?? "Unassessed";
+                        var canSubmitDraft = !isDeleted && actionStatus == "Draft" && (!(bool)(ViewBag.IsEmployeeOnly ?? true) || risk.ReportByUserId == ViewBag.CurrentUserId);
+                        var canEdit = !isDeleted && ((actionStatus == "Draft" && (risk.ReportByUserId == ViewBag.CurrentUserId || isAdmin)));
+                        var canAssess = !isDeleted && actionStatus == "Submitted" && isRiskManager;
+                        var canReject = !isDeleted && (actionStatus == "Submitted" || (actionStatus == "Draft" && isAdmin)) && isAdmin;
                         var riskJson = System.Text.Json.JsonSerializer.Serialize(new {
                             risk.Id,
                             Title = risk.Title ?? "",
                             risk.Category,
-                            Priority = risk.Priority ?? "Medium",
-                            Status = status,
+                            Priority = priorityVal,
+                            Status = statusDisplay,
                             risk.SourceType,
                             ProjectSite = risk.ProjectSite ?? "",
                             DateReported = dateReported.ToString("yyyy-MM-dd"),
                             ReportedBy = reportedBy,
                             ReportByUserId = risk.ReportByUserId,
+                            risk.OrgId,
+                            DeletedAt = risk.DeletedAt,
                             Attachments = risk.Attachments ?? new List<string>()
                         });
-                        var canSubmitThisDraft = status == "Draft" && (!(bool)(ViewBag.IsEmployeeOnly ?? true) || risk.ReportByUserId == ViewBag.CurrentUserId);
-                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all" data-risk="@Html.Raw(System.Net.WebUtility.HtmlEncode(riskJson))">
+                        <tr class="risk-row group hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all @(isDeleted ? "opacity-60" : "")" data-risk="@Html.Raw(System.Net.WebUtility.HtmlEncode(riskJson))" data-status="@statusDisplay" data-priority="@priorityVal" data-deleted="@(isDeleted ? "1" : "0")">
                             <td class="px-6 py-5">
                                 <div class="font-medium text-slate-900 dark:text-white mb-0.5 max-w-[200px] truncate" title="@(risk.Title ?? "")">@(risk.Title ?? "")</div>
-                                @if (risk.AttachmentsCount > 0)
-                                {
-                                    <span class="text-[10px] text-slate-400">@risk.AttachmentsCount file(s)</span>
-                                }
+                                @if (risk.AttachmentsCount > 0) { <span class="text-[10px] text-slate-400">@risk.AttachmentsCount file(s)</span> }
                             </td>
                             <td class="px-6 py-5">
                                 <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium uppercase tracking-tighter">@(risk.Category ?? "")</span>
@@ -117,21 +158,20 @@
                                 <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 max-w-[120px] truncate block" title="@(risk.ProjectSite ?? "")">@(risk.ProjectSite ?? "")</span>
                             </td>
                             <td class="px-6 py-5">
-                                @{
-                                    var priorityCls = (risk.Priority ?? "Medium") == "Critical" ? "text-rose-500" : (risk.Priority ?? "Medium") == "High" ? "text-orange-500" : "text-amber-500";
-                                }
-                                <span class="text-[10px] font-semibold @priorityCls uppercase">@(risk.Priority ?? "Medium")</span>
+                                @{ var priorityCls = priorityVal == "Critical" ? "text-rose-500" : priorityVal == "High" ? "text-orange-500" : priorityVal == "Medium" ? "text-amber-500" : priorityVal == "Low" ? "text-emerald-500" : "text-slate-400"; }
+                                <span class="text-[10px] font-semibold @priorityCls uppercase">@priorityVal</span>
                             </td>
                             <td class="px-6 py-5">
                                 @{
-                                    var statusBadgeClass = status == "Submitted" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" :
-                                        status == "Reviewed" ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400" :
-                                        status == "Approved" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400" :
-                                        status == "Rejected" ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400" :
-                                        status == "MitigationRequired" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400" :
+                                    var statusBadgeClass = statusDisplay == "For review" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" :
+                                        statusDisplay == "Rejected" ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400" :
+                                        statusDisplay == "Monitoring" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400" :
+                                        statusDisplay == "MitigationRequired" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400" :
+                                        statusDisplay == "Closed_Invalid" ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400" :
+                                        statusDisplay == "Closed_Controlled" ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" :
                                         "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
                                 }
-                                <span class="px-2.5 py-1 rounded-lg @statusBadgeClass text-[10px] font-bold uppercase tracking-tighter">@status</span>
+                                <span class="px-2.5 py-1 rounded-lg @statusBadgeClass text-[10px] font-bold uppercase tracking-tighter">@statusDisplay</span>
                             </td>
                             <td class="px-6 py-5">
                                 <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase">@dateReported.ToString("MMM dd, yyyy")</span>
@@ -140,17 +180,43 @@
                                 <span class="text-[10px] font-medium text-slate-600 dark:text-slate-300">@(reportedBy != "" ? reportedBy : "—")</span>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                @if (canSubmitThisDraft)
-                                {
-                                    <form action="@Url.Action("SubmitRisk", "Risks", new { area = "Client" })" method="post" class="inline-block mr-1">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="RiskId" value="@risk.Id" />
-                                        <button type="submit" class="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all text-slate-400 hover:text-emerald-600" title="Submit">Submit</button>
-                                    </form>
-                                }
-                                <button type="button" onclick="openViewModal(this)" class="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all text-slate-400 hover:text-blue-500" title="View">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                </button>
+                                <div class="flex items-center justify-end gap-1">
+                                    @if (!isDeleted)
+                                    {
+                                        <button type="button" onclick="openViewModal(this)" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" aria-label="View risk details">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                        </button>
+                                        @if (actionStatus == "Draft" && (risk.ReportByUserId == ViewBag.CurrentUserId || isAdmin))
+                                        {
+                                            <form action="@Url.Action("HardDelete", "Risks", new { area = "Client" })" method="post" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@risk.Id" />
+                                                <input type="hidden" name="orgId" value="@risk.OrgId" />
+                                                <button type="submit" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all" aria-label="Delete permanently">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (actionStatus != "Draft")
+                                        {
+                                            <form action="@Url.Action("SoftDelete", "Risks", new { area = "Client" })" method="post" class="inline-block">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@risk.Id" />
+                                                <button type="submit" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all" aria-label="Archive (soft delete)">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </form>
+                                        }
+                                    }
+                                    else if (isAdmin)
+                                    {
+                                        <form action="@Url.Action("Restore", "Risks", new { area = "Client" })" method="post" class="inline-block">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@risk.Id" />
+                                            <button type="submit" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all" aria-label="Restore risk"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                                        </form>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -158,16 +224,11 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <p class="text-[10px] font-medium text-slate-400 uppercase">Showing 1 to 10 of 24 entries</p>
-            <div class="flex gap-2">
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Prev</button>
-                <button class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-semibold uppercase shadow-md shadow-emerald-500/20">1</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">2</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Next</button>
-            </div>
+            <p class="text-[10px] font-medium text-slate-400 uppercase">Risks list</p>
         </div>
     </div>
 </div>
+
 
 <div id="newRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleNewRiskModal()"></div>
@@ -175,7 +236,7 @@
         <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Identify New Risk</h2>
-                <button type="button" onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+                <button type="button" onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form action="@Url.Action("IdentifyNewRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data" class="space-y-4" onsubmit="var btns=this.querySelectorAll('button[type=submit]');btns.forEach(function(b){b.disabled=true;});">
                 @Html.AntiForgeryToken()
@@ -216,9 +277,7 @@
                 <div class="space-y-2">
                     <div class="relative">
                         <input type="text" id="addProjectSite" name="ProjectSite" placeholder="Job Site Location" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                        <button type="button" onclick="autoDetectLocation('addProjectSite', 'addMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:scale-110 transition-transform">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" /><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" stroke-width="2" /></svg>
-                        </button>
+                        <button type="button" onclick="autoDetectLocation('addProjectSite', 'addMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:scale-110 transition-transform" aria-label="Detect location"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-width="2" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg></button>
                     </div>
                     <div id="addMap" class="h-40 w-full rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"></div>
                 </div>
@@ -226,12 +285,9 @@
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Attachments</label>
                     <input type="file" name="Attachments" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-300" />
                 </div>
-                @if (TempData["AttachmentError"] != null)
-                {
-                    <p class="text-rose-600 dark:text-rose-400 text-xs">@TempData["AttachmentError"]</p>
-                }
+                @if (TempData["AttachmentError"] != null) { <p class="text-rose-600 dark:text-rose-400 text-xs">@TempData["AttachmentError"]</p> }
                 <div class="flex gap-3 pt-2">
-                    <button type="submit" name="submitType" value="Draft" id="newRiskSubmitBtn" class="flex-1 rounded-xl bg-slate-200 dark:bg-slate-700 py-3.5 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 shadow disabled:opacity-70">Save Draft</button>
+                    <button type="submit" name="submitType" value="Draft" class="flex-1 rounded-xl bg-slate-200 dark:bg-slate-700 py-3.5 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 shadow disabled:opacity-70">Save Draft</button>
                     <button type="submit" name="submitType" value="Submit" class="flex-1 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-70">Submit Risk</button>
                 </div>
             </form>
@@ -245,7 +301,20 @@
         <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Risk <span class="text-emerald-600">Details</span></h2>
-                <button type="button" onclick="toggleViewModal()" class="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <button type="button" onclick="toggleViewModal()" class="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div id="viewWorkflowStepper" class="flex items-center justify-between gap-1 mb-6 py-3 px-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 text-[10px] font-bold uppercase flex-wrap">
+                <span class="step" data-step="Draft">Draft</span>
+                <span class="text-slate-400">→</span>
+                <span class="step" data-step="Submitted">Submitted</span>
+                <span class="text-slate-400">→</span>
+                <span class="step" data-step="Assessed">Assessed</span>
+                <span class="text-slate-400">→</span>
+                <span class="step" data-step="MitigationRequired">Mitigation</span>
+                <span class="text-slate-400">/</span>
+                <span class="step" data-step="Monitoring">Monitoring</span>
+                <span class="text-slate-400">/</span>
+                <span class="step" data-step="Closed_Invalid">Closed</span>
             </div>
             <div id="viewRiskContent" class="space-y-4">
                 <div class="space-y-1">
@@ -258,7 +327,7 @@
                         <div id="viewCategory" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white"></div>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1 block">Priority</label>
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1 block">Priority <span class="text-slate-400 font-normal">(system-derived)</span></label>
                         <div id="viewPriority" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white"></div>
                     </div>
                 </div>
@@ -290,6 +359,29 @@
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1 block">Attachments</label>
                     <div id="viewAttachments" class="flex flex-wrap gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-500 dark:text-slate-400"></div>
                 </div>
+            </div>
+            <div id="viewModalBottomBar" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap justify-end gap-3 items-center hidden">
+            <div id="viewModalActions" class="flex flex-wrap gap-3">
+                <form id="viewModalSubmitForm" action="@Url.Action("SubmitRisk", "Risks", new { area = "Client" })" method="post" class="inline-flex hidden">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RiskId" id="viewModalSubmitRiskId" />
+                    <button type="submit" class="rounded-xl bg-emerald-600 text-white px-4 py-2.5 text-xs font-bold uppercase shadow-md hover:bg-emerald-700 transition-all inline-flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Submit
+                    </button>
+                </form>
+                <a id="viewModalAssessLink" href="#" class="rounded-xl bg-amber-500 text-white px-4 py-2.5 text-xs font-bold uppercase shadow-md hover:bg-amber-600 transition-all inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    Assess
+                </a>
+                <button type="button" id="viewModalRejectBtn" class="rounded-xl bg-rose-600 text-white px-4 py-2.5 text-xs font-bold uppercase shadow-md hover:bg-rose-700 transition-all inline-flex items-center gap-2 hidden">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Reject
+                </button>
+            </div>
+            <div id="viewModalFooter" class="flex gap-3">
+                <button type="button" onclick="switchViewModalToEdit()" class="rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white px-5 py-2.5 text-xs font-black uppercase tracking-widest shadow-lg">Edit</button>
+            </div>
             </div>
             <div id="viewModalEditPanel" class="hidden space-y-4">
                 <form id="viewModalEditForm" action="@Url.Action("UpdateRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data" class="space-y-4">
@@ -337,14 +429,6 @@
                         <input type="text" id="viewEditProjectSite" name="ProjectSite" placeholder="Job Site Location" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Priority</label>
-                        <select id="viewEditPriority" name="Priority" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700">
-                            <option value="Critical">Critical</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Attachments</label>
                         <input type="file" name="Attachments" multiple accept="image/*" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-300" />
                     </div>
@@ -354,9 +438,44 @@
                     </div>
                 </form>
             </div>
-            <div id="viewModalFooter" class="mt-4 flex justify-end">
-                <button type="button" onclick="switchViewModalToEdit()" class="rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white px-5 py-2.5 text-xs font-black uppercase tracking-widest shadow-lg">Edit</button>
-            </div>
+        </div>
+    </div>
+</div>
+
+<div id="rejectModal" class="fixed inset-0 z-[70] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRejectModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4">Reject Risk</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Remarks are required when rejecting.</p>
+            <form action="@Url.Action("Reject", "Risks", new { area = "Client" })" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="rejectRiskId" />
+                <textarea name="RejectRemarks" id="rejectRemarks" rows="3" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-bold dark:text-white mb-4" placeholder="Enter remarks..." required></textarea>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeRejectModal()" class="flex-1 rounded-xl bg-slate-200 dark:bg-slate-700 py-2.5 text-xs font-bold uppercase text-slate-600 dark:text-slate-300">Cancel</button>
+                    <button type="submit" class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold uppercase text-white">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="hardDeleteModal" class="fixed inset-0 z-[70] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeHardDeleteModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <h3 class="text-lg font-black text-rose-600 dark:text-rose-400 mb-2">Permanently delete risk?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">This will delete the risk, all attachments, and evaluations. This action cannot be undone.</p>
+            <form action="@Url.Action("HardDelete", "Risks", new { area = "Client" })" method="post" onsubmit="return confirm('Are you sure you want to permanently delete this risk?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="hardDeleteRiskId" />
+                <input type="hidden" name="orgId" id="hardDeleteOrgId" />
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeHardDeleteModal()" class="flex-1 rounded-xl bg-slate-200 dark:bg-slate-700 py-2.5 text-xs font-bold uppercase text-slate-600 dark:text-slate-300">Cancel</button>
+                    <button type="submit" class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold uppercase text-white">Delete permanently</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -367,7 +486,7 @@
         <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Edit <span class="text-blue-600">Risk Details</span></h2>
-                <button type="button" onclick="toggleEditModal()" class="text-slate-400 hover:text-rose-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+                <button type="button" onclick="toggleEditModal()" class="text-slate-400 hover:text-rose-500" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form action="@Url.Action("UpdateRisk", "Risks", new { area = "Client" })" method="post" class="space-y-4">
                 @Html.AntiForgeryToken()
@@ -377,23 +496,13 @@
                         <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Reported Date</label>
                         <input type="date" id="editDate" name="ReportedDate" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Risk Priority</label>
-                        <select id="editPriority" name="Priority" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
-                            <option value="Critical">Critical</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
                 </div>
                 <input type="text" id="editTitle" name="Title" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
                 <div class="space-y-1">
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Job Site</label>
                     <div class="relative">
                         <input type="text" id="editProjectSite" name="ProjectSite" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                        <button type="button" onclick="autoDetectLocation('editProjectSite', 'editMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" /><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" stroke-width="2" /></svg>
-                        </button>
+                        <button type="button" onclick="autoDetectLocation('editProjectSite', 'editMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500" aria-label="Detect location"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-width="2" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg></button>
                     </div>
                     <div id="editMap" class="h-40 w-full rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-2"></div>
                 </div>
@@ -407,57 +516,91 @@
 </div>
 
 <script>
-    let addMap, editMap, addMarker, editMarker;
-    window.__isEmployeeOnly = @(ViewBag.IsEmployeeOnly == true ? "true" : "false");
-    window.__currentUserId = "@(ViewBag.CurrentUserId ?? "")";
+    (function () {
+        var isEmployeeOnly = @(ViewBag.IsEmployeeOnly == true ? "true" : "false");
+        var currentUserId = "@(ViewBag.CurrentUserId ?? "")";
+        var isAdmin = @(ViewBag.IsAdmin == true ? "true" : "false");
+        var isRiskManager = @(ViewBag.IsRiskManager == true ? "true" : "false");
+        window.__isEmployeeOnly = isEmployeeOnly;
+        window.__currentUserId = currentUserId;
+        window.__isAdmin = isAdmin;
+        window.__isRiskManager = isRiskManager;
+    })();
 
-    function initMap(mapId, lat = 7.0707, lng = 125.6087) {
-        const map = L.map(mapId).setView([lat, lng], 13);
+    var addMap, editMap, addMarker, editMarker;
+
+    function initMap(mapId, lat, lng) {
+        lat = lat || 7.0707; lng = lng || 125.6087;
+        var map = L.map(mapId).setView([lat, lng], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        const marker = L.marker([lat, lng]).addTo(map);
-        return { map, marker };
+        var marker = L.marker([lat, lng]).addTo(map);
+        return { map: map, marker: marker };
     }
 
     function toggleNewRiskModal() {
-        const modal = document.getElementById('newRiskModal');
+        var modal = document.getElementById('newRiskModal');
         modal.classList.toggle('hidden');
         if (!modal.classList.contains('hidden') && !addMap) {
-            setTimeout(() => { const res = initMap('addMap'); addMap = res.map; addMarker = res.marker; }, 200);
+            setTimeout(function () { var res = initMap('addMap'); addMap = res.map; addMarker = res.marker; }, 200);
         }
     }
 
     function toggleEditModal() {
-        const modal = document.getElementById('editRiskModal');
+        var modal = document.getElementById('editRiskModal');
         modal.classList.toggle('hidden');
         if (!modal.classList.contains('hidden') && !editMap) {
-            setTimeout(() => { const res = initMap('editMap'); editMap = res.map; editMarker = res.marker; }, 200);
+            setTimeout(function () { var res = initMap('editMap'); editMap = res.map; editMarker = res.marker; }, 200);
         }
     }
 
     function toggleViewModal() {
-        const modal = document.getElementById('viewRiskModal');
-        modal.classList.toggle('hidden');
+        document.getElementById('viewRiskModal').classList.toggle('hidden');
     }
 
+    function toggleDropdown(btn) {
+        var dd = btn.closest('.more-dropdown');
+        var panel = dd.querySelector('.dropdown-panel');
+        var isOpen = panel.classList.contains('hidden');
+        document.querySelectorAll('.dropdown-panel').forEach(function (p) { p.classList.add('hidden'); });
+        document.querySelectorAll('.more-dropdown').forEach(function (d) { d.classList.remove('open'); });
+        if (isOpen) {
+            panel.classList.remove('hidden');
+            dd.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+        } else {
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.more-dropdown')) {
+            document.querySelectorAll('.dropdown-panel').forEach(function (p) { p.classList.add('hidden'); });
+            document.querySelectorAll('.more-dropdown').forEach(function (d) { d.classList.remove('open'); });
+        }
+    });
+
     function openViewModal(btn) {
-        const tr = btn.closest('tr');
-        if (!tr || !tr.dataset.risk) return;
-        const risk = JSON.parse(tr.dataset.risk);
-        window._currentViewRisk = risk;
+        var riskData = null;
+        var tr = btn && btn.closest ? btn.closest('tr') : null;
+        if (tr && tr.getAttribute && tr.getAttribute('data-risk')) riskData = tr.getAttribute('data-risk');
+        else if (btn && btn.getAttribute && btn.getAttribute('data-risk')) riskData = btn.getAttribute('data-risk');
+        if (!riskData) return;
+        try { window._currentViewRisk = JSON.parse(riskData); } catch (e) { return; }
+        var risk = window._currentViewRisk;
         document.getElementById('viewTitle').textContent = risk.Title || '';
         document.getElementById('viewCategory').textContent = risk.Category || '';
-        document.getElementById('viewPriority').textContent = risk.Priority || '';
+        document.getElementById('viewPriority').textContent = risk.Priority || 'Unassessed';
         document.getElementById('viewStatus').textContent = risk.Status || 'Draft';
         document.getElementById('viewSourceType').textContent = risk.SourceType || '—';
         document.getElementById('viewProjectSite').textContent = risk.ProjectSite || '';
         document.getElementById('viewDateReported').textContent = risk.DateReported || '';
         document.getElementById('viewReportedBy').textContent = risk.ReportedBy || '—';
-        const container = document.getElementById('viewAttachments');
+        var container = document.getElementById('viewAttachments');
         container.innerHTML = '';
         if (risk.Attachments && risk.Attachments.length > 0) {
             risk.Attachments.forEach(function (path) {
-                const img = document.createElement('img');
-                img.src = path.startsWith('/') ? path : '/' + path;
+                var img = document.createElement('img');
+                img.src = path.indexOf('/') === 0 ? path : '/' + path;
                 img.alt = 'Attachment';
                 img.className = 'w-20 h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700';
                 container.appendChild(img);
@@ -469,8 +612,115 @@
         document.getElementById('viewModalFooter').classList.toggle('hidden', !canEdit);
         document.getElementById('viewRiskContent').classList.remove('hidden');
         document.getElementById('viewModalEditPanel').classList.add('hidden');
+
+        var actionStatus = (risk.Status === 'For review' || risk.Status === 'Submitted' || risk.Status === 'Reviewed' || risk.Status === 'For_Review') ? 'For_Review' : (risk.Status || 'Draft');
+        var canSubmitDraft = actionStatus === 'Draft' && (risk.ReportByUserId && risk.ReportByUserId === window.__currentUserId);
+        var canAssess = actionStatus === 'For_Review' && window.__isRiskManager;
+        var canReject = actionStatus === 'For_Review' && window.__isAdmin;
+        var actionsBar = document.getElementById('viewModalActions');
+        var submitForm = document.getElementById('viewModalSubmitForm');
+        var submitRiskIdInput = document.getElementById('viewModalSubmitRiskId');
+        var assessLink = document.getElementById('viewModalAssessLink');
+        var rejectBtn = document.getElementById('viewModalRejectBtn');
+        var bottomBar = document.getElementById('viewModalBottomBar');
+        if (canSubmitDraft || canAssess || canReject || canEdit) {
+            if (bottomBar) bottomBar.classList.remove('hidden');
+            if (canSubmitDraft || canAssess || canReject) {
+            actionsBar.classList.remove('hidden');
+            if (canSubmitDraft) {
+                submitRiskIdInput.value = risk.Id;
+                submitForm.classList.remove('hidden');
+                assessLink.classList.add('hidden');
+                rejectBtn.classList.add('hidden');
+            } else {
+                submitForm.classList.add('hidden');
+                if (canAssess) {
+                    assessLink.href = '@Url.Action("Assess", "Risks", new { area = "Client" })/' + risk.Id;
+                    assessLink.classList.remove('hidden');
+                } else {
+                    assessLink.classList.add('hidden');
+                }
+                if (canReject) {
+                    rejectBtn.setAttribute('data-risk-id', risk.Id);
+                    rejectBtn.classList.remove('hidden');
+                } else {
+                    rejectBtn.classList.add('hidden');
+                }
+            }
+            } else {
+                actionsBar.classList.add('hidden');
+            }
+        } else {
+            if (bottomBar) bottomBar.classList.add('hidden');
+            actionsBar.classList.add('hidden');
+        }
+
+        var stepper = document.getElementById('viewWorkflowStepper');
+        stepper.querySelectorAll('.step').forEach(function (el) {
+            el.classList.remove('bg-emerald-600', 'text-white', 'px-2', 'py-0.5', 'rounded');
+            el.classList.add('text-slate-500', 'dark:text-slate-400');
+        });
+        var status = risk.Status || 'Draft';
+        var currentStep = status;
+        if (status === 'Approved' || status === 'Rejected') currentStep = status === 'Rejected' ? 'Closed_Invalid' : 'Monitoring';
+        else if (status === 'Reviewed') currentStep = 'Submitted';
+        else if (status === 'Closed_Controlled') currentStep = 'Closed_Invalid';
+        var currentEl = stepper.querySelector('.step[data-step="' + currentStep + '"]');
+        if (currentEl) {
+            currentEl.classList.add('bg-emerald-600', 'text-white', 'px-2', 'py-0.5', 'rounded');
+            currentEl.classList.remove('text-slate-500', 'dark:text-slate-400');
+        }
+
         toggleViewModal();
     }
+
+    document.getElementById('viewModalRejectBtn').addEventListener('click', function () {
+        var riskId = this.getAttribute('data-risk-id');
+        if (riskId) {
+            document.getElementById('rejectRiskId').value = riskId;
+            document.getElementById('rejectRemarks').value = '';
+            toggleViewModal();
+            document.getElementById('rejectModal').classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('risksTable').addEventListener('click', function (e) {
+        var viewBtn = e.target.closest('[data-action="view"]');
+        if (viewBtn) {
+            e.preventDefault();
+            var tr = viewBtn.closest('tr');
+            if (tr && tr.getAttribute('data-risk')) {
+                var fakeBtn = document.createElement('button');
+                fakeBtn.setAttribute('data-risk', tr.getAttribute('data-risk'));
+                openViewModal(fakeBtn);
+            }
+            document.querySelectorAll('.dropdown-panel').forEach(function (p) { p.classList.add('hidden'); });
+        }
+        var editBtn = e.target.closest('.row-action-edit');
+        if (editBtn) {
+            e.preventDefault();
+            var id = editBtn.getAttribute('data-risk-id');
+            var title = editBtn.getAttribute('data-title');
+            var category = editBtn.getAttribute('data-category');
+            var priority = editBtn.getAttribute('data-priority');
+            var site = editBtn.getAttribute('data-site');
+            var date = editBtn.getAttribute('data-date');
+            document.getElementById('editRiskId').value = id || '';
+            document.getElementById('editTitle').value = title || '';
+            document.getElementById('editProjectSite').value = site || '';
+            document.getElementById('editDate').value = date || '';
+            toggleEditModal();
+            document.querySelectorAll('.dropdown-panel').forEach(function (p) { p.classList.add('hidden'); });
+        }
+        var hdBtn = e.target.closest('.row-action-harddelete');
+        if (hdBtn) {
+            e.preventDefault();
+            document.getElementById('hardDeleteRiskId').value = hdBtn.getAttribute('data-risk-id') || '';
+            document.getElementById('hardDeleteOrgId').value = hdBtn.getAttribute('data-org-id') || '';
+            document.getElementById('hardDeleteModal').classList.remove('hidden');
+            document.querySelectorAll('.dropdown-panel').forEach(function (p) { p.classList.add('hidden'); });
+        }
+    });
 
     function switchViewModalToEdit() {
         var risk = window._currentViewRisk;
@@ -483,7 +733,6 @@
         document.getElementById('viewEditStatus').value = risk.Status || 'Draft';
         document.getElementById('viewEditReportedBy').value = risk.ReportedBy || '—';
         document.getElementById('viewEditProjectSite').value = risk.ProjectSite || '';
-        document.getElementById('viewEditPriority').value = risk.Priority || 'Medium';
         document.getElementById('viewRiskContent').classList.add('hidden');
         document.getElementById('viewModalFooter').classList.add('hidden');
         document.getElementById('viewModalEditPanel').classList.remove('hidden');
@@ -495,26 +744,70 @@
         document.getElementById('viewModalEditPanel').classList.add('hidden');
     }
 
-    function openEditModal(id, title, category, priority, site, date) {
-        document.getElementById('editRiskId').value = id || '';
-        document.getElementById('editTitle').value = title || '';
-        document.getElementById('editPriority').value = priority || 'Medium';
-        document.getElementById('editProjectSite').value = site || '';
-        document.getElementById('editDate').value = date || '';
-        toggleEditModal();
+    function openRejectModal(riskId) {
+        document.getElementById('rejectRiskId').value = riskId;
+        document.getElementById('rejectRemarks').value = '';
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+    }
+
+    function openHardDeleteModal(riskId, orgId) {
+        document.getElementById('hardDeleteRiskId').value = riskId;
+        document.getElementById('hardDeleteOrgId').value = orgId;
+        document.getElementById('hardDeleteModal').classList.remove('hidden');
+    }
+    function closeHardDeleteModal() {
+        document.getElementById('hardDeleteModal').classList.add('hidden');
+    }
+
+    function applyNeedsActionFilter() {
+        var rows = document.querySelectorAll('#risksTable .risk-row');
+        rows.forEach(function (row) {
+            var status = row.getAttribute('data-status');
+            var deleted = row.getAttribute('data-deleted') === '1';
+            var show = !deleted && (status === 'Draft' || status === 'For review');
+            row.style.display = show ? '' : 'none';
+        });
+    }
+    var statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function () {
+            if (this.value === 'NeedsAction') {
+                applyNeedsActionFilter();
+            } else {
+                document.getElementById('filterForm').submit();
+            }
+        });
+    }
+    var filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function (e) {
+            if (statusFilter && statusFilter.value === 'NeedsAction') {
+                e.preventDefault();
+                applyNeedsActionFilter();
+            }
+        });
     }
 
     async function autoDetectLocation(inputId, mapKey) {
-        const inputField = document.getElementById(inputId);
-        const marker = mapKey === 'addMap' ? addMarker : editMarker;
-        const map = mapKey === 'addMap' ? addMap : editMap;
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const { latitude, longitude } = pos.coords;
-            map.setView([latitude, longitude], 16);
-            marker.setLatLng([latitude, longitude]);
-            const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + latitude + '&lon=' + longitude);
-            const data = await res.json();
-            inputField.value = data.display_name || (latitude + ', ' + longitude);
+        var inputField = document.getElementById(inputId);
+        var marker = mapKey === 'addMap' ? addMarker : editMarker;
+        var map = mapKey === 'addMap' ? addMap : editMap;
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(async function (pos) {
+            var lat = pos.coords.latitude;
+            var lon = pos.coords.longitude;
+            map.setView([lat, lon], 16);
+            marker.setLatLng([lat, lon]);
+            try {
+                var res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon);
+                var data = await res.json();
+                inputField.value = data.display_name || (lat + ', ' + lon);
+            } catch (err) {
+                inputField.value = lat + ', ' + lon;
+            }
         });
     }
 </script>

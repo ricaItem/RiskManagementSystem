@@ -27,7 +27,6 @@ namespace WEB_Sentro.Areas.Client.Controllers
             var user = await _userManager.GetUserAsync(User);
             var orgId = user?.OrganizationId ?? 0;
 
-            // Placeholder counts and lists (tenant-scoped, user-filtered in real implementation)
             var vm = new MyWorkDashboardViewModel
             {
                 MyOpenRisksCount = 0,
@@ -39,7 +38,6 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 MyRecentRisks = new List<RiskIdentificationViewModel>()
             };
 
-            // Optional: inject a service that queries by user.Id and orgId for real data
             return View(vm);
         }
 

@@ -21,15 +21,23 @@ namespace WEB_Sentro.Services
             string? search,
             string? status,
             string? category,
+            bool showDeleted = false,
             CancellationToken ct = default)
         {
             var q = _db.Risks.AsNoTracking().AsQueryable();
+            if (showDeleted)
+                q = q.IgnoreQueryFilters();
 
             if (orgId.HasValue)
                 q = q.Where(r => r.OrgId == orgId.Value);
 
+            q = q.Where(r => r.Status != "Draft" || r.ReportByUserId == userId);
+
             if (employeeOnly && !string.IsNullOrEmpty(userId))
                 q = q.Where(r => r.ReportByUserId == userId);
+
+            if (!showDeleted)
+                q = q.Where(r => r.DeletedAt == null);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -38,13 +46,24 @@ namespace WEB_Sentro.Services
             }
 
             if (!string.IsNullOrWhiteSpace(status))
-                q = q.Where(r => r.Status == status);
+            {
+                var s = status.Trim();
+                q = s switch
+                {
+                    "For_Review" => q.Where(r => r.Status == "For_Review" || r.Status == "Submitted" || r.Status == "Reviewed"),
+                    "Rejected" => q.Where(r => r.Status == "Rejected"),
+                    "Closed_Invalid" => q.Where(r => r.Status == "Closed_Invalid"),
+                    "Monitoring" => q.Where(r => r.Status == "Monitoring" || r.Status == "Approved"),
+                    "Submitted" => q.Where(r => r.Status == "For_Review" || r.Status == "Submitted" || r.Status == "Reviewed"),
+                    _ => q.Where(r => r.Status == s)
+                };
+            }
             if (!string.IsNullOrWhiteSpace(category))
                 q = q.Where(r => r.Category == category);
 
             var list = await q
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId })
                 .ToListAsync(ct);
 
             var riskIds = list.Select(x => x.RiskId).ToList();
@@ -67,7 +86,7 @@ namespace WEB_Sentro.Services
                 Id = r.RiskId,
                 Title = r.Title ?? "",
                 Category = r.Category ?? "No Category",
-                Priority = r.Priority ?? "Medium",
+                Priority = r.Priority ?? "Unassessed",
                 DetectedBy = userNames.TryGetValue(r.ReportByUserId, out var name) ? name : "Unknown",
                 ReportedBy = userNames.TryGetValue(r.ReportByUserId, out var rb) ? rb : "",
                 ReportByUserId = r.ReportByUserId,
@@ -76,6 +95,8 @@ namespace WEB_Sentro.Services
                 DateReported = r.CreatedAt,
                 Status = r.Status ?? "Draft",
                 SourceType = r.SourceType,
+                OrgId = r.OrgId,
+                DeletedAt = r.DeletedAt,
                 AttachmentsCount = attByRisk.GetValueOrDefault(r.RiskId)?.Count ?? 0,
                 Attachments = attByRisk.GetValueOrDefault(r.RiskId) ?? new List<string>()
             }).ToList();
@@ -101,8 +122,8 @@ namespace WEB_Sentro.Services
                 SourceType = sourceType,
                 ProjectSite = projectSite,
                 Description = description,
-                Status = status == "Submitted" ? "Submitted" : "Draft",
-                Priority = "Medium",
+                Status = status == "For_Review" ? "For_Review" : "Draft",
+                Priority = "Unassessed",
                 CreatedAt = DateTime.UtcNow
             };
             _db.Risks.Add(risk);
@@ -118,7 +139,7 @@ namespace WEB_Sentro.Services
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Draft") return false;
             if (employeeOnly && risk.ReportByUserId != userId) return false;
-            risk.Status = "Submitted";
+            risk.Status = "For_Review";
             risk.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
             return true;
@@ -199,6 +220,108 @@ namespace WEB_Sentro.Services
             risk.DeletedAt = null;
             risk.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
+        }
+
+        public async Task<bool> HardDeleteAsync(int riskId, int? orgId, string userId, bool superAdmin, bool allowOnlyDraft, CancellationToken ct = default)
+        {
+            var q = _db.Risks.IgnoreQueryFilters().Where(r => r.RiskId == riskId);
+            if (orgId.HasValue && !superAdmin)
+                q = q.Where(r => r.OrgId == orgId.Value);
+            var risk = await q.Include(r => r.Evaluations).FirstOrDefaultAsync(ct);
+            if (risk == null) return false;
+            if (allowOnlyDraft && risk.Status != "Draft") return false;
+            _db.RiskEvaluations.RemoveRange(risk.Evaluations);
+            _db.Risks.Remove(risk);
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> ReviewRiskAsync(int riskId, int? orgId, string userId, CancellationToken ct = default)
+        {
+            var q = _db.Risks.Where(r => r.RiskId == riskId);
+            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            var risk = await q.FirstOrDefaultAsync(ct);
+            if (risk == null || risk.Status != "Submitted") return false;
+            risk.Status = "Reviewed";
+            risk.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> ApproveRiskAsync(int riskId, int? orgId, string userId, CancellationToken ct = default)
+        {
+            var q = _db.Risks.Where(r => r.RiskId == riskId);
+            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            var risk = await q.FirstOrDefaultAsync(ct);
+            if (risk == null || risk.Status != "Reviewed") return false;
+            risk.Status = "Approved";
+            risk.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> RejectRiskAsync(int riskId, int? orgId, string userId, string? remarks, CancellationToken ct = default)
+        {
+            var q = _db.Risks.Where(r => r.RiskId == riskId);
+            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            var risk = await q.FirstOrDefaultAsync(ct);
+            if (risk == null) return false;
+            if (risk.Status != "For_Review" && risk.Status != "Submitted" && risk.Status != "Reviewed") return false;
+            risk.Status = "Rejected";
+            risk.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task EnsureMitigationPlanExistsAsync(int riskId, int orgId, string userId, CancellationToken ct = default)
+        {
+            var risk = await _db.Risks
+                .Include(r => r.MitigationPlan)
+                .FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId, ct);
+            if (risk == null) return;
+
+            var plan = risk.MitigationPlan;
+            if (plan == null)
+            {
+                plan = new MitigationPlan
+                {
+                    RiskId = riskId,
+                    CreatedByUserId = userId,
+                    Status = "Active",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.MitigationPlans.Add(plan);
+                await _db.SaveChangesAsync(ct);
+            }
+
+            var hasTasks = await _db.MitigationTasks.AnyAsync(t => t.PlanId == plan.PlanId, ct);
+            if (hasTasks) return;
+
+            var titles = GetDefaultTaskTitlesForRisk(risk.Category, risk.SourceType);
+            var now = DateTime.UtcNow;
+            foreach (var title in titles)
+            {
+                _db.MitigationTasks.Add(new MitigationTask
+                {
+                    PlanId = plan.PlanId,
+                    Title = title,
+                    Status = "ToDo",
+                    ProgressPercent = 0,
+                    UpdatedAt = now
+                });
+            }
+            await _db.SaveChangesAsync(ct);
+        }
+
+        private static string[] GetDefaultTaskTitlesForRisk(string? category, string? sourceType)
+        {
+            var cat = (category ?? "").Trim();
+            var src = (sourceType ?? "").Trim();
+            if (cat.Contains("Weather", StringComparison.OrdinalIgnoreCase) || src.Equals("WeatherAPI", StringComparison.OrdinalIgnoreCase) || src.Equals("Weather", StringComparison.OrdinalIgnoreCase))
+                return new[] { "Suspend crane operations", "Secure loose materials", "Conduct toolbox talk" };
+            if (cat.Contains("Supplier", StringComparison.OrdinalIgnoreCase) || src.Equals("SupplierAPI", StringComparison.OrdinalIgnoreCase) || src.Equals("Supplier", StringComparison.OrdinalIgnoreCase))
+                return new[] { "Contact supplier", "Arrange backup supplier", "Update procurement schedule" };
+            return new[] { "Investigate the risk", "Assign owner and due date", "Implement control measures", "Verify controls are effective" };
         }
 
         public void AddAuditLog(int orgId, string userId, string entityType, int entityId, string actionType, string? message, string? ipAddress)

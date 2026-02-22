@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using WEB_Sentro.Models.Identity;
 
@@ -57,7 +57,6 @@ namespace WEB_Sentro.Data.Seed
                     throw new Exception(string.Join("; ", addRoleResult.Errors.Select(e => e.Description)));
             }
 
-            // Seed an Admin account 
             var adminEmail = config["Seed:AdminEmail"];
             var adminPassword = config["Seed:AdminPassword"];
 

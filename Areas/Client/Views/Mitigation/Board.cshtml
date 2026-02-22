@@ -1,0 +1,310 @@
+@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationTaskViewModel>
+@{
+    Layout = "_LayoutClient";
+    var statuses = new[] { "ToDo", "InProgress", "Review", "Done" };
+    var riskStatus = ViewBag.RiskStatus as string ?? "MitigationRequired";
+    var orgUsers = ViewBag.OrgUsers as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+@Html.AntiForgeryToken()
+<div class="h-[calc(100vh-120px)] flex flex-col space-y-6 animate-in fade-in zoom-in duration-500">
+    <div class="flex items-center justify-between px-2">
+        <div>
+            <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Back to Mitigation Planning
+            </a>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Mitigation <span class="text-indigo-600">Plan</span>
+            </h1>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Response Execution Board</p>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Risk Status: @riskStatus</span>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400">Auto-close when all tasks are Done</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button class="px-4 py-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-[10px] font-black uppercase">Board</button>
+                <button class="px-4 py-1.5 text-[10px] font-black uppercase text-slate-400">List</button>
+            </div>
+            <button class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all">
+                + New Task
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-x-auto pb-4 custom-scrollbar">
+        <div class="flex h-full gap-6 min-w-max">
+            @foreach (var status in statuses)
+            {
+                var columnTasks = Model.Where(t => t.Status == status);
+                var color = status == "ToDo" ? "slate" : status == "InProgress" ? "indigo" : status == "Review" ? "amber" : "emerald";
+
+                <div class="w-80 flex flex-col bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800">
+                    <div class="p-5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="h-2 w-2 rounded-full bg-@color-500 shadow-[0_0_8px_rgba(var(--color-@color-500),0.5)]"></div>
+                            <h3 class="text-[11px] font-black uppercase tracking-widest text-slate-500">@status.Replace("InProgress", "In Progress")</h3>
+                            <span class="text-[10px] font-black bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md shadow-sm border border-slate-100 dark:border-slate-700">@columnTasks.Count()</span>
+                        </div>
+                        <button class="text-slate-300 hover:text-slate-500"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button>
+                    </div>
+
+                    <div class="flex-1 p-3 space-y-4 overflow-y-auto" ondrop="drop(event, '@status')" ondragover="allowDrop(event)">
+                        @foreach (var task in columnTasks)
+                        {
+                            var assigneeLabel = string.IsNullOrEmpty(task.AssignedTo) || task.AssignedTo == "—" ? "Unassigned" : task.AssignedTo;
+                            var initial = string.IsNullOrEmpty(task.AssignedTo) || task.AssignedTo == "—" ? "—" : task.AssignedTo.Length > 0 ? task.AssignedTo.Substring(0, 1).ToUpperInvariant() : "—";
+                            var dueLabel = task.DueDate.HasValue ? (task.DueDate.Value - DateTime.Today).Days switch { 0 => "Today", 1 => "1d", -1 => "1d ago", var d when d > 0 && d < 7 => d + "d", var d when d < 0 && d > -7 => (-d) + "d ago", _ => task.DueDate?.ToString("MMM d") ?? "—" } : "";
+                            <div id="task-@task.Id" data-task-id="@task.Id" draggable="true" ondragstart="drag(event)" onclick="onCardClick(event, @task.Id)"
+                                 class="group bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-500/50 dark:hover:border-indigo-400/50 transition-all cursor-grab active:cursor-grabbing">
+
+                                <div class="flex justify-between items-start mb-3">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-@color-500/10 text-@color-600 uppercase">@(task.Priority ?? "—")</span>
+                                    @if (task.ProgressPercent > 0)
+                                    {
+                                        <span class="task-progress text-[9px] font-black px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">@(task.ProgressPercent)%</span>
+                                    }
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-300 group-hover:text-indigo-500 ml-auto">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                                    </svg>
+                                </div>
+
+                                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug mb-4">@task.Title</h4>
+
+                                <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                                    <div class="flex -space-x-2 items-center gap-1">
+                                        <div class="task-initial h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[8px] font-black text-white">@initial</div>
+                                        <span class="text-[9px] text-slate-500 task-assignee-label">@assigneeLabel</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-slate-400 task-due-wrap">
+                                        @if (!string.IsNullOrEmpty(dueLabel))
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            <span class="text-[9px] font-black task-due-label">@dueLabel</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div id="taskEditModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeTaskModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Edit <span class="text-indigo-600">Task</span></h2>
+                <button type="button" onclick="closeTaskModal()" class="text-slate-400 hover:text-rose-500" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <input type="hidden" id="taskModalTaskId" />
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Assignee</label>
+                    <select id="taskModalAssignedTo" class="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-4 py-3 text-sm">
+                        <option value="">Unassigned</option>
+                        @foreach (var u in orgUsers)
+                        {
+                            <option value="@u.Id">@u.DisplayName</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Due date</label>
+                    <input type="date" id="taskModalDueDate" class="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-4 py-3 text-sm" />
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Description</label>
+                    <textarea id="taskModalDescription" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-4 py-3 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Progress %</label>
+                    <input type="number" id="taskModalProgress" min="0" max="100" value="0" class="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-4 py-3 text-sm" />
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeTaskModal()" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 py-3.5 text-xs font-black uppercase text-slate-500">Cancel</button>
+                    <button type="button" id="taskModalSaveBtn" class="flex-[2] rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 py-3.5 text-xs font-black uppercase text-white shadow-lg">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        window.__mitigationDragging = false;
+        window.__taskDetailsUrl = '@Url.Action("TaskDetails", "Mitigation", new { area = "Client" })';
+        window.__updateTaskUrl = '@Url.Action("UpdateTask", "Mitigation", new { area = "Client" })';
+        window.__moveTaskUrl = '@Url.Action("MoveTask", "Mitigation", new { area = "Client" })';
+    })();
+
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drag(ev) {
+        window.__mitigationDragging = true;
+        ev.dataTransfer.setData("text", ev.target.id);
+        ev.dataTransfer.setData("taskId", ev.target.getAttribute('data-task-id') || '');
+        ev.target.classList.add('opacity-40', 'scale-95');
+    }
+    function drop(ev, newStatus) {
+        ev.preventDefault();
+        window.__mitigationDragging = false;
+        var id = ev.dataTransfer.getData("text");
+        var card = document.getElementById(id);
+        if (!card) return;
+        card.classList.remove('opacity-40', 'scale-95');
+        var taskId = card.getAttribute('data-task-id');
+        if (!taskId) return;
+        var columnBody = ev.target.closest('.overflow-y-auto');
+        if (!columnBody) return;
+        var previousParent = card.parentElement;
+        var previousNext = card.nextElementSibling;
+        columnBody.appendChild(card);
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (!token) {
+            if (previousParent) previousParent.insertBefore(card, previousNext);
+            alert('Security token missing. Please refresh and try again.');
+            return;
+        }
+        var url = window.__moveTaskUrl;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&newStatus=' + encodeURIComponent(newStatus);
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).then(function (r) {
+            return r.json().then(function (data) {
+                if (!r.ok || !data || data.ok !== true) {
+                    if (previousParent) previousParent.insertBefore(card, previousNext);
+                    alert('Failed to save. Please try again.');
+                }
+            }).catch(function () {
+                if (previousParent) previousParent.insertBefore(card, previousNext);
+                alert('Failed to save. Please try again.');
+            });
+        }).catch(function () {
+            if (previousParent) previousParent.insertBefore(card, previousNext);
+            alert('Network error. Please try again.');
+        });
+    }
+    document.addEventListener('dragend', function () { window.__mitigationDragging = false; }, true);
+
+    function onCardClick(ev, taskId) {
+        if (window.__mitigationDragging) return;
+        if (ev.target.closest('button') || ev.target.closest('a')) return;
+        openTaskModal(taskId);
+    }
+    function openTaskModal(taskId) {
+        var modal = document.getElementById('taskEditModal');
+        document.getElementById('taskModalTaskId').value = taskId;
+        document.getElementById('taskModalAssignedTo').value = '';
+        document.getElementById('taskModalDueDate').value = '';
+        document.getElementById('taskModalDescription').value = '';
+        document.getElementById('taskModalProgress').value = '0';
+        modal.classList.remove('hidden');
+        var url = window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId);
+        fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                document.getElementById('taskModalTaskId').value = data.taskId;
+                document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
+                document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
+                document.getElementById('taskModalDescription').value = data.description || '';
+                document.getElementById('taskModalProgress').value = data.progressPercent != null ? data.progressPercent : 0;
+            })
+            .catch(function () { alert('Could not load task details.'); });
+    }
+    function closeTaskModal() {
+        document.getElementById('taskEditModal').classList.add('hidden');
+    }
+    document.getElementById('taskModalSaveBtn').addEventListener('click', function () {
+        var taskId = parseInt(document.getElementById('taskModalTaskId').value, 10);
+        if (!taskId) return;
+        var assignedToUserId = document.getElementById('taskModalAssignedTo').value || '';
+        var dueDateVal = document.getElementById('taskModalDueDate').value || '';
+        var description = document.getElementById('taskModalDescription').value.trim() || '';
+        var progressPercent = parseInt(document.getElementById('taskModalProgress').value, 10);
+        if (isNaN(progressPercent)) progressPercent = 0;
+        progressPercent = Math.max(0, Math.min(100, progressPercent));
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (!token) { alert('Security token missing.'); return; }
+        var url = window.__updateTaskUrl;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token) +
+            '&taskId=' + encodeURIComponent(taskId) +
+            '&assignedToUserId=' + encodeURIComponent(assignedToUserId) +
+            '&dueDate=' + encodeURIComponent(dueDateVal) +
+            '&description=' + encodeURIComponent(description) +
+            '&progressPercent=' + encodeURIComponent(progressPercent);
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).then(function (r) {
+            return r.json().then(function (data) {
+                if (r.ok && data && data.ok === true) {
+                    closeTaskModal();
+                    updateCardUi(taskId, assignedToUserId, dueDateVal, progressPercent);
+                } else {
+                    alert('Failed to save task.');
+                }
+            }).catch(function () { alert('Failed to save task.'); });
+        }).catch(function () { alert('Network error.'); });
+    });
+
+    function updateCardUi(taskId, assignedToUserId, dueDateVal, progressPercent) {
+        var card = document.querySelector('[data-task-id="' + taskId + '"]');
+        if (!card) return;
+        var assigneeLabel = 'Unassigned';
+        var initial = '—';
+        if (assignedToUserId) {
+            var opt = document.querySelector('#taskModalAssignedTo option[value="' + assignedToUserId + '"]');
+            if (opt) { assigneeLabel = opt.textContent; initial = assigneeLabel.substring(0, 1).toUpperCase(); }
+        }
+        var initialEl = card.querySelector('.task-initial');
+        var labelEl = card.querySelector('.task-assignee-label');
+        if (initialEl) initialEl.textContent = initial;
+        if (labelEl) labelEl.textContent = assigneeLabel;
+
+        var dueLabel = '';
+        if (dueDateVal) {
+            var d = new Date(dueDateVal);
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            d.setHours(0,0,0,0);
+            var diff = Math.round((d - today) / (1000*60*60*24));
+            if (diff === 0) dueLabel = 'Today';
+            else if (diff === 1) dueLabel = '1d';
+            else if (diff === -1) dueLabel = '1d ago';
+            else if (diff > 0 && diff < 7) dueLabel = diff + 'd';
+            else if (diff < 0 && diff > -7) dueLabel = (-diff) + 'd ago';
+            else dueLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        var dueWrap = card.querySelector('.task-due-wrap');
+        var dueEl = card.querySelector('.task-due-label');
+        if (dueWrap) {
+            if (dueLabel) {
+                dueWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="text-[9px] font-black task-due-label">' + dueLabel + '</span>';
+            } else { dueWrap.innerHTML = ''; }
+        }
+
+        var progressEl = card.querySelector('.task-progress');
+        if (progressPercent > 0) {
+            if (progressEl) progressEl.textContent = progressPercent + '%';
+            else {
+                var topRow = card.querySelector('.flex.justify-between.items-start.mb-3');
+                if (topRow) {
+                    var badge = document.createElement('span');
+                    badge.className = 'task-progress text-[9px] font-black px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+                    badge.textContent = progressPercent + '%';
+                    topRow.insertBefore(badge, topRow.querySelector('.ml-auto'));
+                }
+            }
+        } else if (progressEl) progressEl.remove();
+    }
+</script>

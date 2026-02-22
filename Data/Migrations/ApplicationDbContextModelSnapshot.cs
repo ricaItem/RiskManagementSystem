@@ -450,6 +450,93 @@ namespace WEB_Sentro.Data.Migrations
                     b.ToTable("RiskEvaluations", (string)null);
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MitigationPlan", b =>
+                {
+                    b.Property<int>("PlanId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PlanId"));
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RiskId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StrategyType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("TargetCloseDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("PlanId");
+
+                    b.HasIndex("RiskId")
+                        .IsUnique();
+
+                    b.ToTable("MitigationPlans", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MitigationTask", b =>
+                {
+                    b.Property<int>("TaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TaskId"));
+
+                    b.Property<string>("AssignedToUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProgressPercent")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TaskId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("MitigationTasks", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -515,6 +602,24 @@ namespace WEB_Sentro.Data.Migrations
                     b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
                         .WithMany("Attachments")
                         .HasForeignKey("RiskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MitigationPlan", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
+                        .WithOne("MitigationPlan")
+                        .HasForeignKey("WEB_Sentro.Data.Entities.MitigationPlan", "RiskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MitigationTask", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.MitigationPlan", "Plan")
+                        .WithMany("Tasks")
+                        .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

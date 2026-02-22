@@ -9,7 +9,6 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize]
     public class AuditController : Controller
     {
-        // GET: /Client/Audit/Index
         public IActionResult Index()
         {
             var logs = new List<dynamic> {

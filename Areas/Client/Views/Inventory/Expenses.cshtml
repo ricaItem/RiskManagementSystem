@@ -162,7 +162,6 @@
         modal.classList.toggle('hidden');
     }
 
-    // Opens modal for NEW expense
     function openExpenseModal() {
         document.getElementById('expenseForm').reset();
         document.getElementById('modalTitle').innerHTML = 'Log <span class="text-blue-600">Expense</span>';
@@ -170,7 +169,6 @@
         toggleModal('logExpenseModal');
     }
 
-    // Opens modal with DATA for update
     function openUpdateExpenseModal(id, desc, cat, amount, date, status) {
         document.getElementById('expId').value = id;
         document.getElementById('expDesc').value = desc;
@@ -184,7 +182,6 @@
         toggleModal('logExpenseModal');
     }
 
-    // Instant Search & Category Filter Logic
     const searchInput = document.getElementById('expenseSearch');
     const catFilter = document.getElementById('categoryFilter');
 

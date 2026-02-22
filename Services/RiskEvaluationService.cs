@@ -18,12 +18,13 @@ namespace WEB_Sentro.Services
 
         public static int ComputeRiskScore(int likelihood, int impact) => likelihood * impact;
 
+        /// <summary>Centralized priority thresholds: 1-6 Low, 7-14 Medium, 15-19 High, 20-25 Critical.</summary>
         public static string RiskLevelFromScore(int score) => score switch
         {
-            >= 15 => "Critical",
-            >= 10 => "High",
-            >= 5 => "Medium",
-            _ => "Low"
+            >= 20 => "Critical",
+            >= 15 => "High",
+            >= 7 => "Medium",
+            _ => "Low"  // 1-6
         };
 
         public async Task<RiskAssessmentViewModel?> GetAssessmentViewModelAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
@@ -92,8 +93,7 @@ namespace WEB_Sentro.Services
 
             risk.Priority = riskLevel;
             risk.UpdatedAt = DateTime.UtcNow;
-            if (riskScore >= 15)
-                risk.Status = "MitigationRequired";
+            risk.Status = riskScore >= 15 ? "MitigationRequired" : "Monitoring";
 
             _riskService.AddAuditLog(risk.OrgId, userId, "Risk", riskId, "RiskAssessmentSaved", $"Risk evaluated: {riskLevel} (score {riskScore})", ipAddress);
             await _db.SaveChangesAsync(ct);

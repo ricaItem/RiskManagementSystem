@@ -16,6 +16,8 @@ namespace WEB_Sentro.Data
         public DbSet<RiskEvaluation> RiskEvaluations { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
+        public DbSet<MitigationPlan> MitigationPlans { get; set; }
+        public DbSet<MitigationTask> MitigationTasks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -68,6 +70,32 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.FileName).HasMaxLength(100);
                 e.Property(x => x.FileRef).HasMaxLength(255);
                 e.HasOne(x => x.Risk).WithMany(r => r.Attachments).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<MitigationPlan>(e =>
+            {
+                e.ToTable("MitigationPlans");
+                e.HasKey(x => x.PlanId);
+                e.Property(x => x.CreatedByUserId).HasMaxLength(450);
+                e.Property(x => x.StrategyType).HasMaxLength(50);
+                e.Property(x => x.Summary).HasMaxLength(255);
+                e.Property(x => x.TargetCloseDate).HasColumnType("date");
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.HasIndex(x => x.RiskId).IsUnique();
+                e.HasOne(x => x.Risk).WithOne(r => r.MitigationPlan).HasForeignKey<MitigationPlan>(x => x.RiskId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<MitigationTask>(e =>
+            {
+                e.ToTable("MitigationTasks");
+                e.HasKey(x => x.TaskId);
+                e.Property(x => x.AssignedToUserId).HasMaxLength(450);
+                e.Property(x => x.Title).HasMaxLength(100);
+                e.Property(x => x.Description).HasMaxLength(255);
+                e.Property(x => x.DueDate).HasColumnType("date");
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.HasIndex(x => x.PlanId);
+                e.HasOne(x => x.Plan).WithMany(p => p.Tasks).HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

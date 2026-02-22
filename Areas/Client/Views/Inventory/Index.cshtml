@@ -126,27 +126,22 @@
 
         modal.classList.toggle('hidden');
 
-        // Reset the form and title if we are opening a "New" entry
         if (modalId === 'addMaterialModal' && !modal.classList.contains('hidden')) {
-             // You can clear fields here if needed
              document.querySelector('#addMaterialModal h2').innerHTML = 'Add <span class="text-emerald-600">Material</span>';
              document.getElementById('modalSubmitBtn').innerText = 'Commit to Inventory';
         }
     }
 
     function openUpdateModal(name, sku, stock, minLevel, unit) {
-        // 1. Fill the fields
         document.getElementById('modalName').value = name;
         document.getElementById('modalSKU').value = sku;
         document.getElementById('modalStock').value = stock;
         document.getElementById('modalMinLevel').value = minLevel;
         document.getElementById('modalUnit').value = unit;
 
-        // 2. Change modal UI to "Update" mode
         document.querySelector('#addMaterialModal h2').innerHTML = 'Update <span class="text-emerald-600">Stock</span>';
         document.getElementById('modalSubmitBtn').innerText = 'Save Changes';
 
-        // 3. Open the modal
         toggleModal('addMaterialModal');
     }
         document.querySelector('input[placeholder="Search SKU or Material..."]').addEventListener('keyup', function(e) {
