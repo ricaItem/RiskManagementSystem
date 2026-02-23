@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Services;
+using WEB_Sentro.Services.Weather;
 using Web_Sentro.Areas.Client.Models;
 
 namespace Web_Sentro.Areas.Client.Controllers
@@ -15,13 +16,17 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly RiskEvaluationService _evaluationService;
         private readonly RiskAttachmentService _attachmentService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IWeatherClient _weatherClient;
+        private readonly IConfiguration _configuration;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, UserManager<ApplicationUser> userManager)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, UserManager<ApplicationUser> userManager, IWeatherClient weatherClient, IConfiguration configuration)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
             _attachmentService = attachmentService;
             _userManager = userManager;
+            _weatherClient = weatherClient;
+            _configuration = configuration;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -291,18 +296,53 @@ namespace Web_Sentro.Areas.Client.Controllers
             var activeCount = await _riskService.GetActiveRisksCountAsync(orgId, IsSuperAdmin());
             var highPriority = await _riskService.GetHighPriorityRisksAsync(orgId, IsSuperAdmin(), 10);
 
+            const string projectName = "Sentro Tower - Davao";
+            const double lat = 7.0707;
+            const double lon = 125.6083;
+
+            WeatherSnapshot? weatherSnap = null;
+            try
+            {
+                weatherSnap = await _weatherClient.GetCurrentAsync(lat, lon, HttpContext.RequestAborted);
+            }
+            catch
+            {
+                // Fallback to placeholder if API fails or no key
+            }
+
             var model = new RiskMonitoringViewModel
             {
-                ProjectName = "Sentro Tower - Davao",
-                Latitude = 7.0707,
-                Longitude = 125.6083,
-                Temperature = 31,
-                WeatherCondition = "Thunderstorm Warning",
-                WindSpeed = 45.5,
+                ProjectName = projectName,
+                Latitude = lat,
+                Longitude = lon,
+                Temperature = weatherSnap?.TempC ?? 0,
+                WeatherCondition = weatherSnap?.Condition ?? "—",
+                WindSpeed = weatherSnap?.WindKph ?? 0,
                 ActiveRisksCount = activeCount,
                 HighPriorityRisks = highPriority
             };
+
+            ViewBag.MapboxToken = _configuration["Apis:Mapbox:Token"] ?? "";
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MonitoringSync([FromServices] RiskMonitoringService monitoring, CancellationToken ct)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var orgId = user.OrganizationId;
+            const string projectName = "Sentro Tower - Davao";
+            const double lat = 7.0707;
+            const double lon = 125.6083;
+            const string siteLabel = projectName;
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var (_, created) = await monitoring.SyncWeatherAndAutoCreateAsync(orgId, user.Id, projectName, lat, lon, siteLabel, ip, ct);
+            TempData["MonitoringMessage"] = created ? "Weather synced. One or more risks were auto-created." : "Weather synced. No new risks created.";
+            return RedirectToAction(nameof(Monitoring));
         }
     }
 }

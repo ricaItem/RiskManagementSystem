@@ -57,6 +57,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<WEB_Sentro.Services.RiskService>();
 builder.Services.AddScoped<WEB_Sentro.Services.RiskAttachmentService>();
 builder.Services.AddScoped<WEB_Sentro.Services.RiskEvaluationService>();
+builder.Services.AddScoped<WEB_Sentro.Services.RiskMonitoringService>();
+
+builder.Services.Configure<WEB_Sentro.Services.Weather.OpenWeatherOptions>(
+    builder.Configuration.GetSection("Apis:OpenWeather"));
+builder.Services.AddHttpClient<WEB_Sentro.Services.Weather.IWeatherClient, WEB_Sentro.Services.Weather.OpenWeatherClient>(c =>
+    c.Timeout = TimeSpan.FromSeconds(10));
 
 builder.Services.AddControllersWithViews();
 

@@ -340,6 +340,26 @@ namespace WEB_Sentro.Services
             });
         }
 
+        /// <summary>
+        /// Returns true if there is already an open/active auto-weather risk for this site and hazard within the time window.
+        /// Used to dedupe automatic weather risk creation.
+        /// </summary>
+        public async Task<bool> HasRecentAutoWeatherRiskAsync(int orgId, string siteLabel, string hazardKey, TimeSpan within, CancellationToken ct = default)
+        {
+            var since = DateTime.UtcNow - within;
+            var openStatuses = new[] { "Draft", "For_Review", "Submitted", "Reviewed", "Approved", "Monitoring", "MitigationRequired" };
+            var q = _db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId
+                    && r.SourceType == "WeatherAPI"
+                    && r.ProjectSite == siteLabel
+                    && r.DeletedAt == null
+                    && openStatuses.Contains(r.Status)
+                    && r.Title.StartsWith("[AUTO]")
+                    && r.Title.Contains(hazardKey)
+                    && r.CreatedAt >= since);
+            return await q.AnyAsync(ct);
+        }
+
         public async Task SaveChangesAsync(CancellationToken ct = default) => await _db.SaveChangesAsync(ct);
     }
 }
