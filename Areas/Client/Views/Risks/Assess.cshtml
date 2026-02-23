@@ -1,164 +1,145 @@
-@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
+﻿@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
 @{
     Layout = "_LayoutClient";
     var category = ViewBag.Category as string ?? "—";
-    var projectSite = ViewBag.ProjectSite as string ?? "—";
     var reportedBy = ViewBag.ReportedBy as string ?? "—";
-    var dateReported = ViewBag.DateReported as string ?? "—";
-    var currentStatus = ViewBag.CurrentStatus as string ?? "—";
-    var currentPriority = ViewBag.CurrentPriority as string ?? "Unassessed";
 }
 
-<div class="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <a href="@Url.Action("Identification", "Risks", new { area = "Client" })" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" aria-label="Back to Risk Identification">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
-                Back to Risk Identification
+<div class="animate-in fade-in mx-auto max-w-6xl space-y-8 p-4 duration-500 md:p-8">
+
+    <div class="flex items-center justify-between">
+        <div class="space-y-1">
+            <a href="@Url.Action("Identification", "Risks")" class="flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase transition-colors hover:text-indigo-600">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="3" /></svg>
+                Back to List
             </a>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Risk <span class="text-indigo-600">Assessment</span>
+            <h1 class="text-3xl font-black text-slate-900 dark:text-white">
+                Assess <span class="text-indigo-600">@Model.RiskTitle</span>
             </h1>
+        </div>
+        <div class="hidden text-right md:block">
+            <span class="font-black tracking-tighter text-[10px] text-slate-400 uppercase">Category</span>
+            <p class="font-bold text-slate-700 dark:text-slate-300">@category</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 order-2 lg:order-1">
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl">
-                <div class="flex justify-between items-end mb-6">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Probability vs. Severity Matrix</h3>
-                    <div class="flex gap-4">
-                        <div class="flex items-center gap-2"><div class="h-3 w-3 bg-rose-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Critical</span></div>
-                        <div class="flex items-center gap-2"><div class="h-3 w-3 bg-emerald-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Acceptable</span></div>
-                    </div>
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
+
+        <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 md:p-10 lg:col-span-8 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+
+            <div class="mb-10 flex items-center justify-between">
+                <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase">Probability vs Impact</h3>
+                <div class="flex gap-3">
+                    <span class="rounded-full bg-rose-100 px-3 py-1 font-black text-rose-600 text-[10px] uppercase dark:bg-rose-900/30 dark:text-rose-400">Critical Zone</span>
+                </div>
+            </div>
+
+            <div class="relative grid grid-cols-[auto_1fr] gap-4">
+                <div class="flex rotate-180 flex-col justify-between py-10 font-black tracking-[0.4em] text-[10px] text-slate-400 uppercase [writing-mode:vertical-lr]">
+                    High Impact — Low Impact
                 </div>
 
-                <div class="relative">
-                    <div class="absolute -left-12 top-1/2 -rotate-90 origin-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Impact</div>
-
-                    <div class="grid grid-cols-5 gap-2">
+                <div>
+                    <div class="grid grid-cols-5 gap-3">
                         @for (int i = 5; i >= 1; i--)
                         {
                             @for (int l = 1; l <= 5; l++)
                             {
                                 var score = i * l;
-                                var colorClass = score >= 20 ? "bg-rose-500 hover:bg-rose-600 text-white" :
-                                score >= 15 ? "bg-orange-500 hover:bg-orange-600 text-white" :
-                                score >= 7 ? "bg-amber-300 hover:bg-amber-400 text-slate-900" :
-                                "bg-emerald-500 hover:bg-emerald-600 text-white";
+                                var colorClass = score >= 20 ? "bg-rose-500 text-white" :
+                                score >= 15 ? "bg-orange-500 text-white" :
+                                score >= 7 ? "bg-amber-400 text-slate-900" :
+                                "bg-emerald-500 text-white";
 
                                 <button type="button"
-                                        onclick="updateScore(@l, @i, @score)"
-                                        class="@colorClass h-20 rounded-xl transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:scale-105 active:scale-95 group">
-                                    <span class="text-lg font-black">@score</span>
-                                    <span class="text-[8px] font-bold opacity-0 group-hover:opacity-100 uppercase">L:@l I:@i</span>
+                                        onclick="updateScore(@l, @i, @score, this)"
+                                        class="@colorClass group relative flex h-16 items-center justify-center overflow-hidden rounded-2xl transition-all hover:scale-[1.03] active:scale-95 md:h-24">
+                                    <span class="text-xl font-black">@score</span>
+                                    <span class="absolute bottom-1 font-bold text-[8px] uppercase opacity-0 group-hover:opacity-100">I:@i L:@l</span>
                                 </button>
                             }
                         }
                     </div>
-                    <div class="text-center mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Likelihood / Probability</div>
+
+                    <div class="mt-6 flex justify-between px-2 font-black tracking-[0.4em] text-[10px] text-slate-400 uppercase">
+                        <span>Low Likelihood</span>
+                        <span>High Likelihood</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="space-y-6 order-1 lg:order-2">
-            <div class="sticky top-4">
-                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mb-6">
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Risk Summary</h3>
-                    <dl class="space-y-2 text-xs">
-                        <div><dt class="text-slate-400 font-bold uppercase">Title</dt><dd class="font-bold text-slate-900 dark:text-white mt-0.5">@Model.RiskTitle</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Category</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5">@category</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Project/Site</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5 truncate" title="@projectSite">@projectSite</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Reported By</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5">@reportedBy</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Date Reported</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5">@dateReported</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Current Status</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5">@currentStatus</dd></div>
-                        <div><dt class="text-slate-400 font-bold uppercase">Current Priority</dt><dd class="text-slate-700 dark:text-slate-300 mt-0.5">@currentPriority</dd></div>
-                    </dl>
+        <div class="space-y-6 lg:col-span-4">
+
+            <div class="rounded-[2rem] bg-slate-900 p-8 text-white shadow-2xl dark:bg-indigo-950">
+                <p class="mb-2 font-black tracking-[0.2em] text-[10px] text-indigo-300/60 uppercase">Calculated Risk Index</p>
+                <div class="flex items-baseline gap-3">
+                    <span id="displayScore" class="text-7xl font-black italic">1</span>
+                    <span id="displayLevel" class="text-lg font-black text-emerald-400 uppercase">Low</span>
                 </div>
 
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden mb-6">
-                    <svg class="absolute -right-10 -top-10 h-40 w-40 text-white/5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-
-                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Calculated Risk Index</p>
-                    <div class="flex items-baseline gap-2">
-                        <span id="displayScore" class="text-7xl font-black italic">1</span>
-                        <span id="displayLevel" class="text-sm font-black uppercase tracking-widest text-emerald-400">Low</span>
+                <div class="mt-8 flex justify-between border-t border-white/10 pt-6 text-center">
+                    <div>
+                        <p class="font-black text-[10px] text-slate-400 uppercase">Likelihood</p>
+                        <p id="valL" class="text-xl font-black">1</p>
                     </div>
-
-                    <div class="mt-8 space-y-4">
-                        <div class="flex justify-between text-xs border-b border-white/10 pb-2">
-                            <span class="text-slate-400 font-bold uppercase">Likelihood Score</span>
-                            <span id="valL" class="font-black">1</span>
-                        </div>
-                        <div class="flex justify-between text-xs border-b border-white/10 pb-2">
-                            <span class="text-slate-400 font-bold uppercase">Impact Score</span>
-                            <span id="valI" class="font-black">1</span>
-                        </div>
+                    <div class="text-xl font-light text-slate-500">×</div>
+                    <div>
+                        <p class="font-black text-[10px] text-slate-400 uppercase">Impact</p>
+                        <p id="valI" class="text-xl font-black">1</p>
                     </div>
                 </div>
-
-                <form action="@Url.Action("SaveAssessment", "Risks", new { area = "Client" })" method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="RiskId" value="@Model.RiskId" />
-                    <input type="hidden" name="Likelihood" id="hiddenL" value="@Model.Likelihood" />
-                    <input type="hidden" name="Impact" id="hiddenI" value="@Model.Impact" />
-
-                    <div class="mb-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                        <p class="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-1">Computed result</p>
-                        <p class="text-2xl font-black text-slate-900 dark:text-white">Score: <span id="summaryScore">1</span> → Priority: <span id="summaryLevel" class="text-emerald-600 dark:text-emerald-400">Low</span></p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Risk Response Strategy</label>
-                        <select class="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black dark:border-slate-800 dark:bg-slate-800 transition-all outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option>Avoid (Eliminate Threat)</option>
-                            <option>Mitigate (Reduce Likelihood/Impact)</option>
-                            <option>Transfer (Insurance/Third Party)</option>
-                            <option>Accept (Monitor Only)</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="w-full mt-6 bg-indigo-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all" aria-label="Save assessment">
-                        Save Assessment
-                    </button>
-
-                    <div class="mt-6 p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-900/20">
-                        <p class="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 mb-2">What happens next</p>
-                        <ul class="text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                            <li>• Priority will be computed automatically from Likelihood × Impact.</li>
-                            <li>• If score ≥ 15, this risk will be flagged as <strong>Mitigation Required</strong>.</li>
-                        </ul>
-                    </div>
-                </form>
             </div>
+
+            <form action="@Url.Action("SaveAssessment", "Risks")" method="post" class="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RiskId" value="@Model.RiskId" />
+                <input type="hidden" name="Likelihood" id="hiddenL" value="1" />
+                <input type="hidden" name="Impact" id="hiddenI" value="1" />
+
+                <div class="space-y-2">
+                    <label class="ml-1 font-black tracking-widest text-[10px] text-slate-400 uppercase">Response Strategy</label>
+                    <select name="Strategy" class="w-full rounded-2xl border-none bg-slate-50 px-5 py-4 text-xs font-bold transition-all focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800">
+                        <option>Avoid (Eliminate)</option>
+                        <option selected>Mitigate (Reduce)</option>
+                        <option>Transfer (Share)</option>
+                        <option>Accept (Monitor)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full transform rounded-2xl bg-indigo-600 py-5 text-xs font-black tracking-widest text-white uppercase shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-1 hover:bg-indigo-700">
+                    Finalize Assessment
+                </button>
+            </form>
+
         </div>
     </div>
 </div>
 
 <script>
-    function getLevelFromScore(score) {
-        if (score >= 20) return { text: 'Critical', cls: 'text-rose-500' };
-        if (score >= 15) return { text: 'High', cls: 'text-orange-400' };
-        if (score >= 7) return { text: 'Medium', cls: 'text-amber-300' };
-        return { text: 'Low', cls: 'text-emerald-400' };
-    }
+    function updateScore(l, i, score, element) {
+        // Visual Feedback: Remove focus from others and highlight selected
+        document.querySelectorAll('button[type="button"]').forEach(btn => btn.style.border = "none");
+        element.style.border = "4px solid white";
+        element.style.boxShadow = "0 0 20px rgba(0,0,0,0.1)";
 
-    function updateScore(l, i, score) {
+        // Update Hidden Fields
+        document.getElementById('hiddenL').value = l;
+        document.getElementById('hiddenI').value = i;
+
+        // Update Display
         document.getElementById('displayScore').innerText = score;
         document.getElementById('valL').innerText = l;
         document.getElementById('valI').innerText = i;
 
-        document.getElementById('hiddenL').value = l;
-        document.getElementById('hiddenI').value = i;
+        // Determine Level
+        let level = { text: 'Low', cls: 'text-emerald-400' };
+        if (score >= 20) level = { text: 'Critical', cls: 'text-rose-500' };
+        else if (score >= 15) level = { text: 'High', cls: 'text-orange-400' };
+        else if (score >= 7) level = { text: 'Medium', cls: 'text-amber-300' };
 
-        var level = getLevelFromScore(score);
-        var levelSpan = document.getElementById('displayLevel');
-        levelSpan.innerText = level.text;
-        levelSpan.className = 'text-sm font-black uppercase tracking-widest ' + level.cls;
-
-        document.getElementById('summaryScore').innerText = score;
-        var summaryLevel = document.getElementById('summaryLevel');
-        summaryLevel.innerText = level.text;
-        summaryLevel.className = level.cls;
+        const displayLevel = document.getElementById('displayLevel');
+        displayLevel.innerText = level.text;
+        displayLevel.className = `text-lg font-black uppercase ${level.cls}`;
     }
 </script>

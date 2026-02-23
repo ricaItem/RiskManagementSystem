@@ -178,7 +178,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateTask(int taskId, string? assignedToUserId, string? dueDate, string? description, int? progressPercent)
+        public async Task<IActionResult> UpdateTask(int taskId, string? assignedToUserId, string? dueDate, string? description, int? progressPercent, string? status)
         {
             if (taskId <= 0) return BadRequest();
 
@@ -192,6 +192,10 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (task == null) return NotFound();
             if (task.Plan.Risk.OrgId != user.OrganizationId) return Forbid();
 
+            var allowedStatuses = new[] { "ToDo", "InProgress", "Review", "Done" };
+            if (!string.IsNullOrWhiteSpace(status) && allowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                task.Status = status;
+
             task.AssignedToUserId = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim();
             task.DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null;
             task.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
@@ -200,6 +204,39 @@ namespace Web_Sentro.Areas.Client.Controllers
             await _db.SaveChangesAsync();
 
             return Json(new { ok = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTask(int planId, string title, string? description, string? assignedToUserId, string? dueDate)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var plan = await _db.MitigationPlans
+                .Include(p => p.Risk)
+                .FirstOrDefaultAsync(p => p.PlanId == planId);
+            if (plan == null || plan.Risk.OrgId != user.OrganizationId) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(title)) return BadRequest();
+
+            var task = new MitigationTask
+            {
+                PlanId = planId,
+                Title = title.Trim(),
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                AssignedToUserId = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim(),
+                DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null,
+                Status = "ToDo",
+                ProgressPercent = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.MitigationTasks.Add(task);
+            await _db.SaveChangesAsync();
+            _riskService.AddAuditLog(plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskCreated", task.Title, HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _db.SaveChangesAsync();
+
+            return Json(new { ok = true, taskId = task.TaskId, title = task.Title, status = task.Status, dueDateFormatted = task.DueDate?.ToString("MMM d") ?? "N/A", progressPercent = 0 });
         }
     }
 }

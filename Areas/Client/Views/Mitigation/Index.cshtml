@@ -1,46 +1,158 @@
-@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationRiskCardViewModel>
+﻿@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationRiskCardViewModel>
 @{
     Layout = "_LayoutClient";
 }
-<div class="h-[calc(100vh-120px)] flex flex-col space-y-6 animate-in fade-in zoom-in duration-500">
-    <div class="px-2">
-        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Mitigation <span class="text-indigo-600">Planning</span>
-        </h1>
-        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Risks requiring mitigation — open a risk to manage its plan</p>
+
+<div class="animate-in fade-in flex h-[calc(100vh-120px)] flex-col space-y-8 p-4 duration-700 md:p-8">
+
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+            <h1 class="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+                Mitigation <span class="text-indigo-600 italic">Planning</span>
+            </h1>
+            <p class="mt-1 font-black tracking-[0.3em] text-[10px] text-slate-400 uppercase">Strategy Execution Engine</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="group relative">
+                <svg class="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="3" /></svg>
+                <input type="text" id="riskSearch" placeholder="Search strategy..."
+                       class="w-full rounded-2xl border border-slate-200 bg-white/50 py-3 pr-4 pl-11 text-xs font-bold transition-all outline-none focus:ring-2 focus:ring-indigo-500 md:w-64 dark:border-slate-800 dark:bg-slate-900/50" />
+            </div>
+
+            <select id="categoryFilter" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-black tracking-widest text-[10px] uppercase transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900">
+                <option value="">All Categories</option>
+                <option value="Operational">Operational</option>
+                <option value="Financial">Financial</option>
+                <option value="Safety">Safety</option>
+            </select>
+
+            <div class="flex rounded-2xl border border-slate-200 bg-slate-100 p-1.5 dark:border-slate-800 dark:bg-slate-950">
+                <button onclick="switchView('grid')" id="gridBtn" class="rounded-xl bg-white p-2.5 text-indigo-600 shadow-xl transition-all dark:bg-slate-800 dark:text-white">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h4v4H4zm12 0h4v4h-4zm-12 10h4v4H4zm12 0h4v4h-4z" stroke-width="2.5" /></svg>
+                </button>
+                <button onclick="switchView('list')" id="listBtn" class="rounded-xl p-2.5 text-slate-400 transition-all hover:text-indigo-600">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-width="2.5" stroke-linecap="round" /></svg>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto pb-4 custom-scrollbar">
+    <div class="custom-scrollbar flex-1 overflow-y-auto pb-10">
         @if (!Model.Any())
         {
-            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-8 text-center text-slate-500">
-                <p class="font-semibold">No risks in mitigation</p>
-                <p class="text-sm mt-1">Risks with status <strong>Mitigation Required</strong> will appear here. Complete an assessment and choose mitigation to add risks.</p>
+            <div class="flex flex-col items-center justify-center rounded-[3rem] border-2 border-dashed border-slate-200 bg-white/30 py-24 dark:border-slate-800">
+                <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-indigo-50 text-indigo-500 dark:bg-indigo-950">
+                    <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2" /></svg>
+                </div>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white">No active mitigations</h3>
+                <p class="mt-2 text-xs font-medium text-slate-400">Select "Mitigation Required" during risk assessment to see them here.</p>
             </div>
         }
         else
         {
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div id="gridView" class="animate-in fade-in slide-in-from-bottom-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach (var risk in Model)
                 {
-                    var boardUrl = Url.Action("Board", "Mitigation", new { area = "Client", riskId = risk.RiskId });
-                    <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-500/50 dark:hover:border-indigo-400/50 transition-all group">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-[9px] font-black px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 uppercase">@(risk.Priority ?? "—")</span>
-                            @if (!string.IsNullOrEmpty(risk.Category))
-                            {
-                                <span class="text-[9px] text-slate-400">@risk.Category</span>
-                            }
+                    <div class="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-7 transition-all hover:-translate-y-2 hover:border-indigo-500/50 hover:shadow-[0_30px_60px_-15px_rgba(79,70,229,0.15)] dark:border-slate-800 dark:bg-slate-900">
+                        <div>
+                            <div class="mb-6 flex items-center justify-between">
+                                <span class="rounded-xl bg-slate-100 px-3 py-1.5 font-black tracking-widest text-[9px] text-slate-500 uppercase dark:bg-slate-800 dark:text-slate-400">
+                                    @risk.Category
+                                </span>
+                                <div class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                            </div>
+
+                            <h3 class="mb-2 text-lg leading-tight font-black text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-white">@risk.Title</h3>
+                            <p class="font-bold tracking-tighter text-[10px] text-slate-400 uppercase">Priority: <span class="text-indigo-500">@(risk.Priority ?? "Normal")</span></p>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug">@risk.Title</h3>
-                        <p class="text-[10px] text-slate-400 mt-2">Added @risk.CreatedAt.ToString("MMM d, yyyy")</p>
-                        <a href="@boardUrl" class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-500 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
-                            Open Board
-                        </a>
+
+                        <div class="mt-10 flex items-center justify-between border-t border-slate-50 pt-6 dark:border-slate-800/50">
+                            <div class="font-black text-[10px] text-slate-300 uppercase italic">@risk.CreatedAt.ToString("MMM yyyy")</div>
+                            <a href="@Url.Action("Board", "Mitigation", new { riskId = risk.RiskId })"
+                               class="rounded-xl bg-slate-900 px-5 py-2.5 font-black tracking-widest text-[10px] text-white uppercase transition-all hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-500 dark:hover:text-white">
+                                View Board
+                            </a>
+                        </div>
                     </div>
                 }
+            </div>
+
+            <div id="listView" class="hidden overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white/50 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/50">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50/50 font-black tracking-widest text-[10px] text-slate-400 uppercase dark:border-slate-800 dark:bg-slate-950/50">
+                            <th class="px-10 py-6">Risk Identity</th>
+                            <th class="px-10 py-6">Status</th>
+                            <th class="px-10 py-6">Priority</th>
+                            <th class="px-10 py-6 text-right">Access</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @foreach (var risk in Model)
+                        {
+                            <tr class="group cursor-pointer transition-all hover:bg-white dark:hover:bg-slate-800" onclick="location.href='@Url.Action("Board", "Mitigation", new { riskId = risk.RiskId })'">
+                                <td class="px-10 py-6">
+                                    <div class="font-black text-slate-900 dark:text-white">@risk.Title</div>
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase">@risk.Category</div>
+                                </td>
+                                <td class="px-10 py-6">
+                                    <span class="flex items-center gap-2 font-black text-[10px] text-emerald-500 uppercase">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Active
+                                    </span>
+                                </td>
+                                <td class="px-10 py-6 text-xs font-black text-indigo-600">@risk.Priority</td>
+                                <td class="px-10 py-6 text-right">
+                                    <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 transition-all group-hover:bg-indigo-600 group-hover:text-white dark:border-slate-700">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-width="2.5" /></svg>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         }
     </div>
 </div>
+
+<script>
+    function switchView(type) {
+        const gView = document.getElementById('gridView');
+        const lView = document.getElementById('listView');
+        const gBtn = document.getElementById('gridBtn');
+        const lBtn = document.getElementById('listBtn');
+
+        if (type === 'grid') {
+            gView.classList.remove('hidden');
+            lView.classList.add('hidden');
+            gBtn.classList.add('bg-white', 'dark:bg-slate-800', 'shadow-xl', 'text-indigo-600');
+            lBtn.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-xl', 'text-indigo-600');
+            lBtn.classList.add('text-slate-400');
+        } else {
+            gView.classList.add('hidden');
+            lView.classList.remove('hidden');
+            lBtn.classList.add('bg-white', 'dark:bg-slate-800', 'shadow-xl', 'text-indigo-600');
+            gBtn.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-xl', 'text-indigo-600');
+            gBtn.classList.add('text-slate-400');
+        }
+    }
+
+    // Unified Search and Category Filter
+    function applyFilters() {
+        const searchTerm = document.getElementById('riskSearch').value.toLowerCase();
+        const categoryTerm = document.getElementById('categoryFilter').value.toLowerCase();
+        const items = document.querySelectorAll('#gridView > div, #listView tbody tr');
+
+        items.forEach(item => {
+            const text = item.innerText.toLowerCase();
+            const matchesSearch = text.includes(searchTerm);
+            const matchesCategory = categoryTerm === "" || text.includes(categoryTerm);
+
+            item.style.display = (matchesSearch && matchesCategory) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('riskSearch').addEventListener('input', applyFilters);
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+</script>
