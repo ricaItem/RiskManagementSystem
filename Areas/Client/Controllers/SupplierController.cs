@@ -6,9 +6,14 @@ using Web_Sentro.Areas.Client.Models;
 [Authorize]
 public class SupplierController : Controller
 {
-    public IActionResult Index()
+    private const int DefaultPageSize = 8;
+
+    public IActionResult Index(int page = 1, int pageSize = DefaultPageSize)
     {
-        var suppliers = new List<SupplierRiskViewModel>
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 4, 20);
+
+        var all = new List<SupplierRiskViewModel>
         {
             new SupplierRiskViewModel { Id = 1, SupplierName = "Global Steel Co.", ResourceType = "Structural Steel", ReliabilityScore = 88, FinancialStatus = "Stable", DeliveryTrend = "On-Time", ContractValue = 1250000 },
             new SupplierRiskViewModel { Id = 2, SupplierName = "Davao Cement Corp", ResourceType = "Concrete", ReliabilityScore = 42, FinancialStatus = "Warning", DeliveryTrend = "Critical", ContractValue = 450000 },
@@ -16,7 +21,16 @@ public class SupplierController : Controller
             new SupplierRiskViewModel { Id = 4, SupplierName = "BuildRight Equipment", ResourceType = "Machinery", ReliabilityScore = 95, FinancialStatus = "Stable", DeliveryTrend = "On-Time", ContractValue = 2100000 }
         };
 
-        return View(suppliers);
+        var totalCount = all.Count;
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var model = new PagedResult<SupplierRiskViewModel>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = page,
+            PageSize = pageSize
+        };
+        return View(model);
     }
 
 

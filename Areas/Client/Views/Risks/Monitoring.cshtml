@@ -3,8 +3,16 @@
     Layout = "_LayoutClient";
 }
 
-<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-1000">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
+<div class="animate-in fade-in min-h-screen space-y-8 duration-1000">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Risk <span class="text-emerald-500 italic">Monitoring Hub</span>
+            </h1>
+            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Real-Time Site Intelligence & API Integration</p>
+        </div>
+    </div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-800 p-6 shadow-card dark:border-slate-700 dark:bg-slate-900 relative overflow-hidden">
         <div class="absolute top-0 right-0 p-4">
             <span class="flex h-3 w-3">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -12,11 +20,11 @@
             </span>
         </div>
         <div class="relative z-10">
-            <h1 class="text-2xl font-black text-white tracking-tight">Monitoring <span class="text-emerald-500">Hub</span></h1>
-            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Real-Time Site Intelligence & API Integration</p>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">@Model.ProjectName</p>
+            <p class="text-2xl font-black text-white">@Model.Temperature°C</p>
         </div>
 
-        <div class="relative z-10 flex items-center gap-6 bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+        <div class="relative z-10 flex items-center gap-6 bg-slate-700/50 p-4 rounded-xl border border-slate-600">
             <div class="text-right">
                 <p class="text-[10px] font-black text-slate-500 uppercase">@Model.ProjectName</p>
                 <p class="text-xl font-black text-white">@Model.Temperature°C</p>
@@ -29,15 +37,14 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 bg-slate-200 dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 h-[500px] relative shadow-inner">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-[#fcfcfc] overflow-hidden shadow-card dark:border-slate-700 dark:bg-slate-800/90 h-[500px] relative">
             <div class="absolute inset-0 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
                 <img src="https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/@Model.Longitude,@Model.Latitude,15,0/1200x800?access_token=YOUR_TOKEN" class="w-full h-full object-cover" alt="Map">
             </div>
 
             <div class="absolute top-4 left-4 flex flex-col gap-2">
-                <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl">
+                <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] px-4 py-2 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
                     <p class="text-[10px] font-black uppercase text-slate-500">Coordinates</p>
                     <p class="text-xs font-mono font-bold">@Model.Latitude, @Model.Longitude</p>
                 </div>
@@ -54,9 +61,9 @@
             </div>
         </div>
 
-        <div class="space-y-6">
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+        <div class="space-y-4 lg:col-span-4">
+            <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-5 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
+                <h3 class="mb-4 text-xs font-black tracking-widest text-slate-900 uppercase dark:text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-rose-500">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                     </svg>
@@ -84,10 +91,10 @@
             </button>
         </div>
     </div>
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm mt-6">
-        <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+    <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] overflow-hidden shadow-card dark:border-slate-700 dark:bg-slate-800/90 mt-6">
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
             <div>
-                <h2 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Risk Feed</h2>
+                <h2 class="text-xs font-black tracking-widest text-slate-900 uppercase dark:text-white">Active Risk Feed</h2>
                 <p class="text-[10px] font-bold text-slate-400">Real-time status of identified threats</p>
             </div>
             <div class="flex gap-2">

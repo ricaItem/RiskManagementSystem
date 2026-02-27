@@ -1,11 +1,11 @@
-﻿@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
+@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
 @{
     Layout = "_LayoutClient";
     var category = ViewBag.Category as string ?? "—";
     var reportedBy = ViewBag.ReportedBy as string ?? "—";
 }
 
-<div class="animate-in fade-in mx-auto max-w-6xl space-y-8 p-4 duration-500 md:p-8">
+<div class="animate-in fade-in mx-auto max-w-6xl space-y-8 duration-500">
 
     <div class="flex items-center justify-between">
         <div class="space-y-1">
@@ -13,8 +13,8 @@
                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="3" /></svg>
                 Back to List
             </a>
-            <h1 class="text-3xl font-black text-slate-900 dark:text-white">
-                Assess <span class="text-indigo-600">@Model.RiskTitle</span>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Assess <span class="text-emerald-500 italic">@Model.RiskTitle</span>
             </h1>
         </div>
         <div class="hidden text-right md:block">

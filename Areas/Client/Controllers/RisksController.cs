@@ -37,22 +37,35 @@ namespace Web_Sentro.Areas.Client.Controllers
         private bool IsRiskManager() => User.IsInRole("RiskManager");
         private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
 
-        public async Task<IActionResult> Identification(string? search, string? status, string? category, bool showDeleted = false)
+        public async Task<IActionResult> Identification(string? search, string? status, string? category, bool showDeleted = false, int page = 1, int pageSize = 10)
         {
             ViewData["Title"] = "Risk Identification";
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 5, 50);
+
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var employeeOnly = EmployeeOnly();
             var includeDeleted = showDeleted && (IsAdmin() || IsSuperAdmin());
             var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, includeDeleted);
+            var totalCount = list.Count;
+            var items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            var model = new PagedResult<RiskIdentificationViewModel>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = pageSize
+            };
             ViewBag.CurrentUserId = user.Id;
             ViewBag.IsEmployeeOnly = employeeOnly;
             ViewBag.IsAdmin = IsAdmin() || IsSuperAdmin();
             ViewBag.IsRiskManager = IsRiskManager() || IsAdmin() || IsSuperAdmin();
             ViewBag.ShowDeleted = includeDeleted;
-            return View(list);
+            return View(model);
         }
 
         [HttpPost]

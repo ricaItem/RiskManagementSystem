@@ -1,4 +1,4 @@
-﻿module.exports = {
+module.exports = {
     darkMode: "class",
     content: [
         "./Views/**/*.cshtml",

@@ -19,10 +19,13 @@
     </div>
 }
 
-<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
-    <div class="flex justify-between items-end">
+<div class="animate-in fade-in min-h-screen space-y-8 duration-700">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">System <span class="text-rose-600">Archive</span></h1>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                System <span class="text-emerald-500 italic">Archive</span>
+            </h1>
+            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Archived items & history</p>
         </div>
         <div class="text-right">
             <span class="bg-rose-100 dark:bg-rose-900/30 text-rose-600 text-[10px] font-black px-3 py-1 rounded-full uppercase">
@@ -31,7 +34,7 @@
         </div>
     </div>
 
-    <div class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-md mb-6">
+    <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-4 shadow-card dark:border-slate-700 dark:bg-slate-800/90 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-5 relative">
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -60,15 +63,17 @@
         </div>
     </div>
 
-    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        <table class="w-full text-left">
-            <thead>
-                <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                    <th class="px-6 py-4">Reference</th>
-                    <th class="px-6 py-4">Employee & Details</th>
-                    <th class="px-6 py-4">Role</th>
-                    <th class="px-6 py-4">Archived On</th>
-                    <th class="px-6 py-4 text-right">Actions</th>
+    <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-5 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
+        <h3 class="mb-4 text-xs font-black tracking-widest text-slate-900 uppercase dark:text-white">Archive List</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100 font-black tracking-tighter text-[10px] text-slate-400 uppercase dark:border-slate-800">
+                        <th class="pb-2">Reference</th>
+                    <th class="pb-2">Employee & Details</th>
+                    <th class="pb-2">Role</th>
+                    <th class="pb-2">Archived On</th>
+                    <th class="pb-2 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -123,6 +128,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

@@ -14,7 +14,7 @@
 
 @Html.AntiForgeryToken()
 
-<div class="mitigation-board animate-in fade-in flex h-[calc(100vh-120px)] flex-col space-y-8 p-4 duration-700 md:p-8">
+<div class="mitigation-board animate-in fade-in flex h-[calc(100vh-120px)] flex-col space-y-8 duration-700">
     <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div class="space-y-4">
             <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })"
@@ -188,7 +188,12 @@
                 <button onclick="closeTaskModal()" class="text-slate-400 hover:text-rose-500"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <input type="hidden" id="taskModalTaskId" />
+            <input type="hidden" id="taskModalProgress" />
             <div class="space-y-5">
+                <div>
+                    <label class="ml-1 font-black tracking-widest text-[10px] text-slate-400 uppercase">Task Title</label>
+                    <input type="text" id="taskModalTitle" class="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-xs font-bold dark:border-slate-700 dark:bg-slate-800" placeholder="Task title..." />
+                </div>
                 <div>
                     <label class="ml-1 font-black tracking-widest text-[10px] text-slate-400 uppercase">Status</label>
                     <select id="taskModalStatus" class="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-xs font-bold dark:border-slate-700 dark:bg-slate-800">
@@ -362,6 +367,7 @@ function openTaskModal(taskId) {
     fetch(window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId))
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            document.getElementById('taskModalTitle').value = data.title || '';
             document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
             document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
             document.getElementById('taskModalDescription').value = data.description || '';
@@ -378,26 +384,38 @@ function closeTaskModal() {
 
 document.getElementById('taskModalSaveBtn').addEventListener('click', function() {
     var taskId = document.getElementById('taskModalTaskId').value;
+    var title = (document.getElementById('taskModalTitle').value || '').trim();
     var status = document.getElementById('taskModalStatus').value;
     var assignedToUserId = document.getElementById('taskModalAssignedTo').value;
     var dueDateVal = document.getElementById('taskModalDueDate').value;
     var description = document.getElementById('taskModalDescription').value;
     var progressPercent = document.getElementById('taskModalProgress').value;
     var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-    var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&status=' + encodeURIComponent(status) + '&assignedToUserId=' + encodeURIComponent(assignedToUserId) + '&dueDate=' + encodeURIComponent(dueDateVal) + '&description=' + encodeURIComponent(description) + '&progressPercent=' + encodeURIComponent(progressPercent);
+    var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&title=' + encodeURIComponent(title) + '&status=' + encodeURIComponent(status) + '&assignedToUserId=' + encodeURIComponent(assignedToUserId) + '&dueDate=' + encodeURIComponent(dueDateVal) + '&description=' + encodeURIComponent(description) + '&progressPercent=' + encodeURIComponent(progressPercent);
     fetch(window.__updateTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.ok) {
                 closeTaskModal();
-                updateCardUi(taskId, document.getElementById('taskModalAssignedTo').value, dueDateVal, progressPercent, status);
+                updateCardUi(taskId, title, document.getElementById('taskModalAssignedTo').value, dueDateVal, progressPercent, status);
             }
         });
 });
 
-function updateCardUi(taskId, assignedToUserId, dueDateVal, progressPercent, newStatus) {
+function updateCardUi(taskId, title, assignedToUserId, dueDateVal, progressPercent, newStatus) {
     var card = document.querySelector('[data-task-id="' + taskId + '"]');
     if (!card) return;
+    if (title !== undefined && title !== null) {
+        card.setAttribute('data-task-title', title);
+        var titleEl = card.querySelector('h4');
+        if (titleEl) titleEl.textContent = title;
+        var listRow = Array.prototype.find.call(document.querySelectorAll('.list-task-row'), function(row) { return (row.getAttribute('onclick') || '').indexOf('openTaskModal(' + taskId + ')') !== -1; });
+        if (listRow) {
+            listRow.setAttribute('data-task-title', title);
+            var td = listRow.querySelector('td');
+            if (td) td.textContent = title;
+        }
+    }
     var opt = document.querySelector('#taskModalAssignedTo option[value="' + assignedToUserId + '"]');
     var assigneeLabel = opt ? opt.textContent : 'Unassigned';
     var initial = assigneeLabel.substring(0, 1).toUpperCase();

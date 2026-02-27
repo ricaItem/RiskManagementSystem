@@ -1,20 +1,22 @@
-@model IEnumerable<Web_Sentro.Areas.Client.Models.SupplierRiskViewModel>
+@model Web_Sentro.Areas.Client.Models.PagedResult<Web_Sentro.Areas.Client.Models.SupplierRiskViewModel>
 @{
     Layout = "_LayoutClient";
+    var baseUrl = Url.Action("Index", "Supplier", new { area = "Client" });
 }
 
-<div class="max-w-full mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="animate-in fade-in min-h-screen space-y-8 duration-700">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Supplier <span class="text-amber-500">Risk Registry</span>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Supplier <span class="text-emerald-500 italic">Risk Registry</span>
             </h1>
+            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Procurement partners & reliability</p>
         </div>
         <div class="flex items-center gap-3">
-            <button class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:text-amber-600 transition-all">
+            <button class="rounded-xl border border-slate-200 bg-[#fcfcfc] px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-600 shadow-card transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700">
                 Audit Registry
             </button>
-            <button onclick="toggleAddSupplierModal()" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-2">
+            <button onclick="toggleAddSupplierModal()" class="rounded-xl bg-slate-800 px-6 py-2.5 text-[10px] font-bold tracking-widest text-slate-100 shadow-card transition-all hover:bg-emerald-600 hover:text-white flex items-center gap-2 dark:bg-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -23,19 +25,19 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        @foreach (var supplier in Model)
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @foreach (var supplier in Model.Items)
         {
             var isAtRisk = supplier.ReliabilityScore < 50;
-            <div class="bg-white dark:bg-slate-900 border @(isAtRisk ? "border-rose-500/30 ring-1 ring-rose-500/10" : "border-slate-200 dark:border-slate-800") rounded-3xl p-6 shadow-sm group hover:shadow-xl transition-all">
+            <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover dark:border-slate-700 dark:bg-slate-800/90 @(isAtRisk ? "border-rose-500/30 ring-1 ring-rose-500/10" : "")">
                 <div class="flex justify-between items-start mb-6">
                     <div class="flex gap-4">
                         <div class="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner">
                             @(supplier.ResourceType.Contains("Steel") ? "🏗️" : "🧪")
                         </div>
                         <div>
-                            <h3 class="text-lg font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">@supplier.SupplierName</h3>
-                            <p class="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Primary Resource: @supplier.ResourceType</p>
+                            <h3 class="text-base font-black text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">@supplier.SupplierName</h3>
+                            <p class="font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase">Primary Resource: @supplier.ResourceType</p>
                         </div>
                     </div>
 
@@ -80,6 +82,13 @@
         }
     </div>
 
+    @if (Model.TotalPages > 1 || Model.TotalCount > 0)
+    {
+        <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-5 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
+            @{ ViewData["PageNumber"] = Model.PageNumber; ViewData["TotalPages"] = Model.TotalPages; ViewData["TotalCount"] = Model.TotalCount; ViewData["PageSize"] = Model.PageSize; ViewData["BaseUrl"] = baseUrl; }
+            @await Html.PartialAsync("_Pagination")
+        </div>
+    }
 
     <div id="addSupplierModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleAddSupplierModal()"></div>

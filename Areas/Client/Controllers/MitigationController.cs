@@ -178,7 +178,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateTask(int taskId, string? assignedToUserId, string? dueDate, string? description, int? progressPercent, string? status)
+        public async Task<IActionResult> UpdateTask(int taskId, string? title, string? assignedToUserId, string? dueDate, string? description, int? progressPercent, string? status)
         {
             if (taskId <= 0) return BadRequest();
 
@@ -192,6 +192,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (task == null) return NotFound();
             if (task.Plan.Risk.OrgId != user.OrganizationId) return Forbid();
 
+            if (!string.IsNullOrWhiteSpace(title))
+                task.Title = title.Trim();
+
             var allowedStatuses = new[] { "ToDo", "InProgress", "Review", "Done" };
             if (!string.IsNullOrWhiteSpace(status) && allowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
                 task.Status = status;
@@ -199,7 +202,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             task.AssignedToUserId = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim();
             task.DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null;
             task.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
-            task.ProgressPercent = progressPercent.HasValue ? Math.Clamp(progressPercent.Value, 0, 100) : 0;
+            task.ProgressPercent = progressPercent.HasValue ? Math.Clamp(progressPercent.Value, 0, 100) : task.ProgressPercent;
             task.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
