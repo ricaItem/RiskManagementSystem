@@ -4,13 +4,11 @@
     ViewData["Title"] = "Register";
     Layout = "/Views/Shared/_LayoutLanding.cshtml";
 }
-
-<section class="relative min-h-screen overflow-hidden bg-white dark:bg-slate-950">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-        <div class="absolute -top-32 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-200/55 via-emerald-200/35 to-indigo-200/45 blur-3xl dark:from-sky-500/15 dark:via-emerald-500/10 dark:to-indigo-500/15"></div>
-        <div class="absolute -bottom-40 right-[-140px] h-[480px] w-[480px] rounded-full bg-gradient-to-tr from-emerald-200/40 to-sky-200/40 blur-3xl dark:from-emerald-500/10 dark:to-sky-500/10"></div>
-    </div>
-
+<style>
+    #registerSubmit { background-color: #0B1F33 !important; color: #fff !important; }
+    .dark #registerSubmit { background-color: #fff !important; color: #0f172a !important; }
+</style>
+<section class="relative min-h-screen overflow-hidden bg-[#F9FAFB] dark:bg-slate-950">
     <div class="relative flex min-h-screen items-center justify-center px-4 py-12">
         <div class="mx-auto w-full max-w-md">
             <div class="flex justify-center">
@@ -32,8 +30,8 @@
                 Start your workspace in minutes.
             </p>
 
-            <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-lg ring-1 ring-slate-900/5
-                        dark:border-slate-800 dark:bg-slate-900 dark:ring-white/10">
+            <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)]
+                        dark:border-slate-800 dark:bg-slate-900">
 
                 <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="space-y-5">
                     <div asp-validation-summary="ModelOnly"
@@ -43,8 +41,8 @@
                     <div>
                         <label asp-for="Input.Email" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
                         <input asp-for="Input.Email" autocomplete="username" aria-required="true"
-                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
-                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
+                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
                                       dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                                placeholder="name@example.com" />
                         <span asp-validation-for="Input.Email" class="mt-1 block text-xs text-rose-600"></span>
@@ -53,8 +51,8 @@
                     <div>
                         <label asp-for="Input.Password" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
                         <input asp-for="Input.Password" autocomplete="new-password" aria-required="true" type="password"
-                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
-                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
+                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
                                       dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                                placeholder="Create a password" />
                         <span asp-validation-for="Input.Password" class="mt-1 block text-xs text-rose-600"></span>
@@ -67,22 +65,22 @@
                     <div>
                         <label asp-for="Input.ConfirmPassword" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
                         <input asp-for="Input.ConfirmPassword" autocomplete="new-password" aria-required="true" type="password"
-                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
-                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
+                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
                                       dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                                placeholder="Confirm password" />
                         <span asp-validation-for="Input.ConfirmPassword" class="mt-1 block text-xs text-rose-600"></span>
                     </div>
 
                     <button id="registerSubmit" type="submit"
-                            class="w-full rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/15 transition hover:brightness-110
-                                   focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
+                            style="background-color: #0B1F33; color: #fff;"
+                            class="w-full rounded-xl py-3 text-sm font-semibold shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                         Create account
                     </button>
 
                     <p class="text-center text-sm text-slate-600 dark:text-slate-300">
                         Already have an account?
-                        <a asp-page="./Login" class="font-extrabold text-slate-900 hover:underline dark:text-white">
+                        <a asp-page="./Login" style="color: #059669;" class="font-semibold hover:underline hover:opacity-90 dark:text-emerald-400">
                             Log in
                         </a>
                     </p>
@@ -110,8 +108,8 @@
                                         name="provider"
                                         value="@provider.Name"
                                         title="Register using your @provider.DisplayName account"
-                                        class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 shadow-sm
-                                                       hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
+                                        class="inline-flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm
+                                                       hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-[#0B1F33]/20 focus:ring-offset-2
                                                        dark:border-slate-800 dark:bg-slate-950/40 dark:text-white dark:hover:bg-slate-800 dark:focus:ring-offset-slate-950">
                                     Continue with @provider.DisplayName
                                 </button>

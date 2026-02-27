@@ -1,0 +1,141 @@
+/**
+ * Sentro Design System – Theme Tokens
+ * Match landing page: deep navy primary, emerald accent, clean light surfaces.
+ * Use these variables everywhere; avoid hard-coded grays/greens/blues.
+ */
+
+:root {
+    /* Brand */
+    --brand-primary: #0B1F33;
+    --brand-primary-hover: #0E2A47;
+    --brand-accent: #059669;
+    --brand-accent-soft: #E6F4EA;
+
+    /* Surfaces */
+    --bg-page: #F9FAFB;
+    --bg-sidebar: #F3F4F6;
+    --bg-card: #FFFFFF;
+    --border: #E5E7EB;
+
+    /* Text */
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --muted: #94A3B8;
+
+    /* UI */
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --focus-ring: 0 0 0 3px rgba(11, 31, 51, 0.2);
+
+    /* Nav/sidebar */
+    --nav-hover-bg: rgba(15, 23, 42, 0.04);
+    --nav-active-bg: var(--brand-accent-soft);
+    --nav-active-border: var(--brand-accent);
+}
+
+/* Utility classes using tokens */
+.sentro-bg-page { background-color: var(--bg-page); }
+.sentro-bg-sidebar { background-color: var(--bg-sidebar); }
+.sentro-bg-card { background-color: var(--bg-card); }
+.sentro-border { border-color: var(--border); }
+.sentro-border-t { border-top: 1px solid var(--border); }
+.sentro-text-primary { color: var(--text-primary); }
+.sentro-text-secondary { color: var(--text-secondary); }
+
+/* Primary button: filled navy, white text (match landing CTA) */
+.btn-primary {
+    background-color: var(--brand-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+    background-color: var(--brand-primary-hover);
+}
+.btn-primary:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Secondary button: white + border + navy text */
+.btn-secondary {
+    background-color: var(--bg-card);
+    color: var(--brand-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-secondary:hover {
+    background-color: #F1F5F9;
+}
+.btn-secondary:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Accent button: for success/confirm actions only (e.g. Apply Filters as secondary action) */
+.btn-accent {
+    background-color: var(--brand-accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-accent:hover {
+    background-color: #047857;
+}
+.btn-accent:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+}
+
+/* Card: white, subtle border, soft shadow */
+.sentro-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius);
+}
+
+/* Focus ring (use .focus-ring class on interactive elements) */
+.sentro-focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Sidebar nav: active state (accent soft bg + left border) */
+.sentro-nav-active {
+    background-color: var(--nav-active-bg) !important;
+    border-left: 3px solid var(--nav-active-border) !important;
+    color: var(--brand-accent) !important;
+}
+.sentro-nav-active .sidebar-label { color: inherit; }
+
+/* Sidebar nav: inactive hover */
+.sentro-nav-inactive:hover {
+    background-color: var(--nav-hover-bg);
+}
+.sentro-nav-inactive {
+    color: var(--text-secondary);
+}
+.dark .sentro-nav-inactive { color: #cbd5e1; }
+.dark .sentro-nav-inactive:hover { background-color: rgba(30, 41, 59, 0.5); }
+.dark .sentro-nav-active { background-color: rgba(5, 150, 105, 0.15) !important; color: #34d399 !important; }
+
+/* Navbar: white or subtle glass, bottom border */
+.sentro-navbar {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+}
+.dark .sentro-navbar {
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom-color: #334155;
+}

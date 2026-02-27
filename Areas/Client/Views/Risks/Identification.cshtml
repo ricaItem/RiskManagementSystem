@@ -11,18 +11,16 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
     .glass-card {
-        background: #fcfcfc;
-        border: 1px solid rgba(0, 0, 0, 0.06);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
     }
-
     .dark .glass-card {
         background: rgba(15, 23, 42, 0.9);
         border: 1px solid rgba(255, 255, 255, 0.08);
     }
-
     .step-active {
-        color: #10b981;
-        border-bottom: 2px solid #10b981;
+        color: var(--brand-accent);
+        border-bottom: 2px solid var(--brand-accent);
     }
 </style>
 
@@ -34,16 +32,16 @@
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                Risk <span class="text-emerald-500 italic">Intelligence</span>
+                Risk <span class="italic" style="color: var(--brand-accent);">Intelligence</span>
             </h1>
-            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Enterprise Threat Identification & Management</p>
+            <p class="mt-1 text-sm font-medium tracking-wide text-[var(--text-secondary)] dark:text-slate-500">Enterprise Threat Identification & Management</p>
         </div>
 
         <div class="flex items-center gap-3">
-            <button onclick="toggleNewRiskModal()" class="group relative flex items-center gap-3 rounded-xl bg-slate-800 px-6 py-3 font-bold tracking-widest text-slate-100 text-[10px] uppercase shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:scale-95 dark:bg-slate-700 dark:text-slate-200">
+            <button onclick="toggleNewRiskModal()" class="btn-primary group relative flex items-center gap-3 rounded-xl px-6 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:scale-95">
                 <span class="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style="background: var(--brand-accent);"></span>
+                    <span class="relative inline-flex h-3 w-3 rounded-full" style="background: var(--brand-accent);"></span>
                 </span>
                 New Risk Entry
             </button>
@@ -58,7 +56,7 @@
                 new { Label = "Site Pins", Value = "08", Color = "blue", Desc = "Geo-tagged" }
                 })
         {
-            <div class="kpi-card group rounded-xl border border-slate-200 bg-[#fcfcfc] p-4 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover dark:border-slate-700 dark:bg-slate-800/90">
+            <div class="kpi-card group rounded-xl sentro-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover dark:border-slate-700 dark:bg-slate-800/90">
                 <p class="font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase">@stat.Label</p>
                 <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@stat.Value</h3>
                 <p class="mt-2 w-fit rounded-md px-1.5 py-0.5 font-bold tracking-tighter text-[9px] uppercase @(stat.Color == "rose" ? "bg-rose-50 text-rose-500 dark:bg-rose-500/10" : stat.Color == "amber" ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10" : stat.Color == "blue" ? "bg-sky-50 text-sky-600 dark:bg-sky-500/10" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10")">@stat.Desc</p>
@@ -66,8 +64,8 @@
         }
     </div>
 
-    <form method="get" action="@Url.Action("Identification", "Risks", new { area = "Client" })" id="filterForm" class="flex flex-wrap items-center gap-2 rounded-3xl border border-slate-200 bg-[#fcfcfc] p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
-        <div class="flex min-w-[300px] flex-1 items-center rounded-2xl border border-transparent bg-slate-50 px-4 transition-all focus-within:border-emerald-500/50 dark:bg-slate-800/50">
+    <form method="get" action="@Url.Action("Identification", "Risks", new { area = "Client" })" id="filterForm" class="flex flex-wrap items-center gap-2 rounded-3xl sentro-card p-2 dark:border-slate-800 dark:bg-slate-900/90">
+        <div class="flex min-w-[300px] flex-1 items-center rounded-2xl border border-transparent px-4 transition-all focus-within:ring-2 focus-within:ring-[var(--brand-primary)] focus-within:ring-opacity-20 dark:bg-slate-800/50" style="background: var(--bg-page);">
             <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="3" stroke-linecap="round" /></svg>
             <input type="text" name="search" value="@Context.Request.Query["search"]" placeholder="Search global registry..." class="w-full bg-transparent p-4 text-xs font-bold outline-none dark:text-white">
         </div>
@@ -111,13 +109,13 @@
                 Show deleted
             </label>
         }
-        <button type="submit" class="rounded-2xl bg-emerald-500 px-8 py-4 font-black tracking-widest text-white text-[10px] uppercase shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-600">
+        <button type="submit" class="btn-accent rounded-2xl px-8 py-4 text-sm font-semibold tracking-wide transition-all">
             Apply Filters
         </button>
     </form>
 
-    <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] p-5 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
-        <h3 class="mb-4 text-xs font-black tracking-widest text-slate-900 uppercase dark:text-white">Risk Registry</h3>
+    <div class="rounded-xl sentro-card p-5 dark:border-slate-700 dark:bg-slate-800/90">
+        <h3 class="mb-4 text-xs font-semibold tracking-wide text-[var(--text-primary)] dark:text-white">Risk Registry</h3>
         <div class="overflow-x-auto">
             <table class="w-full text-left" id="risksTable">
                 <thead>

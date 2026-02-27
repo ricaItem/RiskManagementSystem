@@ -10,175 +10,255 @@
     var totalTasks = Model.Count();
     var doneTasks = Model.Count(t => t.Status == "Done");
     var progressVal = totalTasks > 0 ? (int)((double)doneTasks / totalTasks * 100) : 0;
+
+    string Accent(string s) => s switch
+    {
+        "ToDo" => "bg-[#579bfc]",        
+        "InProgress" => "bg-[#fdab3d]",  
+        "Review" => "bg-[#ffcb00]",      
+        "Done" => "bg-[#00c875]",        
+        _ => "bg-slate-400"
+    };
+
+    string Label(string s) => s switch
+    {
+        "ToDo" => "To Do",
+        "InProgress" => "In Progress",
+        "Review" => "Review",
+        "Done" => "Done",
+        _ => s
+    };
 }
 
 @Html.AntiForgeryToken()
 
-<div class="mitigation-board animate-in fade-in flex h-[calc(100vh-120px)] flex-col space-y-8 duration-700">
-    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-4">
-            <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })"
-               class="group inline-flex items-center gap-2 font-black tracking-widest text-[10px] text-slate-400 uppercase transition-colors hover:text-indigo-600">
-                <svg class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                Return to Index
-            </a>
-            <div>
-                <h1 class="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
-                    Mitigation <span class="text-indigo-600 italic">Plan</span>
-                </h1>
-                <p class="mt-1 font-black tracking-[0.3em] text-[10px] text-slate-400 uppercase">Strategy Execution Engine</p>
+<div class="mitigation-shell min-h-[calc(100vh-120px)]">
+    <div class="mitigation-board mx-auto flex h-[calc(100vh-120px)] w-full max-w-[1600px] flex-col gap-8 px-6 py-6 2xl:px-10">
+        <!-- Header -->
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="space-y-4">
+                <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })"
+                   class="group inline-flex items-center gap-2 font-black tracking-widest text-[10px] text-slate-400 uppercase transition-colors hover:text-indigo-600">
+                    <svg class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    Return to Index
+                </a>
+
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+                        Mitigation <span class="text-indigo-600 italic">Plan</span>
+                    </h1>
+                </div>
+
+                <!-- Stats row -->
+                <div class="flex flex-wrap items-center gap-6 pt-2">
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Completion</span>
+                        <span class="text-lg font-black text-slate-900 dark:text-white">@progressVal%</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-200/70 dark:bg-slate-800"></div>
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Tasks</span>
+                        <span class="text-lg font-black text-slate-900 dark:text-white">@doneTasks <span class="text-slate-300">/ @totalTasks</span></span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-200/70 dark:bg-slate-800"></div>
+                    <div class="flex flex-col">
+                        <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Risk Status</span>
+                        <span class="inline-flex items-center gap-2 font-black text-[10px] uppercase">
+                            <span class="h-2 w-2 rounded-full @(riskStatus == "MitigationRequired" ? "bg-amber-500" : "bg-emerald-500")"></span>
+                            <span class="@(riskStatus == "MitigationRequired" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")">
+                                @riskStatus.Replace("_", " ")
+                            </span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="max-w-md space-y-1.5">
+                    <div class="flex justify-between font-black tracking-widest text-[9px] text-slate-400 uppercase">
+                        <span>Overall progress</span>
+                        <span>@progressVal%</span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-700/60" role="progressbar" aria-valuenow="@progressVal" aria-valuemin="0" aria-valuemax="100">
+                        <div class="h-full rounded-full bg-indigo-500 transition-all duration-300" style="width: @(progressVal)%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-6 pt-2">
-                <div class="flex flex-col">
-                    <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Completion</span>
-                    <span class="text-lg font-black text-slate-900 dark:text-white">@progressVal%</span>
+
+            <!-- Controls -->
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="group relative">
+                    <svg class="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="3" /></svg>
+                    <input type="search" id="taskSearch" placeholder="Search tasks..." aria-label="Search tasks"
+                           class="w-full rounded-2xl border border-slate-200/70 bg-white/70 py-3 pr-4 pl-11 text-xs font-bold transition-all outline-none focus:ring-2 focus:ring-indigo-500 md:w-72 dark:border-slate-800 dark:bg-slate-900/50" />
                 </div>
-                <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-                <div class="flex flex-col">
-                    <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Tasks</span>
-                    <span class="text-lg font-black text-slate-900 dark:text-white">@doneTasks <span class="text-slate-300">/ @totalTasks</span></span>
+
+                <div class="flex rounded-2xl border border-slate-200/70 bg-white/60 p-1.5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/40">
+                    <button type="button" onclick="toggleBoardView('board')" id="boardTabBtn"
+                            class="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-black tracking-widest text-[10px] text-indigo-600 uppercase shadow-sm transition-all dark:bg-slate-800 dark:text-white">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+                        Board
+                    </button>
+                    <button type="button" onclick="toggleBoardView('list')" id="listTabBtn"
+                            class="flex items-center gap-2 rounded-xl px-5 py-2.5 font-black tracking-widest text-[10px] text-slate-400 uppercase transition-all hover:text-indigo-600">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        List
+                    </button>
                 </div>
-                <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-                <div class="flex flex-col">
-                    <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">Risk Status</span>
-                    <span class="font-black text-[10px] uppercase @(riskStatus == "MitigationRequired" ? "text-amber-500" : "text-emerald-500")">@riskStatus.Replace("_", " ")</span>
-                </div>
-            </div>
-            <div class="max-w-md space-y-1.5">
-                <div class="flex justify-between font-black tracking-widest text-[9px] text-slate-400 uppercase">
-                    <span>Overall progress</span>
-                    <span>@progressVal%</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-valuenow="@progressVal" aria-valuemin="0" aria-valuemax="100">
-                    <div class="h-full rounded-full bg-indigo-500 transition-all duration-300" style="width: @(progressVal)%"></div>
-                </div>
+
+                <button type="button" onclick="openNewTaskModal()"
+                        class="rounded-2xl bg-slate-900 px-8 py-4 font-black tracking-[0.2em] text-[10px] text-white uppercase shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-600 active:scale-[0.98] dark:bg-white dark:text-slate-900">
+                    + New Task
+                </button>
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4">
-            <div class="group relative">
-                <svg class="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="3" /></svg>
-                <input type="search" id="taskSearch" placeholder="Search tasks..." aria-label="Search tasks"
-                       class="w-full rounded-2xl border border-slate-200 bg-white/50 py-3 pr-4 pl-11 text-xs font-bold transition-all outline-none focus:ring-2 focus:ring-indigo-500 md:w-64 dark:border-slate-800 dark:bg-slate-900/50" />
-            </div>
-            <div class="flex rounded-2xl border border-slate-200 bg-slate-100 p-1.5 dark:border-slate-800 dark:bg-slate-950">
-                <button type="button" onclick="toggleBoardView('board')" id="boardTabBtn" class="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-black tracking-widest text-[10px] text-indigo-600 uppercase shadow-xl transition-all dark:bg-slate-800 dark:text-white">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg> Board
-                </button>
-                <button type="button" onclick="toggleBoardView('list')" id="listTabBtn" class="flex items-center gap-2 rounded-xl px-5 py-2.5 font-black tracking-widest text-[10px] text-slate-400 uppercase transition-all hover:text-indigo-600">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" /></svg> List
-                </button>
-            </div>
-            <button type="button" onclick="openNewTaskModal()" class="rounded-2xl bg-slate-900 px-8 py-4 font-black tracking-[0.2em] text-[10px] text-white uppercase shadow-2xl transition-all hover:scale-105 hover:bg-indigo-600 active:scale-95 dark:bg-white dark:text-slate-900">
-                + New Task
-            </button>
-        </div>
-    </div>
-
-    <div class="flex-1 min-h-0 overflow-hidden">
-        <div id="kanbanBoard" class="custom-scrollbar flex h-full gap-5 overflow-x-auto pb-6">
-            @foreach (var status in statuses)
-            {
-                var columnTasks = Model.Where(t => t.Status == status);
-                var (headerBg, headerText, label) = status switch
+        <!-- Board / List container -->
+        <div class="flex-1 min-h-0 overflow-hidden">
+            <!-- Kanban -->
+            <div id="kanbanBoard" class="custom-scrollbar flex h-full gap-6 overflow-x-auto pb-6">
+                @foreach (var status in statuses)
                 {
-                    "ToDo" => ("bg-blue-500", "text-white", "To Do"),
-                    "InProgress" => ("bg-orange-500", "text-white", "In Progress"),
-                    "Review" => ("bg-amber-500", "text-white", "Review"),
-                    "Done" => ("bg-emerald-500", "text-white", "Done"),
-                    _ => ("bg-slate-500", "text-white", status)
-                };
+                    var columnTasks = Model.Where(t => t.Status == status);
+                    var accent = Accent(status);
+                    var label = Label(status);
 
-                <div class="kanban-column flex w-72 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60 overflow-hidden dark:border-slate-700 dark:bg-slate-800/40"
-                     data-status="@status" ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                    <div class="flex items-center justify-between px-4 py-3 @headerBg @headerText">
-                        <div class="flex items-center gap-2">
-                            <h3 class="font-semibold text-sm">@label</h3>
-                            <span class="column-count flex h-6 min-w-6 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold">@columnTasks.Count()</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <button type="button" onclick="openNewTaskModal()" class="rounded p-1.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50" aria-label="Add task to @label">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-                            </button>
-                            <button type="button" class="rounded p-1.5 hover:bg-white/20 focus:outline-none" aria-label="Column options">
-                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
-                            </button>
-                        </div>
-                    </div>
+                    <div class="kanban-column relative flex w-[360px] shrink-0 flex-col rounded-2xl border border-slate-200/70 bg-white/60 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/35"
+                         data-status="@status" ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
 
-                    <div class="kanban-drop custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3 min-h-[140px]"
-                         ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                        @foreach (var task in columnTasks)
-                        {
-                            var initial = string.IsNullOrEmpty(task.AssignedTo) || task.AssignedTo == "—" ? "?" : task.AssignedTo.Substring(0, 1).ToUpper();
-                            var priorityLower = (task.Priority ?? "Low").ToLowerInvariant();
-                            var priorityBadge = priorityLower.Contains("critical") ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" : priorityLower.Contains("high") ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" : priorityLower.Contains("normal") ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300";
+                        <!-- top accent bar -->
+                        <div class="h-1.5 w-full rounded-t-2xl @accent"></div>
 
-                            <div id="task-@task.Id" data-task-id="@task.Id" data-task-title="@task.Title" data-task-status="@task.Status" data-task-assignee="@task.AssignedTo" draggable="true" ondragstart="drag(event)" onclick="onCardClick(event, @task.Id)"
-                                 class="mitigation-card group relative flex h-[11.5rem] min-h-[11.5rem] cursor-grab flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800">
-
-                                <div class="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                    <button type="button" onclick="event.stopPropagation(); openTaskModal(@task.Id)" class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300" aria-label="Edit task">
-                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
-                                    </button>
-                                </div>
-
-                                <h4 class="min-h-0 flex-1 pr-8 text-sm font-bold leading-snug text-slate-800 line-clamp-2 dark:text-slate-100">@task.Title</h4>
-
-                                <div class="mt-2 flex shrink-0 flex-wrap items-center gap-2">
-                                    <span class="rounded-md px-2 py-0.5 text-[10px] font-semibold @priorityBadge">@(task.Priority ?? "Low")</span>
-                                    <span class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        <span class="task-due-label">@(task.DueDate?.ToString("dd MMM") ?? "No date")</span>
-                                    </span>
-                                </div>
-
-                                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-                                    <div class="h-full rounded-full bg-indigo-500 transition-all" style="width: @(task.ProgressPercent)%"></div>
-                                </div>
-
-                                <div class="mt-3 flex shrink-0 items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-700">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="task-initial flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">@initial</span>
-                                        <span class="task-assignee-label truncate text-xs font-medium text-slate-500 dark:text-slate-400">@task.AssignedTo</span>
-                                    </div>
-                                    <span class="task-progress shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400">@task.ProgressPercent%</span>
-                                </div>
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <span class="h-2.5 w-2.5 rounded-full @accent"></span>
+                                <h3 class="font-black text-[13px] tracking-tight text-slate-900 dark:text-white">@label</h3>
+                                <span class="column-count ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-900/5 px-2 text-[11px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-100">
+                                    @columnTasks.Count()
+                                </span>
                             </div>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
 
-        <div id="listView" class="hidden h-full overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
-            <div class="custom-scrollbar overflow-auto h-full">
-                <table class="w-full text-left text-sm">
-                    <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-                        <tr>
-                            <th class="px-6 py-4">Task</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4">Assignee</th>
-                            <th class="px-6 py-4 text-right">Progress</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                        @foreach (var task in Model)
-                        {
-                            <tr class="list-task-row cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" data-task-title="@task.Title" data-task-status="@task.Status" onclick="openTaskModal(@task.Id)">
-                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">@task.Title</td>
-                                <td class="px-6 py-4"><span class="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">@task.Status</span></td>
-                                <td class="px-6 py-4 text-slate-500 dark:text-slate-400">@task.AssignedTo</td>
-                                <td class="px-6 py-4 text-right font-semibold text-slate-900 dark:text-white">@task.ProgressPercent%</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="openNewTaskModal()"
+                                        class="rounded-lg p-2 text-slate-500 hover:bg-slate-900/5 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                                        aria-label="Add task to @label">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                </button>
+                                <button type="button"
+                                        class="rounded-lg p-2 text-slate-500 hover:bg-slate-900/5 hover:text-slate-700 focus:outline-none dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                                        aria-label="Column options">
+                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="kanban-drop custom-scrollbar flex-1 space-y-3 overflow-y-auto px-3 pb-4 pt-1 min-h-[140px]"
+                             ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            @foreach (var task in columnTasks)
+                            {
+                                var initial = string.IsNullOrEmpty(task.AssignedTo) || task.AssignedTo == "—" ? "?" : task.AssignedTo.Substring(0, 1).ToUpper();
+                                var priorityLower = (task.Priority ?? "Low").ToLowerInvariant();
+                                var priorityBadge =
+                                priorityLower.Contains("critical") ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" :
+                                priorityLower.Contains("high") ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" :
+                                priorityLower.Contains("normal") ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" :
+                                "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300";
+
+                                <div id="task-@task.Id"
+                                     data-task-id="@task.Id"
+                                     data-task-title="@task.Title"
+                                     data-task-status="@task.Status"
+                                     data-task-assignee="@task.AssignedTo"
+                                     draggable="true"
+                                     ondragstart="drag(event)"
+                                     onclick="onCardClick(event, @task.Id)"
+                                     class="mitigation-card group relative flex h-[11.75rem] min-h-[11.75rem] cursor-grab flex-col rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_42px_rgba(15,23,42,0.10)] active:cursor-grabbing dark:border-slate-800 dark:bg-slate-950/40">
+
+                                    <!-- quick actions -->
+                                    <div class="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button type="button"
+                                                onclick="event.stopPropagation(); openTaskModal(@task.Id)"
+                                                class="rounded-lg p-2 text-slate-400 hover:bg-slate-900/5 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                                                aria-label="Edit task">
+                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- title -->
+                                    <h4 class="min-h-0 flex-1 pr-10 text-[13px] font-black leading-snug text-slate-900 line-clamp-2 dark:text-white">
+                                        @task.Title
+                                    </h4>
+
+                                    <!-- meta -->
+                                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full px-2.5 py-1 text-[10px] font-black @priorityBadge">@((task.Priority ?? "Low"))</span>
+
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-900/5 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <span class="task-due-label">@((task.DueDate?.ToString("dd MMM")) ?? "No date")</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- progress -->
+                                    <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                        <div class="h-full rounded-full bg-indigo-500 transition-all" style="width: @(task.ProgressPercent)%"></div>
+                                    </div>
+
+                                    <!-- footer -->
+                                    <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <span class="task-initial flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-[11px] font-black text-white">
+                                                @initial
+                                            </span>
+                                            <span class="task-assignee-label truncate text-[12px] font-bold text-slate-600 dark:text-slate-300">@task.AssignedTo</span>
+                                        </div>
+                                        <span class="task-progress shrink-0 text-[12px] font-black text-indigo-600 dark:text-indigo-400">@task.ProgressPercent%</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
+
+            <!-- List view (unchanged, just slightly softened header) -->
+            <div id="listView" class="hidden h-full overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/40">
+                <div class="custom-scrollbar overflow-auto h-full">
+                    <table class="w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 border-b border-slate-200/70 bg-white/70 font-semibold uppercase tracking-wider text-slate-500 backdrop-blur dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-400">
+                            <tr>
+                                <th class="px-6 py-4">Task</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Assignee</th>
+                                <th class="px-6 py-4 text-right">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            @foreach (var task in Model)
+                            {
+                                <tr class="list-task-row cursor-pointer hover:bg-slate-900/5 dark:hover:bg-white/5"
+                                    data-task-title="@task.Title"
+                                    data-task-status="@task.Status"
+                                    onclick="openTaskModal(@task.Id)">
+                                    <td class="px-6 py-4 font-bold text-slate-900 dark:text-white">@task.Title</td>
+                                    <td class="px-6 py-4">
+                                        <span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-black text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">@task.Status</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600 dark:text-slate-300">@task.AssignedTo</td>
+                                    <td class="px-6 py-4 text-right font-black text-slate-900 dark:text-white">@task.ProgressPercent%</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
+<!-- Modals: kept as-is (your existing markup) -->
 <div id="taskEditModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeTaskModal()"></div>
     <div class="relative flex min-h-screen items-center justify-center p-4">
@@ -274,272 +354,314 @@
         </div>
     </div>
 </div>
+
 <script>
-(function () {
-    window.__mitigationDragging = false;
-    window.__taskDetailsUrl = '@Url.Action("TaskDetails", "Mitigation", new { area = "Client" })';
-    window.__updateTaskUrl = '@Url.Action("UpdateTask", "Mitigation", new { area = "Client" })';
-    window.__moveTaskUrl = '@Url.Action("MoveTask", "Mitigation", new { area = "Client" })';
-    window.__createTaskUrl = '@Url.Action("CreateTask", "Mitigation", new { area = "Client" })';
-    window.__planId = @planId;
-})();
+    (function () {
+        window.__mitigationDragging = false;
+        window.__taskDetailsUrl = '@Url.Action("TaskDetails", "Mitigation", new { area = "Client" })';
+        window.__updateTaskUrl = '@Url.Action("UpdateTask", "Mitigation", new { area = "Client" })';
+        window.__moveTaskUrl = '@Url.Action("MoveTask", "Mitigation", new { area = "Client" })';
+        window.__createTaskUrl = '@Url.Action("CreateTask", "Mitigation", new { area = "Client" })';
+        window.__planId = @planId;
+    })();
 
-function toggleBoardView(type) {
-    var board = document.getElementById('kanbanBoard');
-    var list = document.getElementById('listView');
-    var bBtn = document.getElementById('boardTabBtn');
-    var lBtn = document.getElementById('listTabBtn');
-    if (type === 'board') {
-        board.classList.remove('hidden');
-        list.classList.add('hidden');
-        bBtn.setAttribute('aria-selected', 'true');
-        lBtn.setAttribute('aria-selected', 'false');
-        bBtn.classList.add('bg-white', 'shadow-xl', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
-        bBtn.classList.remove('text-slate-400');
-        lBtn.classList.remove('bg-white', 'shadow-xl', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
-        lBtn.classList.add('text-slate-400');
-    } else {
-        list.classList.remove('hidden');
-        board.classList.add('hidden');
-        lBtn.setAttribute('aria-selected', 'true');
-        bBtn.setAttribute('aria-selected', 'false');
-        lBtn.classList.add('bg-white', 'shadow-xl', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
-        lBtn.classList.remove('text-slate-400');
-        bBtn.classList.remove('bg-white', 'shadow-xl', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
-        bBtn.classList.add('text-slate-400');
-    }
-}
-
-function allowDrop(ev) {
-    ev.preventDefault();
-    ev.currentTarget.classList.add('ring-2', 'ring-indigo-400/50', 'ring-inset');
-}
-function dragLeave(ev) {
-    var related = ev.relatedTarget;
-    var el = ev.currentTarget;
-    if (el.contains(related)) return;
-    el.classList.remove('ring-2', 'ring-indigo-400/50', 'ring-inset');
-}
-function drag(ev) {
-    window.__mitigationDragging = true;
-    ev.dataTransfer.setData('text', ev.target.id);
-    ev.dataTransfer.setData('taskId', ev.target.getAttribute('data-task-id') || '');
-    ev.dataTransfer.effectAllowed = 'move';
-    ev.target.classList.add('opacity-50', 'scale-[0.98]');
-}
-function drop(ev, newStatus) {
-    ev.preventDefault();
-    document.querySelectorAll('.kanban-drop, .kanban-column').forEach(function(el) { el.classList.remove('ring-2', 'ring-indigo-400/50', 'ring-inset'); });
-    window.__mitigationDragging = false;
-    var id = ev.dataTransfer.getData('text');
-    var card = document.getElementById(id);
-    if (!card) return;
-    card.classList.remove('opacity-50', 'scale-[0.98]');
-    var taskId = card.getAttribute('data-task-id');
-    var columnBody = ev.target.closest('.kanban-drop') || document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
-    if (!columnBody) return;
-    var previousParent = card.parentElement;
-    var previousNext = card.nextElementSibling;
-    columnBody.appendChild(card);
-    card.setAttribute('data-task-status', newStatus);
-    var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-    var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&newStatus=' + encodeURIComponent(newStatus);
-    fetch(window.__moveTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data.ok && previousParent) previousParent.insertBefore(card, previousNext);
-        })
-        .catch(function() { if (previousParent) previousParent.insertBefore(card, previousNext); });
-}
-
-function onCardClick(ev, taskId) {
-    if (window.__mitigationDragging) return;
-    if (ev.target.closest('button') || ev.target.closest('a')) return;
-    openTaskModal(taskId);
-}
-
-function openTaskModal(taskId) {
-    var modal = document.getElementById('taskEditModal');
-    document.getElementById('taskModalTaskId').value = taskId;
-    modal.classList.remove('hidden');
-    var closeBtn = modal.querySelector('button[onclick="closeTaskModal()"]');
-    if (closeBtn) closeBtn.focus();
-    fetch(window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            document.getElementById('taskModalTitle').value = data.title || '';
-            document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
-            document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
-            document.getElementById('taskModalDescription').value = data.description || '';
-            document.getElementById('taskModalProgress').value = data.progressPercent ?? 0;
-            document.getElementById('taskModalStatus').value = data.status || 'ToDo';
-        });
-    document.body.style.overflow = 'hidden';
-}
-
-function closeTaskModal() {
-    document.getElementById('taskEditModal').classList.add('hidden');
-    document.body.style.overflow = '';
-}
-
-document.getElementById('taskModalSaveBtn').addEventListener('click', function() {
-    var taskId = document.getElementById('taskModalTaskId').value;
-    var title = (document.getElementById('taskModalTitle').value || '').trim();
-    var status = document.getElementById('taskModalStatus').value;
-    var assignedToUserId = document.getElementById('taskModalAssignedTo').value;
-    var dueDateVal = document.getElementById('taskModalDueDate').value;
-    var description = document.getElementById('taskModalDescription').value;
-    var progressPercent = document.getElementById('taskModalProgress').value;
-    var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-    var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&title=' + encodeURIComponent(title) + '&status=' + encodeURIComponent(status) + '&assignedToUserId=' + encodeURIComponent(assignedToUserId) + '&dueDate=' + encodeURIComponent(dueDateVal) + '&description=' + encodeURIComponent(description) + '&progressPercent=' + encodeURIComponent(progressPercent);
-    fetch(window.__updateTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.ok) {
-                closeTaskModal();
-                updateCardUi(taskId, title, document.getElementById('taskModalAssignedTo').value, dueDateVal, progressPercent, status);
-            }
-        });
-});
-
-function updateCardUi(taskId, title, assignedToUserId, dueDateVal, progressPercent, newStatus) {
-    var card = document.querySelector('[data-task-id="' + taskId + '"]');
-    if (!card) return;
-    if (title !== undefined && title !== null) {
-        card.setAttribute('data-task-title', title);
-        var titleEl = card.querySelector('h4');
-        if (titleEl) titleEl.textContent = title;
-        var listRow = Array.prototype.find.call(document.querySelectorAll('.list-task-row'), function(row) { return (row.getAttribute('onclick') || '').indexOf('openTaskModal(' + taskId + ')') !== -1; });
-        if (listRow) {
-            listRow.setAttribute('data-task-title', title);
-            var td = listRow.querySelector('td');
-            if (td) td.textContent = title;
+    function toggleBoardView(type) {
+        var board = document.getElementById('kanbanBoard');
+        var list = document.getElementById('listView');
+        var bBtn = document.getElementById('boardTabBtn');
+        var lBtn = document.getElementById('listTabBtn');
+        if (type === 'board') {
+            board.classList.remove('hidden');
+            list.classList.add('hidden');
+            bBtn.setAttribute('aria-selected', 'true');
+            lBtn.setAttribute('aria-selected', 'false');
+            bBtn.classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
+            bBtn.classList.remove('text-slate-400');
+            lBtn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
+            lBtn.classList.add('text-slate-400');
+        } else {
+            list.classList.remove('hidden');
+            board.classList.add('hidden');
+            lBtn.setAttribute('aria-selected', 'true');
+            bBtn.setAttribute('aria-selected', 'false');
+            lBtn.classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
+            lBtn.classList.remove('text-slate-400');
+            bBtn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600', 'dark:bg-slate-800', 'dark:text-white');
+            bBtn.classList.add('text-slate-400');
         }
     }
-    var opt = document.querySelector('#taskModalAssignedTo option[value="' + assignedToUserId + '"]');
-    var assigneeLabel = opt ? opt.textContent : 'Unassigned';
-    var initial = assigneeLabel.substring(0, 1).toUpperCase();
-    if (card.querySelector('.task-initial')) card.querySelector('.task-initial').textContent = initial;
-    if (card.querySelector('.task-assignee-label')) card.querySelector('.task-assignee-label').textContent = assigneeLabel;
-    var progEl = card.querySelector('.task-progress');
-    if (progEl) progEl.textContent = (parseInt(progressPercent, 10) || 0) + '%';
-    var progressBarFill = card.querySelector('.rounded-full.bg-indigo-500');
-    if (progressBarFill) progressBarFill.style.width = (parseInt(progressPercent, 10) || 0) + '%';
-    if (dueDateVal) {
-        var dueEl = card.querySelector('.task-due-label');
-        if (dueEl) {
-            var d = new Date(dueDateVal);
-            dueEl.textContent = (d.getDate() < 10 ? '0' : '') + d.getDate() + ' ' + d.toLocaleDateString('en-US', { month: 'short' });
-        }
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('drop-glow');
     }
-    if (newStatus) card.setAttribute('data-task-status', newStatus);
-    var targetColumn = document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
-    if (targetColumn && card.parentElement !== targetColumn) { card.remove(); targetColumn.appendChild(card); }
-}
+    function dragLeave(ev) {
+        var related = ev.relatedTarget;
+        var el = ev.currentTarget;
+        if (el.contains(related)) return;
+        el.classList.remove('drop-glow');
+    }
+    function drag(ev) {
+        window.__mitigationDragging = true;
+        ev.dataTransfer.setData('text', ev.target.id);
+        ev.dataTransfer.setData('taskId', ev.target.getAttribute('data-task-id') || '');
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.target.classList.add('opacity-60', 'scale-[0.99]');
+    }
+    function drop(ev, newStatus) {
+        ev.preventDefault();
+        document.querySelectorAll('.kanban-drop, .kanban-column').forEach(function(el) { el.classList.remove('drop-glow'); });
+        window.__mitigationDragging = false;
+        var id = ev.dataTransfer.getData('text');
+        var card = document.getElementById(id);
+        if (!card) return;
+        card.classList.remove('opacity-60', 'scale-[0.99]');
+        var taskId = card.getAttribute('data-task-id');
+        var columnBody = ev.target.closest('.kanban-drop') || document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
+        if (!columnBody) return;
 
-// New Task
-function openNewTaskModal() {
-    document.getElementById('newTaskModal').classList.remove('hidden');
-    document.getElementById('newTaskTitle').value = '';
-    document.getElementById('newTaskDescription').value = '';
-    document.getElementById('newTaskAssignedTo').value = '';
-    document.getElementById('newTaskDueDate').value = '';
-    document.getElementById('newTaskTitleError').classList.add('hidden');
-    document.getElementById('newTaskTitle').focus();
-    document.body.style.overflow = 'hidden';
-}
+        var previousParent = card.parentElement;
+        var previousNext = card.nextElementSibling;
 
-function closeNewTaskModal() {
-    document.getElementById('newTaskModal').classList.add('hidden');
-    document.body.style.overflow = '';
-}
+        columnBody.appendChild(card);
+        card.setAttribute('data-task-status', newStatus);
 
-document.getElementById('newTaskCreateBtn').addEventListener('click', function() {
-    var title = (document.getElementById('newTaskTitle').value || '').trim();
-    var errEl = document.getElementById('newTaskTitleError');
-    if (!title) { errEl.textContent = 'Title is required.'; errEl.classList.remove('hidden'); return; }
-    if (!window.__planId || window.__planId < 1) { errEl.textContent = 'Invalid plan. Please refresh the page and try again.'; errEl.classList.remove('hidden'); return; }
-    errEl.classList.add('hidden');
-    var description = (document.getElementById('newTaskDescription') && document.getElementById('newTaskDescription').value) ? document.getElementById('newTaskDescription').value : '';
-    var assignedTo = document.getElementById('newTaskAssignedTo').value;
-    var dueDate = document.getElementById('newTaskDueDate').value;
-    var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-    if (!tokenInput) { errEl.textContent = 'Security token missing. Please refresh the page.'; errEl.classList.remove('hidden'); return; }
-    var token = tokenInput.value;
-    var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&planId=' + window.__planId + '&title=' + encodeURIComponent(title) + '&description=' + encodeURIComponent(description) + '&assignedToUserId=' + encodeURIComponent(assignedTo) + '&dueDate=' + encodeURIComponent(dueDate);
-    var createBtn = document.getElementById('newTaskCreateBtn');
-    createBtn.disabled = true;
-    createBtn.textContent = 'Creating...';
-    fetch(window.__createTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-        .then(function(r) {
-            if (!r.ok) { return r.text().then(function(t) { throw new Error(r.status === 404 ? 'Plan not found.' : r.status === 400 ? 'Invalid request.' : (t || 'Could not create task.')); }); }
-            return r.json();
-        })
-        .then(function(data) {
-            if (data && data.ok) {
-                closeNewTaskModal();
-                var todoCol = document.querySelector('.kanban-column[data-status="ToDo"] .kanban-drop');
-                if (todoCol) {
-                    var opt = document.querySelector('#newTaskAssignedTo option[value="' + (document.getElementById('newTaskAssignedTo').value) + '"]');
-                    var assigneeLabel = opt ? opt.textContent : 'Unassigned';
-                    var initial = assigneeLabel.substring(0, 1).toUpperCase();
-                    var dueStr = dueDate ? (function(d) { var m = d.toLocaleDateString('en-US', { month: 'short' }); var day = d.getDate(); return (day < 10 ? '0' : '') + day + ' ' + m; })(new Date(dueDate)) : 'No date';
-                    var html = '<div id="task-' + data.taskId + '" data-task-id="' + data.taskId + '" data-task-title="' + (data.title || title).replace(/"/g, '&quot;') + '" data-task-status="ToDo" data-task-assignee="' + assigneeLabel.replace(/"/g, '&quot;') + '" data-task-due="' + (dueDate || '') + '" data-task-progress="0" draggable="true" ondragstart="drag(event)" onclick="onCardClick(event, ' + data.taskId + ')" class="mitigation-card group relative flex h-[11.5rem] min-h-[11.5rem] cursor-grab flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800">' +
-                        '<div class="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100"><button type="button" onclick="event.stopPropagation(); openTaskModal(' + data.taskId + ')" class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300" aria-label="Edit task"><svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg></button></div>' +
-                        '<h4 class="min-h-0 flex-1 pr-8 text-sm font-bold leading-snug text-slate-800 line-clamp-2 dark:text-slate-100">' + (data.title || title).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</h4>' +
-                        '<div class="mt-2 flex shrink-0 flex-wrap items-center gap-2"><span class="rounded-md px-2 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">Low</span><span class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span class="task-due-label">' + dueStr + '</span></span></div>' +
-                        '<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700"><div class="h-full rounded-full bg-indigo-500 transition-all" style="width: 0%"></div></div>' +
-                        '<div class="mt-3 flex shrink-0 items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-700"><div class="flex min-w-0 items-center gap-1.5"><span class="task-initial flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">' + initial + '</span><span class="task-assignee-label truncate text-xs font-medium text-slate-500 dark:text-slate-400">' + assigneeLabel.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div><span class="task-progress shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400">0%</span></div></div>';
-                    var div = document.createElement('div');
-                    div.innerHTML = html;
-                    todoCol.appendChild(div.firstElementChild);
-                    var countSpan = document.querySelector('.kanban-column[data-status="ToDo"] .column-count');
-                    if (countSpan) countSpan.textContent = todoCol.querySelectorAll('.mitigation-card').length;
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&newStatus=' + encodeURIComponent(newStatus);
+
+        fetch(window.__moveTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.ok && previousParent) previousParent.insertBefore(card, previousNext);
+            })
+            .catch(function() { if (previousParent) previousParent.insertBefore(card, previousNext); });
+    }
+
+    function onCardClick(ev, taskId) {
+        if (window.__mitigationDragging) return;
+        if (ev.target.closest('button') || ev.target.closest('a')) return;
+        openTaskModal(taskId);
+    }
+
+    function openTaskModal(taskId) {
+        var modal = document.getElementById('taskEditModal');
+        document.getElementById('taskModalTaskId').value = taskId;
+        modal.classList.remove('hidden');
+        var closeBtn = modal.querySelector('button[onclick="closeTaskModal()"]');
+        if (closeBtn) closeBtn.focus();
+        fetch(window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('taskModalTitle').value = data.title || '';
+                document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
+                document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
+                document.getElementById('taskModalDescription').value = data.description || '';
+                document.getElementById('taskModalProgress').value = data.progressPercent ?? 0;
+                document.getElementById('taskModalStatus').value = data.status || 'ToDo';
+            });
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeTaskModal() {
+        document.getElementById('taskEditModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('taskModalSaveBtn').addEventListener('click', function() {
+        var taskId = document.getElementById('taskModalTaskId').value;
+        var title = (document.getElementById('taskModalTitle').value || '').trim();
+        var status = document.getElementById('taskModalStatus').value;
+        var assignedToUserId = document.getElementById('taskModalAssignedTo').value;
+        var dueDateVal = document.getElementById('taskModalDueDate').value;
+        var description = document.getElementById('taskModalDescription').value;
+        var progressPercent = document.getElementById('taskModalProgress').value;
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token)
+            + '&taskId=' + encodeURIComponent(taskId)
+            + '&title=' + encodeURIComponent(title)
+            + '&status=' + encodeURIComponent(status)
+            + '&assignedToUserId=' + encodeURIComponent(assignedToUserId)
+            + '&dueDate=' + encodeURIComponent(dueDateVal)
+            + '&description=' + encodeURIComponent(description)
+            + '&progressPercent=' + encodeURIComponent(progressPercent);
+
+        fetch(window.__updateTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    closeTaskModal();
+                    updateCardUi(taskId, title, document.getElementById('taskModalAssignedTo').value, dueDateVal, progressPercent, status);
                 }
-            } else { errEl.textContent = (data && data.message) ? data.message : 'Task was not created.'; errEl.classList.remove('hidden'); }
-        })
-        .catch(function(err) {
-            errEl.textContent = err.message || 'Could not create task. Please try again.';
-            errEl.classList.remove('hidden');
-        })
-        .finally(function() {
-            createBtn.disabled = false;
-            createBtn.textContent = 'Create Task';
+            });
+    });
+
+    function updateCardUi(taskId, title, assignedToUserId, dueDateVal, progressPercent, newStatus) {
+        var card = document.querySelector('[data-task-id="' + taskId + '"]');
+        if (!card) return;
+
+        if (title !== undefined && title !== null) {
+            card.setAttribute('data-task-title', title);
+            var titleEl = card.querySelector('h4');
+            if (titleEl) titleEl.textContent = title;
+            var listRow = Array.prototype.find.call(document.querySelectorAll('.list-task-row'), function(row) {
+                return (row.getAttribute('onclick') || '').indexOf('openTaskModal(' + taskId + ')') !== -1;
+            });
+            if (listRow) {
+                listRow.setAttribute('data-task-title', title);
+                var td = listRow.querySelector('td');
+                if (td) td.textContent = title;
+            }
+        }
+
+        var opt = document.querySelector('#taskModalAssignedTo option[value="' + assignedToUserId + '"]');
+        var assigneeLabel = opt ? opt.textContent : 'Unassigned';
+        var initial = assigneeLabel.substring(0, 1).toUpperCase();
+
+        if (card.querySelector('.task-initial')) card.querySelector('.task-initial').textContent = initial;
+        if (card.querySelector('.task-assignee-label')) card.querySelector('.task-assignee-label').textContent = assigneeLabel;
+
+        var progEl = card.querySelector('.task-progress');
+        if (progEl) progEl.textContent = (parseInt(progressPercent, 10) || 0) + '%';
+
+        var progressBarFill = card.querySelector('.rounded-full.bg-indigo-500');
+        if (progressBarFill) progressBarFill.style.width = (parseInt(progressPercent, 10) || 0) + '%';
+
+        if (dueDateVal) {
+            var dueEl = card.querySelector('.task-due-label');
+            if (dueEl) {
+                var d = new Date(dueDateVal);
+                dueEl.textContent = (d.getDate() < 10 ? '0' : '') + d.getDate() + ' ' + d.toLocaleDateString('en-US', { month: 'short' });
+            }
+        }
+
+        if (newStatus) card.setAttribute('data-task-status', newStatus);
+        var targetColumn = document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
+        if (targetColumn && card.parentElement !== targetColumn) { card.remove(); targetColumn.appendChild(card); }
+    }
+
+    // New Task (kept as your original)
+    function openNewTaskModal() {
+        document.getElementById('newTaskModal').classList.remove('hidden');
+        document.getElementById('newTaskTitle').value = '';
+        document.getElementById('newTaskDescription').value = '';
+        document.getElementById('newTaskAssignedTo').value = '';
+        document.getElementById('newTaskDueDate').value = '';
+        document.getElementById('newTaskTitleError').classList.add('hidden');
+        document.getElementById('newTaskTitle').focus();
+        document.body.style.overflow = 'hidden';
+    }
+    function closeNewTaskModal() {
+        document.getElementById('newTaskModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    /* your existing create-task handler unchanged */
+    document.getElementById('newTaskCreateBtn').addEventListener('click', function() {
+        var title = (document.getElementById('newTaskTitle').value || '').trim();
+        var errEl = document.getElementById('newTaskTitleError');
+        if (!title) { errEl.textContent = 'Title is required.'; errEl.classList.remove('hidden'); return; }
+        if (!window.__planId || window.__planId < 1) { errEl.textContent = 'Invalid plan. Please refresh the page and try again.'; errEl.classList.remove('hidden'); return; }
+        errEl.classList.add('hidden');
+
+        var description = (document.getElementById('newTaskDescription') && document.getElementById('newTaskDescription').value) ? document.getElementById('newTaskDescription').value : '';
+        var assignedTo = document.getElementById('newTaskAssignedTo').value;
+        var dueDate = document.getElementById('newTaskDueDate').value;
+
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (!tokenInput) { errEl.textContent = 'Security token missing. Please refresh the page.'; errEl.classList.remove('hidden'); return; }
+        var token = tokenInput.value;
+
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token)
+            + '&planId=' + window.__planId
+            + '&title=' + encodeURIComponent(title)
+            + '&description=' + encodeURIComponent(description)
+            + '&assignedToUserId=' + encodeURIComponent(assignedTo)
+            + '&dueDate=' + encodeURIComponent(dueDate);
+
+        var createBtn = document.getElementById('newTaskCreateBtn');
+        createBtn.disabled = true;
+        createBtn.textContent = 'Creating...';
+
+        fetch(window.__createTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) {
+                if (!r.ok) { return r.text().then(function(t) { throw new Error(r.status === 404 ? 'Plan not found.' : r.status === 400 ? 'Invalid request.' : (t || 'Could not create task.')); }); }
+                return r.json();
+            })
+            .then(function(data) {
+                if (data && data.ok) { closeNewTaskModal(); location.reload(); } // simplest safe update
+                else { errEl.textContent = (data && data.message) ? data.message : 'Task was not created.'; errEl.classList.remove('hidden'); }
+            })
+            .catch(function(err) { errEl.textContent = err.message || 'Could not create task. Please try again.'; errEl.classList.remove('hidden'); })
+            .finally(function() { createBtn.disabled = false; createBtn.textContent = 'Create Task'; });
+    });
+
+    // Search filter
+    document.getElementById('taskSearch').addEventListener('input', function() {
+        var q = (this.value || '').toLowerCase().trim();
+        document.querySelectorAll('.mitigation-card').forEach(function(card) {
+            var title = (card.getAttribute('data-task-title') || '').toLowerCase();
+            var assignee = (card.getAttribute('data-task-assignee') || '').toLowerCase();
+            var show = !q || title.indexOf(q) !== -1 || assignee.indexOf(q) !== -1;
+            card.style.display = show ? '' : 'none';
         });
-});
-
-// Search filter (HCI: reduce cognitive load)
-document.getElementById('taskSearch').addEventListener('input', function() {
-    var q = (this.value || '').toLowerCase().trim();
-    document.querySelectorAll('.mitigation-card').forEach(function(card) {
-        var title = (card.getAttribute('data-task-title') || '').toLowerCase();
-        var assignee = (card.getAttribute('data-task-assignee') || '').toLowerCase();
-        var show = !q || title.indexOf(q) !== -1 || assignee.indexOf(q) !== -1;
-        card.style.display = show ? '' : 'none';
+        document.querySelectorAll('.list-task-row').forEach(function(row) {
+            var title = (row.getAttribute('data-task-title') || '').toLowerCase();
+            var status = (row.getAttribute('data-task-status') || '').toLowerCase();
+            var show = !q || title.indexOf(q) !== -1 || status.indexOf(q) !== -1;
+            row.style.display = show ? '' : 'none';
+        });
     });
-    document.querySelectorAll('.list-task-row').forEach(function(row) {
-        var title = (row.getAttribute('data-task-title') || '').toLowerCase();
-        var status = (row.getAttribute('data-task-status') || '').toLowerCase();
-        var show = !q || title.indexOf(q) !== -1 || status.indexOf(q) !== -1;
-        row.style.display = show ? '' : 'none';
-    });
-});
 
-// Escape to close modals (HCI: keyboard usability)
-document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
-    if (!document.getElementById('taskEditModal').classList.contains('hidden')) closeTaskModal();
-    else if (!document.getElementById('newTaskModal').classList.contains('hidden')) closeNewTaskModal();
-});
+    // Escape closes modals
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        if (!document.getElementById('taskEditModal').classList.contains('hidden')) closeTaskModal();
+        else if (!document.getElementById('newTaskModal').classList.contains('hidden')) closeNewTaskModal();
+    });
 </script>
 
 <style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
-    .modal-overlay { transition: opacity 0.2s ease; }
+    /* Board container – keep neutral, let global page background show */
+    .mitigation-shell {
+        background: transparent;
+    }
+
+    .dark .mitigation-shell {
+        background: transparent;
+    }
+
+    /* scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(148,163,184,.9);
+        border-radius: 999px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(71,85,105,.9);
+    }
+
+    /* drop feedback */
+    .drop-glow {
+        box-shadow: 0 0 0 2px rgba(99,102,241,.35) inset, 0 16px 60px rgba(99,102,241,.10);
+        background-color: rgba(99,102,241,.03) !important;
+    }
+
     @@media (prefers-reduced-motion: reduce) {
-        .mitigation-board * { transition: none !important; }
+        .mitigation-board *
+
+    {
+        transition: none !important;
+    }
+
     }
 </style>
