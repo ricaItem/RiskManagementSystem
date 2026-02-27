@@ -7,12 +7,12 @@ namespace WEB_Sentro.Services
 {
     public class RiskEvaluationService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ITenantDbFactory _tenantDbFactory;
         private readonly RiskService _riskService;
 
-        public RiskEvaluationService(ApplicationDbContext db, RiskService riskService)
+        public RiskEvaluationService(ITenantDbFactory tenantDbFactory, RiskService riskService)
         {
-            _db = db;
+            _tenantDbFactory = tenantDbFactory;
             _riskService = riskService;
         }
 
@@ -29,13 +29,18 @@ namespace WEB_Sentro.Services
 
         public async Task<RiskAssessmentViewModel?> GetAssessmentViewModelAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.AsNoTracking().Where(r => r.RiskId == riskId);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return null;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.AsNoTracking().Where(r => r.RiskId == riskId);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.Select(r => new { r.RiskId, r.Title }).FirstOrDefaultAsync(ct);
             if (risk == null) return null;
 
-            var latest = await _db.RiskEvaluations.AsNoTracking()
+            var latest = await db.RiskEvaluations.AsNoTracking()
                 .Where(e => e.RiskId == riskId)
                 .OrderByDescending(e => e.EvaluatedAt)
                 .Select(e => new { e.LikelihoodScore, e.ImpactScore })
@@ -52,7 +57,9 @@ namespace WEB_Sentro.Services
 
         public async Task<bool> SaveAssessmentAsync(int riskId, int orgId, string userId, int likelihood, int impact, string? remarks, string? ipAddress, bool superAdmin, CancellationToken ct = default)
         {
-            var risk = await _db.Risks.FirstOrDefaultAsync(r => r.RiskId == riskId && (superAdmin || r.OrgId == orgId), ct);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var risk = await db.Risks.FirstOrDefaultAsync(r => r.RiskId == riskId && (superAdmin || r.OrgId == orgId), ct);
             if (risk == null) return false;
 
             likelihood = Math.Clamp(likelihood, 1, 5);
@@ -60,7 +67,7 @@ namespace WEB_Sentro.Services
             var riskScore = ComputeRiskScore(likelihood, impact);
             var riskLevel = RiskLevelFromScore(riskScore);
 
-            var latest = await _db.RiskEvaluations
+            var latest = await db.RiskEvaluations
                 .Where(e => e.RiskId == riskId)
                 .OrderByDescending(e => e.EvaluatedAt)
                 .FirstOrDefaultAsync(ct);
@@ -77,7 +84,7 @@ namespace WEB_Sentro.Services
             }
             else
             {
-                _db.RiskEvaluations.Add(new RiskEvaluation
+                db.RiskEvaluations.Add(new RiskEvaluation
                 {
                     RiskId = riskId,
                     EvaluatedByUserId = userId,
@@ -95,8 +102,8 @@ namespace WEB_Sentro.Services
             risk.UpdatedAt = DateTime.UtcNow;
             risk.Status = riskScore >= 15 ? "MitigationRequired" : "Monitoring";
 
-            _riskService.AddAuditLog(risk.OrgId, userId, "Risk", riskId, "RiskAssessmentSaved", $"Risk evaluated: {riskLevel} (score {riskScore})", ipAddress);
-            await _db.SaveChangesAsync(ct);
+            _riskService.AddAuditLog(db, risk.OrgId, userId, "Risk", riskId, "RiskAssessmentSaved", $"Risk evaluated: {riskLevel} (score {riskScore})", ipAddress);
+            await db.SaveChangesAsync(ct);
             return true;
         }
     }

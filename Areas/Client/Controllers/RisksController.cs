@@ -14,13 +14,15 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly RiskService _riskService;
         private readonly RiskEvaluationService _evaluationService;
         private readonly RiskAttachmentService _attachmentService;
+        private readonly ITenantDbFactory _tenantDbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, UserManager<ApplicationUser> userManager)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
             _attachmentService = attachmentService;
+            _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
         }
 
@@ -89,9 +91,12 @@ namespace Web_Sentro.Areas.Client.Controllers
                 model.Description?.Trim(),
                 status);
 
+            await using (var db = await _tenantDbFactory.CreateAsync(user.OrganizationId))
+            {
             var auditAction = status == "For_Review" ? "RiskCreatedForReview" : "RiskCreatedDraft";
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", risk.RiskId, auditAction, $"Risk created: {model.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", risk.RiskId, auditAction, $"Risk created: {model.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
 
             var attachmentFiles = Request.Form.Files.Where(f => f.Name == "Attachments").ToList();
             if (attachmentFiles.Count > 0)
@@ -143,7 +148,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (status == "MitigationRequired")
             {
                 await _riskService.EnsureMitigationPlanExistsAsync(model.RiskId, orgId, user.Id);
-                await _riskService.SaveChangesAsync();
                 return RedirectToAction("Board", "Mitigation", new { area = "Client", riskId = model.RiskId });
             }
             return RedirectToAction("Identification");
@@ -160,8 +164,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             var submitted = await _riskService.SubmitRiskAsync(RiskId, orgId, user.Id, EmployeeOnly());
             if (!submitted) return NotFound();
 
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", RiskId, "RiskSubmitted", "Risk submitted", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", RiskId, "RiskSubmitted", "Risk submitted", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -208,8 +216,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (risk.Status == "Draft") return Forbid(); // Draft uses HardDelete only
             if (EmployeeOnly() && risk.ReportByUserId != user.Id) return Forbid();
             await _riskService.SoftDeleteAsync(id, orgId, IsSuperAdmin());
-            _riskService.AddAuditLog(risk.OrgId, user.Id, "Risk", id, "RiskSoftDeleted", "Risk moved to trash", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", id, "RiskSoftDeleted", "Risk moved to trash", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -222,8 +234,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             await _riskService.RestoreAsync(id, orgId, IsSuperAdmin());
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskRestored", "Risk restored from trash", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskRestored", "Risk restored from trash", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -242,8 +258,11 @@ namespace Web_Sentro.Areas.Client.Controllers
             await _attachmentService.DeleteAllAttachmentsForRiskAsync(id, orgId);
             var ok = await _riskService.HardDeleteAsync(id, scopeOrgId, user.Id, IsSuperAdmin(), allowOnlyDraft: true);
             if (!ok) return NotFound();
-            _riskService.AddAuditLog(orgId, user.Id, "Risk", id, "RiskHardDeleted", "Risk permanently deleted", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            await using (var db = await _tenantDbFactory.CreateAsync(orgId))
+            {
+                _riskService.AddAuditLog(db, orgId, user.Id, "Risk", id, "RiskHardDeleted", "Risk permanently deleted", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -257,8 +276,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.ReviewRiskAsync(id, orgId, user.Id);
             if (!ok) return NotFound();
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskReviewed", "Status: Submitted → Reviewed", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskReviewed", "Status: Submitted → Reviewed", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -272,8 +295,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.ApproveRiskAsync(id, orgId, user.Id);
             if (!ok) return NotFound();
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskApproved", "Status: Reviewed → Approved", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskApproved", "Status: Reviewed → Approved", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 
@@ -288,8 +315,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.RejectRiskAsync(id, orgId, user.Id, RejectRemarks.Trim());
             if (!ok) return NotFound();
-            _riskService.AddAuditLog(user.OrganizationId, user.Id, "Risk", id, "RiskRejected", $"Status set to Rejected. Remarks: {RejectRemarks.Trim()}", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _riskService.SaveChangesAsync();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskRejected", $"Status set to Rejected. Remarks: {RejectRemarks.Trim()}", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
             return RedirectToAction("Identification");
         }
 

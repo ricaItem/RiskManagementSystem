@@ -14,13 +14,15 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize]
     public class MitigationController : Controller
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ITenantDbFactory _tenantDbFactory;
+        private readonly PlatformDbContext _platformDb;
         private readonly RiskService _riskService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public MitigationController(ApplicationDbContext db, RiskService riskService, UserManager<ApplicationUser> userManager)
+        public MitigationController(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb, RiskService riskService, UserManager<ApplicationUser> userManager)
         {
-            _db = db;
+            _tenantDbFactory = tenantDbFactory;
+            _platformDb = platformDb;
             _riskService = riskService;
             _userManager = userManager;
         }
@@ -34,7 +36,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (user == null) return Challenge();
 
             var orgId = user.OrganizationId;
-            var risks = await _db.Risks
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var risks = await db.Risks
                 .AsNoTracking()
                 .Where(r => r.OrgId == orgId && r.Status == "MitigationRequired" && r.DeletedAt == null)
                 .OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt)
@@ -58,20 +62,21 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (user == null) return Challenge();
 
             var orgId = user.OrganizationId;
-            var risk = await _db.Risks.AsNoTracking().FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var risk = await db.Risks.AsNoTracking().FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId);
             if (risk == null) return NotFound();
 
             await _riskService.EnsureMitigationPlanExistsAsync(riskId, orgId, user.Id);
-            await _riskService.SaveChangesAsync();
 
-            var plan = await _db.MitigationPlans
+            var plan = await db.MitigationPlans
                 .AsNoTracking()
                 .Include(p => p.Risk)
                 .FirstOrDefaultAsync(p => p.RiskId == riskId);
             if (plan == null)
                 return RedirectToAction("Identification", "Risks", new { area = "Client" });
 
-            var tasks = await _db.MitigationTasks
+            var tasks = await db.MitigationTasks
                 .AsNoTracking()
                 .Where(t => t.PlanId == plan.PlanId)
                 .Select(t => new { t.TaskId, t.Title, t.Status, t.DueDate, t.AssignedToUserId, t.ProgressPercent, Priority = plan.Risk.Priority })
@@ -81,7 +86,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var userDisplayNames = new Dictionary<string, string>();
             if (userIds.Count > 0)
             {
-                var users = await _db.Users.AsNoTracking()
+                var users = await _platformDb.Users.AsNoTracking()
                     .Where(u => userIds.Contains(u.Id))
                     .Select(u => new { u.Id, u.FirstName, u.LastName })
                     .ToListAsync();
@@ -101,7 +106,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 ProgressPercent = t.ProgressPercent
             }).ToList();
 
-            var orgUsers = await _db.Users.AsNoTracking()
+            var orgUsers = await _platformDb.Users.AsNoTracking()
                 .Where(u => u.OrganizationId == orgId)
                 .Select(u => new { u.Id, DisplayName = u.FirstName + " " + u.LastName })
                 .ToListAsync();
@@ -123,7 +128,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            var task = await _db.MitigationTasks
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+
+            var task = await db.MitigationTasks
                 .Include(t => t.Plan)
                 .ThenInclude(p => p!.Risk)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
@@ -133,18 +140,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             var previousStatus = task.Status;
             task.Status = newStatus;
             task.UpdatedAt = DateTime.UtcNow;
-            _riskService.AddAuditLog(task.Plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskMoved", $"Status {previousStatus} → {newStatus}", HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _db.SaveChangesAsync();
+            _riskService.AddAuditLog(db, task.Plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskMoved", $"Status {previousStatus} → {newStatus}", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await db.SaveChangesAsync();
 
             var planId = task.PlanId;
-            var allDone = await _db.MitigationTasks.AllAsync(t => t.PlanId == planId && t.Status == "Done");
+            var allDone = await db.MitigationTasks.AllAsync(t => t.PlanId == planId && t.Status == "Done");
             if (allDone)
             {
                 var risk = task.Plan.Risk;
                 risk.Status = "Closed_Controlled";
                 risk.UpdatedAt = DateTime.UtcNow;
-                _riskService.AddAuditLog(risk.OrgId, user.Id, "Risk", risk.RiskId, "RiskClosedControlled", "All mitigation tasks completed", HttpContext.Connection.RemoteIpAddress?.ToString());
-                await _db.SaveChangesAsync();
+                _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", risk.RiskId, "RiskClosedControlled", "All mitigation tasks completed", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await db.SaveChangesAsync();
             }
 
             return Json(new { ok = true });
@@ -156,7 +163,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var task = await _db.MitigationTasks
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+
+            var task = await db.MitigationTasks
                 .AsNoTracking()
                 .Include(t => t.Plan)
                 .ThenInclude(p => p!.Risk)
@@ -185,7 +194,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var task = await _db.MitigationTasks
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+
+            var task = await db.MitigationTasks
                 .Include(t => t.Plan)
                 .ThenInclude(p => p!.Risk)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
@@ -204,7 +215,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             task.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
             task.ProgressPercent = progressPercent.HasValue ? Math.Clamp(progressPercent.Value, 0, 100) : task.ProgressPercent;
             task.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             return Json(new { ok = true });
         }
@@ -216,7 +227,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var plan = await _db.MitigationPlans
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+
+            var plan = await db.MitigationPlans
                 .Include(p => p.Risk)
                 .FirstOrDefaultAsync(p => p.PlanId == planId);
             if (plan == null || plan.Risk.OrgId != user.OrganizationId) return NotFound();
@@ -234,10 +247,10 @@ namespace Web_Sentro.Areas.Client.Controllers
                 ProgressPercent = 0,
                 UpdatedAt = DateTime.UtcNow
             };
-            _db.MitigationTasks.Add(task);
-            await _db.SaveChangesAsync();
-            _riskService.AddAuditLog(plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskCreated", task.Title, HttpContext.Connection.RemoteIpAddress?.ToString());
-            await _db.SaveChangesAsync();
+            db.MitigationTasks.Add(task);
+            await db.SaveChangesAsync();
+            _riskService.AddAuditLog(db, plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskCreated", task.Title, HttpContext.Connection.RemoteIpAddress?.ToString());
+            await db.SaveChangesAsync();
 
             return Json(new { ok = true, taskId = task.TaskId, title = task.Title, status = task.Status, dueDateFormatted = task.DueDate?.ToString("MMM d") ?? "N/A", progressPercent = 0 });
         }

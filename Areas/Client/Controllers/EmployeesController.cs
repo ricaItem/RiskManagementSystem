@@ -11,12 +11,12 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize(Policy = "AdminOrVendor")]
     public class EmployeesController : Controller
     {
-        private readonly ApplicationDbContext _db;
+        private readonly PlatformDbContext _platformDb;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public EmployeesController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public EmployeesController(PlatformDbContext platformDb, UserManager<ApplicationUser> userManager)
         {
-            _db = db;
+            _platformDb = platformDb;
             _userManager = userManager;
         }
 
@@ -33,7 +33,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         private async Task<IQueryable<ApplicationUser>> TenantUsersQueryAsync()
         {
-            var q = _db.Users.AsQueryable();
+            var q = _platformDb.Users.AsQueryable();
 
             if (IsVendor())
                 return q;
@@ -110,6 +110,8 @@ namespace Web_Sentro.Areas.Client.Controllers
             var me = await GetMeAsync();
             if (me == null) return Challenge();
 
+            // NOTE: If SuperAdmin (vendor) creates users, decide the org assignment rule.
+            // For now: keep orgId = 0 for vendor-created users (as your current logic does).
             var orgId = IsVendor() ? 0 : me.OrganizationId;
 
             var user = new ApplicationUser
@@ -124,7 +126,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            var tempPassword = "Temp@12345"; 
+            var tempPassword = "Temp@12345";
             var createRes = await _userManager.CreateAsync(user, tempPassword);
 
             if (!createRes.Succeeded)
@@ -137,7 +139,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!IsVendor())
             {
                 var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {  "Manager", "Employee", "ProcurementOfficer" };
+                { "Manager", "Employee", "ProcurementOfficer" };
 
                 if (!allowed.Contains(role))
                 {
@@ -151,8 +153,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             await _userManager.AddToRoleAsync(user, role);
 
             var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
-            TempData["Alert"] =
-                $"Created employee account for {displayName}. Temporary password: {tempPassword}";
+            TempData["Alert"] = $"Created employee account for {displayName}. Temporary password: {tempPassword}";
             TempData["AlertType"] = "success";
 
             return RedirectToAction(nameof(Index));
@@ -169,7 +170,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
@@ -252,7 +253,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
@@ -263,15 +264,10 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!await CanTouchUserAsync(target))
                 return Forbid();
 
-            if (!string.IsNullOrWhiteSpace(newStatus) &&
-                newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
-            {
-                target.IsActive = false;
-            }
-            else
-            {
-                target.IsActive = true;
-            }
+            target.IsActive = !(
+                !string.IsNullOrWhiteSpace(newStatus) &&
+                newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
+            );
 
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)

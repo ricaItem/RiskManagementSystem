@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,12 +15,13 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize(Policy = "AdminOrVendor")]
     public class ArchiveController : Controller
     {
-        private readonly ApplicationDbContext _db;
+        // ✅ Identity is now in PlatformDbContext (shared db)
+        private readonly PlatformDbContext _platformDb;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public ArchiveController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public ArchiveController(PlatformDbContext platformDb, UserManager<ApplicationUser> userManager)
         {
-            _db = db;
+            _platformDb = platformDb;
             _userManager = userManager;
         }
 
@@ -32,23 +33,34 @@ namespace Web_Sentro.Areas.Client.Controllers
         private async Task<int?> GetMyOrgIdAsync()
         {
             var me = await GetMeAsync();
+            // If OrganizationId is non-nullable int in your model, this will always be set.
+            // If you later change it to int?, then this correctly returns null for SuperAdmin.
             return me?.OrganizationId;
         }
 
+        /// <summary>
+        /// Returns the queryable users visible to the current user:
+        /// - Vendor/SuperAdmin: all users
+        /// - Org users: only users in their organization
+        /// </summary>
         private async Task<IQueryable<ApplicationUser>> TenantUsersQueryAsync()
         {
-            var q = _db.Users.AsQueryable();
+            var q = _platformDb.Users.AsQueryable();
+
             if (IsVendor())
                 return q;
+
             var orgId = await GetMyOrgIdAsync();
             if (orgId == null)
                 return q.Where(u => false);
+
             return q.Where(u => u.OrganizationId == orgId.Value);
         }
 
         private async Task<bool> CanTouchUserAsync(ApplicationUser target)
         {
             if (IsVendor()) return true;
+
             var orgId = await GetMyOrgIdAsync();
             return orgId != null && target.OrganizationId == orgId.Value;
         }
@@ -56,6 +68,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         public async Task<IActionResult> Index()
         {
             var q = await TenantUsersQueryAsync();
+
             var users = await q.AsNoTracking()
                 .Where(u => !u.IsActive)
                 .OrderBy(u => u.LastName)
@@ -63,9 +76,11 @@ namespace Web_Sentro.Areas.Client.Controllers
                 .ToListAsync();
 
             var data = new List<ArchivedEmployeeVm>();
+
             foreach (var u in users)
             {
                 var roles = await _userManager.GetRolesAsync(u);
+
                 data.Add(new ArchivedEmployeeVm
                 {
                     UserId = u.Id,
@@ -91,7 +106,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
                 TempData["Alert"] = "Employee not found.";
@@ -103,6 +118,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return Forbid();
 
             target.IsActive = true;
+
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
@@ -120,6 +136,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult PermanentDelete(int id)
         {
+            // TODO: Implement permanent delete if you add a "hard delete user" policy/flow.
             return RedirectToAction(nameof(Index));
         }
     }

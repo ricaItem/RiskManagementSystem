@@ -1,30 +1,30 @@
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data.Entities;
-using WEB_Sentro.Models.Identity;
 
 namespace WEB_Sentro.Data
 {
     /// <summary>
-    /// Legacy combined context (Identity + tenant). Kept temporarily during split.
+    /// Tenant database context: operational tenant data only.
     /// </summary>
-    public class ApplicationDbContext : DbContext
+    public class TenantDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        public TenantDbContext(DbContextOptions<TenantDbContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Risk> Risks { get; set; }
-        public DbSet<RiskEvaluation> RiskEvaluations { get; set; }
-        public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<Attachment> Attachments { get; set; }
-        public DbSet<MitigationPlan> MitigationPlans { get; set; }
-        public DbSet<MitigationTask> MitigationTasks { get; set; }
+        public DbSet<Risk> Risks { get; set; } = null!;
+        public DbSet<RiskEvaluation> RiskEvaluations { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+        public DbSet<Attachment> Attachments { get; set; } = null!;
+        public DbSet<MitigationPlan> MitigationPlans { get; set; } = null!;
+        public DbSet<MitigationTask> MitigationTasks { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
+            // Copied from ApplicationDbContext.OnModelCreating for tenant entities
             builder.Entity<Risk>(e =>
             {
                 e.ToTable("Risks");

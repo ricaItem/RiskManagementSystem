@@ -1,5 +1,3 @@
-
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
@@ -9,11 +7,26 @@ using WEB_Sentro.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// --------------------
+// Platform DB (shared)
+// --------------------
+var platformConnectionString = builder.Configuration.GetConnectionString("PlatformDb")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'PlatformDb' (or legacy 'DefaultConnection') not found.");
 
+builder.Services.AddDbContext<PlatformDbContext>(options =>
+    options.UseSqlServer(platformConnectionString, sql =>
+    {
+        sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null);
+    }));
+
+//ONLY keep this if you still have controllers/services injecting ApplicationDbContext.
+// If you already migrated all controllers off it, REMOVE this registration.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString, sql =>
+    options.UseSqlServer(platformConnectionString, sql =>
     {
         sql.EnableRetryOnFailure(
             maxRetryCount: 5,
@@ -23,12 +36,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+// Identity uses PlatformDbContext
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
 })
 .AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddEntityFrameworkStores<PlatformDbContext>()
 .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -54,26 +68,47 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
 });
 
-builder.Services.AddScoped<WEB_Sentro.Services.RiskService>();
-builder.Services.AddScoped<WEB_Sentro.Services.RiskAttachmentService>();
-builder.Services.AddScoped<WEB_Sentro.Services.RiskEvaluationService>();
+// --------------------
+// Tenant DB resolution
+// --------------------
+builder.Services.AddScoped<ITenantConnectionProvider, ConfigTenantConnectionProvider>();
+builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
+
+// App services
+builder.Services.AddScoped<RiskService>();
+builder.Services.AddScoped<RiskAttachmentService>();
+builder.Services.AddScoped<RiskEvaluationService>();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
+// --------------------
+// Auto migrate (Platform)
+// --------------------
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
-
     var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
 
     if (autoMigrate)
     {
-        var db = services.GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
+        // Platform DB migration (Identity + platform tables)
+        var platformDb = services.GetRequiredService<PlatformDbContext>();
+        await platformDb.Database.MigrateAsync();
+
         await IdentitySeeder.SeedAsync(services, app.Configuration);
+
+        // OPTIONAL: tenant migration bootstrap (OFF by default)
+        // This only migrates one tenant (ex: orgId=1) if enabled.
+        var autoMigrateTenant = app.Configuration.GetValue<bool>("Database:AutoMigrateTenantOrg1");
+        if (autoMigrateTenant)
+        {
+            var tenantFactory = services.GetRequiredService<ITenantDbFactory>();
+            await using var tenantDb = await tenantFactory.CreateAsync(1);
+            await tenantDb.Database.MigrateAsync();
+        }
     }
 }
 

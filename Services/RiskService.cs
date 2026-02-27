@@ -7,11 +7,13 @@ namespace WEB_Sentro.Services
 {
     public class RiskService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ITenantDbFactory _tenantDbFactory;
+        private readonly PlatformDbContext _platformDb;
 
-        public RiskService(ApplicationDbContext db)
+        public RiskService(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb)
         {
-            _db = db;
+            _tenantDbFactory = tenantDbFactory;
+            _platformDb = platformDb;
         }
 
         public async Task<List<RiskIdentificationViewModel>> GetRisksForListAsync(
@@ -24,7 +26,12 @@ namespace WEB_Sentro.Services
             bool showDeleted = false,
             CancellationToken ct = default)
         {
-            var q = _db.Risks.AsNoTracking().AsQueryable();
+            if (!orgId.HasValue)
+                return new List<RiskIdentificationViewModel>();
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.AsNoTracking().AsQueryable();
             if (showDeleted)
                 q = q.IgnoreQueryFilters();
 
@@ -67,14 +74,14 @@ namespace WEB_Sentro.Services
                 .ToListAsync(ct);
 
             var riskIds = list.Select(x => x.RiskId).ToList();
-            var attachments = await _db.Attachments.AsNoTracking()
+            var attachments = await db.Attachments.AsNoTracking()
                 .Where(a => riskIds.Contains(a.RiskId))
                 .Select(a => new { a.RiskId, a.FileRef })
                 .ToListAsync(ct);
             var attByRisk = attachments.Where(a => a.FileRef != null).GroupBy(a => a.RiskId).ToDictionary(g => g.Key, g => g.Select(x => x.FileRef!).ToList());
 
             var userIds = list.Select(x => x.ReportByUserId).Distinct().ToList();
-            var users = await _db.Users
+            var users = await _platformDb.Users
                 .AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.FirstName, u.LastName })
@@ -104,7 +111,12 @@ namespace WEB_Sentro.Services
 
         public async Task<Risk?> GetByIdForOrgAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.AsQueryable();
+            if (!orgId.HasValue)
+                return null;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.AsQueryable();
             if (orgId.HasValue && !superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             return await q.Include(r => r.Evaluations.OrderByDescending(e => e.EvaluatedAt).Take(1))
@@ -113,6 +125,8 @@ namespace WEB_Sentro.Services
 
         public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", CancellationToken ct = default)
         {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
             var risk = new Risk
             {
                 OrgId = orgId,
@@ -126,37 +140,51 @@ namespace WEB_Sentro.Services
                 Priority = "Unassessed",
                 CreatedAt = DateTime.UtcNow
             };
-            _db.Risks.Add(risk);
-            await _db.SaveChangesAsync(ct);
+            db.Risks.Add(risk);
+            await db.SaveChangesAsync(ct);
             return risk;
         }
 
         public async Task<bool> SubmitRiskAsync(int riskId, int? orgId, string userId, bool employeeOnly, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue)
-                q = q.Where(r => r.OrgId == orgId.Value);
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Draft") return false;
             if (employeeOnly && risk.ReportByUserId != userId) return false;
             risk.Status = "For_Review";
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         public async Task<int> GetActiveRisksCountAsync(int? orgId, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.AsNoTracking().Where(r => r.DeletedAt == null);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return 0;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.AsNoTracking().Where(r => r.DeletedAt == null);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             return await q.CountAsync(ct);
         }
 
         public async Task<List<RiskIdentificationViewModel>> GetHighPriorityRisksAsync(int? orgId, bool superAdmin, int top = 10, CancellationToken ct = default)
         {
-            var q = _db.Risks.AsNoTracking().Where(r => r.DeletedAt == null);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return new List<RiskIdentificationViewModel>();
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.AsNoTracking().Where(r => r.DeletedAt == null);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
 
             var list = await q
@@ -167,7 +195,7 @@ namespace WEB_Sentro.Services
                 .ToListAsync(ct);
 
             var userIds = list.Select(x => x.ReportByUserId).Distinct().ToList();
-            var users = await _db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
+            var users = await _platformDb.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.FirstName, u.LastName }).ToListAsync(ct);
             var userNames = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
 
@@ -184,8 +212,13 @@ namespace WEB_Sentro.Services
 
         public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null) return;
@@ -195,87 +228,119 @@ namespace WEB_Sentro.Services
             if (priority != null) risk.Priority = priority;
             if (projectSite != null) risk.ProjectSite = projectSite;
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
 
         public async Task SoftDeleteAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null) return;
             risk.DeletedAt = DateTime.UtcNow;
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
 
         public async Task RestoreAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
         {
-            var q = _db.Risks.IgnoreQueryFilters().Where(r => r.RiskId == riskId);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.IgnoreQueryFilters().Where(r => r.RiskId == riskId);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null) return;
             risk.DeletedAt = null;
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
 
         public async Task<bool> HardDeleteAsync(int riskId, int? orgId, string userId, bool superAdmin, bool allowOnlyDraft, CancellationToken ct = default)
         {
-            var q = _db.Risks.IgnoreQueryFilters().Where(r => r.RiskId == riskId);
-            if (orgId.HasValue && !superAdmin)
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.IgnoreQueryFilters().Where(r => r.RiskId == riskId);
+            if (!superAdmin)
                 q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.Include(r => r.Evaluations).FirstOrDefaultAsync(ct);
             if (risk == null) return false;
             if (allowOnlyDraft && risk.Status != "Draft") return false;
-            _db.RiskEvaluations.RemoveRange(risk.Evaluations);
-            _db.Risks.Remove(risk);
-            await _db.SaveChangesAsync(ct);
+            db.RiskEvaluations.RemoveRange(risk.Evaluations);
+            db.Risks.Remove(risk);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         public async Task<bool> ReviewRiskAsync(int riskId, int? orgId, string userId, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Submitted") return false;
             risk.Status = "Reviewed";
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         public async Task<bool> ApproveRiskAsync(int riskId, int? orgId, string userId, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Reviewed") return false;
             risk.Status = "Approved";
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         public async Task<bool> RejectRiskAsync(int riskId, int? orgId, string userId, string? remarks, CancellationToken ct = default)
         {
-            var q = _db.Risks.Where(r => r.RiskId == riskId);
-            if (orgId.HasValue) q = q.Where(r => r.OrgId == orgId.Value);
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null) return false;
             if (risk.Status != "For_Review" && risk.Status != "Submitted" && risk.Status != "Reviewed") return false;
             risk.Status = "Rejected";
             risk.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         public async Task EnsureMitigationPlanExistsAsync(int riskId, int orgId, string userId, CancellationToken ct = default)
         {
-            var risk = await _db.Risks
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var risk = await db.Risks
                 .Include(r => r.MitigationPlan)
                 .FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId, ct);
             if (risk == null) return;
@@ -290,18 +355,18 @@ namespace WEB_Sentro.Services
                     Status = "Active",
                     CreatedAt = DateTime.UtcNow
                 };
-                _db.MitigationPlans.Add(plan);
-                await _db.SaveChangesAsync(ct);
+                db.MitigationPlans.Add(plan);
+                await db.SaveChangesAsync(ct);
             }
 
-            var hasTasks = await _db.MitigationTasks.AnyAsync(t => t.PlanId == plan.PlanId, ct);
+            var hasTasks = await db.MitigationTasks.AnyAsync(t => t.PlanId == plan.PlanId, ct);
             if (hasTasks) return;
 
             var titles = GetDefaultTaskTitlesForRisk(risk.Category, risk.SourceType);
             var now = DateTime.UtcNow;
             foreach (var title in titles)
             {
-                _db.MitigationTasks.Add(new MitigationTask
+                db.MitigationTasks.Add(new MitigationTask
                 {
                     PlanId = plan.PlanId,
                     Title = title,
@@ -310,7 +375,7 @@ namespace WEB_Sentro.Services
                     UpdatedAt = now
                 });
             }
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
 
         private static string[] GetDefaultTaskTitlesForRisk(string? category, string? sourceType)
@@ -324,9 +389,9 @@ namespace WEB_Sentro.Services
             return new[] { "Investigate the risk", "Assign owner and due date", "Implement control measures", "Verify controls are effective" };
         }
 
-        public void AddAuditLog(int orgId, string userId, string entityType, int entityId, string actionType, string? message, string? ipAddress)
+        public void AddAuditLog(TenantDbContext db, int orgId, string userId, string entityType, int entityId, string actionType, string? message, string? ipAddress)
         {
-            _db.AuditLogs.Add(new AuditLog
+            db.AuditLogs.Add(new AuditLog
             {
                 OrgId = orgId,
                 UserId = userId,
@@ -340,6 +405,6 @@ namespace WEB_Sentro.Services
             });
         }
 
-        public async Task SaveChangesAsync(CancellationToken ct = default) => await _db.SaveChangesAsync(ct);
+        public async Task SaveChangesAsync(TenantDbContext db, CancellationToken ct = default) => await db.SaveChangesAsync(ct);
     }
 }

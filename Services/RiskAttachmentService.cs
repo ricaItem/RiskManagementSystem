@@ -11,13 +11,13 @@ namespace WEB_Sentro.Services
         private const int MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
         private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
 
-        private readonly ApplicationDbContext _db;
+        private readonly ITenantDbFactory _tenantDbFactory;
         private readonly IWebHostEnvironment _env;
         private readonly RiskService _riskService;
 
-        public RiskAttachmentService(ApplicationDbContext db, IWebHostEnvironment env, RiskService riskService)
+        public RiskAttachmentService(ITenantDbFactory tenantDbFactory, IWebHostEnvironment env, RiskService riskService)
         {
-            _db = db;
+            _tenantDbFactory = tenantDbFactory;
             _env = env;
             _riskService = riskService;
         }
@@ -30,7 +30,9 @@ namespace WEB_Sentro.Services
 
         public async Task<(bool Ok, string? Error)> SaveAttachmentsAsync(int riskId, int orgId, string userId, IEnumerable<IFormFile>? files, string? ipAddress, CancellationToken ct = default)
         {
-            var risk = await _db.Risks.AsNoTracking().FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId, ct);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var risk = await db.Risks.AsNoTracking().FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId, ct);
             if (risk == null) return (false, "Risk not found");
 
             var fileList = files?.Where(f => f != null && f.Length > 0).ToList() ?? new List<IFormFile>();
@@ -40,7 +42,7 @@ namespace WEB_Sentro.Services
             var uploadDir = Path.Combine(_env.WebRootPath ?? _env.ContentRootPath, "uploads", "risks", orgId.ToString(), riskId.ToString());
             Directory.CreateDirectory(uploadDir);
 
-            var existingCount = await _db.Attachments.CountAsync(a => a.RiskId == riskId, ct);
+            var existingCount = await db.Attachments.CountAsync(a => a.RiskId == riskId, ct);
             if (existingCount + fileList.Count > MaxFiles) return (false, $"Maximum {MaxFiles} files per risk.");
 
             foreach (var file in fileList)
@@ -57,7 +59,7 @@ namespace WEB_Sentro.Services
                 using (var stream = new FileStream(fullPath, FileMode.Create))
                     await file.CopyToAsync(stream, ct);
 
-                _db.Attachments.Add(new Attachment
+                db.Attachments.Add(new Attachment
                 {
                     RiskId = riskId,
                     OrgId = orgId,
@@ -66,18 +68,22 @@ namespace WEB_Sentro.Services
                     FileRef = "/" + relativePath,
                     UploadedAt = DateTime.UtcNow
                 });
-                _riskService.AddAuditLog(orgId, userId, "Attachment", riskId, "AttachmentUploaded", $"Uploaded {file.FileName}", ipAddress);
+                _riskService.AddAuditLog(db, orgId, userId, "Attachment", riskId, "AttachmentUploaded", $"Uploaded {file.FileName}", ipAddress);
             }
 
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             return (true, null);
         }
 
         public async Task<bool> DeleteAttachmentAsync(int attachmentId, int? orgId, string userId, bool isAdmin, CancellationToken ct = default)
         {
-            var q = _db.Attachments.Include(a => a.Risk).Where(a => a.AttachmentId == attachmentId);
-            if (orgId.HasValue)
-                q = q.Where(a => a.OrgId == orgId.Value);
+            if (!orgId.HasValue)
+                return false;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            var q = db.Attachments.Include(a => a.Risk).Where(a => a.AttachmentId == attachmentId);
+            q = q.Where(a => a.OrgId == orgId.Value);
             var att = await q.FirstOrDefaultAsync(ct);
             if (att == null) return false;
             if (!isAdmin && att.UploadedByUserId != userId) return false;
@@ -86,16 +92,18 @@ namespace WEB_Sentro.Services
             if (System.IO.File.Exists(fullPath))
                 try { System.IO.File.Delete(fullPath); } catch { }
 
-            _db.Attachments.Remove(att);
-            _riskService.AddAuditLog(att.OrgId, userId, "Attachment", att.AttachmentId, "AttachmentDeleted", $"Deleted {att.FileName}", null);
-            await _db.SaveChangesAsync(ct);
+            db.Attachments.Remove(att);
+            _riskService.AddAuditLog(db, att.OrgId, userId, "Attachment", att.AttachmentId, "AttachmentDeleted", $"Deleted {att.FileName}", null);
+            await db.SaveChangesAsync(ct);
             return true;
         }
 
         /// <summary>Remove all attachments for a risk: delete files from disk and remove DB rows. Call before HardDelete risk.</summary>
         public async Task DeleteAllAttachmentsForRiskAsync(int riskId, int orgId, CancellationToken ct = default)
         {
-            var list = await _db.Attachments.Where(a => a.RiskId == riskId && a.OrgId == orgId).ToListAsync(ct);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var list = await db.Attachments.Where(a => a.RiskId == riskId && a.OrgId == orgId).ToListAsync(ct);
             var root = _env.WebRootPath ?? _env.ContentRootPath;
             foreach (var att in list)
             {
@@ -105,12 +113,12 @@ namespace WEB_Sentro.Services
                     if (System.IO.File.Exists(fullPath))
                         try { System.IO.File.Delete(fullPath); } catch { }
                 }
-                _db.Attachments.Remove(att);
+                db.Attachments.Remove(att);
             }
             var dir = Path.Combine(root, "uploads", "risks", orgId.ToString(), riskId.ToString());
             if (Directory.Exists(dir))
                 try { Directory.Delete(dir, true); } catch { }
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
     }
 }
