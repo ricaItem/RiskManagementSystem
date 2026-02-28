@@ -23,8 +23,7 @@ builder.Services.AddDbContext<PlatformDbContext>(options =>
             errorNumbersToAdd: null);
     }));
 
-//ONLY keep this if you still have controllers/services injecting ApplicationDbContext.
-// If you already migrated all controllers off it, REMOVE this registration.
+// Legacy; NOT used for Risk Monitoring (tenant data). Monitoring uses ITenantDbFactory only.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(platformConnectionString, sql =>
     {
@@ -78,6 +77,9 @@ builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
 builder.Services.AddScoped<RiskService>();
 builder.Services.AddScoped<RiskAttachmentService>();
 builder.Services.AddScoped<RiskEvaluationService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
+builder.Services.AddScoped<MonitoringHubService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

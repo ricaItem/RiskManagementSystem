@@ -19,6 +19,8 @@ namespace WEB_Sentro.Data
         public DbSet<Attachment> Attachments { get; set; } = null!;
         public DbSet<MitigationPlan> MitigationPlans { get; set; } = null!;
         public DbSet<MitigationTask> MitigationTasks { get; set; } = null!;
+        public DbSet<MonitoringSite> MonitoringSites { get; set; } = null!;
+        public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -98,6 +100,26 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Status).HasMaxLength(20);
                 e.HasIndex(x => x.PlanId);
                 e.HasOne(x => x.Plan).WithMany(p => p.Tasks).HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<MonitoringSite>(e =>
+            {
+                e.ToTable("MonitoringSites");
+                e.HasKey(x => x.SiteId);
+                e.Property(x => x.Name).HasMaxLength(100);
+                e.HasIndex(x => x.OrgId);
+            });
+
+            builder.Entity<MonitoringAlert>(e =>
+            {
+                e.ToTable("MonitoringAlerts");
+                e.HasKey(x => x.AlertId);
+                e.Property(x => x.RuleCode).HasMaxLength(50);
+                e.Property(x => x.RuleName).HasMaxLength(100);
+                e.Property(x => x.MeasuredValues).HasMaxLength(500);
+                e.Property(x => x.Severity).HasMaxLength(20);
+                e.HasIndex(x => new { x.OrgId, x.SiteId });
+                e.HasIndex(x => x.TriggeredAt);
             });
         }
     }

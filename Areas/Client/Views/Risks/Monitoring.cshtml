@@ -1,6 +1,8 @@
 @model Web_Sentro.Areas.Client.Models.RiskMonitoringViewModel
 @{
     Layout = "_LayoutClient";
+    var criticalCount = Model.HighPriorityRisks.Count(r => r.Priority == "Critical");
+    var pendingCount = Model.HighPriorityRisks.Count(r => r.Priority != "Critical");
 }
 
 <div class="animate-in fade-in min-h-screen space-y-8 duration-1000">
@@ -12,51 +14,50 @@
             <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Real-Time Site Intelligence & API Integration</p>
         </div>
     </div>
+
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-800 p-6 shadow-card dark:border-slate-700 dark:bg-slate-900 relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-4">
-            <span class="flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        <div class="absolute top-0 right-0 p-4 flex items-center gap-3">
+            @if (Model.LastSyncUtc.HasValue)
+            {
+                <span class="text-[10px] font-bold text-slate-400">Last sync: @Model.LastSyncUtc.Value.ToLocalTime().ToString("g")</span>
+            }
+            <span class="flex items-center gap-1.5">
+                <span class="flex h-3 w-3 @(Model.ApiHealthOk ? "bg-emerald-500" : "bg-amber-500") rounded-full @(Model.ApiHealthOk ? "" : "animate-pulse")"></span>
+                <span class="text-[10px] font-black uppercase text-slate-400">@(Model.ApiHealthOk ? "API OK" : "API limited")</span>
             </span>
         </div>
-        <div class="relative z-10">
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">@Model.ProjectName</p>
-            <p class="text-2xl font-black text-white">@Model.Temperature°C</p>
-        </div>
-
-        <div class="relative z-10 flex items-center gap-6 bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-            <div class="text-right">
-                <p class="text-[10px] font-black text-slate-500 uppercase">@Model.ProjectName</p>
-                <p class="text-xl font-black text-white">@Model.Temperature°C</p>
-            </div>
-            <div class="h-10 w-px bg-slate-700"></div>
+        <div class="relative z-10 flex flex-wrap items-center gap-4">
             <div>
-                <p class="text-[10px] font-black text-rose-500 uppercase animate-pulse">@Model.WeatherCondition</p>
-                <p class="text-xs font-bold text-slate-300">Wind: @Model.WindSpeed km/h</p>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">Site</label>
+                <form method="get" action="@Url.Action("Monitoring", "Risks", new { area = "Client" })" id="site-form" class="inline">
+                    <select name="siteId" id="monitoring-site-select" class="rounded-xl border border-slate-600 bg-slate-700 text-white text-sm font-bold px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="this.form.submit()">
+                        @foreach (var s in Model.Sites)
+                        {
+                            <option value="@s.SiteId" selected="@(s.SiteId == Model.SelectedSiteId)">@s.Name</option>
+                        }
+                    </select>
+                </form>
+            </div>
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">@Model.ProjectName</p>
+                <p class="text-2xl font-black text-white">@Model.Temperature.ToString("F1")°C</p>
+            </div>
+            <div class="flex items-center gap-6 bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                <div>
+                    <p class="text-[10px] font-black text-rose-500 uppercase">@Model.WeatherCondition</p>
+                    <p class="text-xs font-bold text-slate-300">Wind: @Model.WindSpeed.ToString("F1") km/h</p>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-[#fcfcfc] overflow-hidden shadow-card dark:border-slate-700 dark:bg-slate-800/90 h-[500px] relative">
-            <div class="absolute inset-0 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
-                <img src="https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/@Model.Longitude,@Model.Latitude,15,0/1200x800?access_token=YOUR_TOKEN" class="w-full h-full object-cover" alt="Map">
-            </div>
-
+            <div id="monitoring-map" class="w-full h-full" data-lat="@Model.Latitude" data-lon="@Model.Longitude"></div>
             <div class="absolute top-4 left-4 flex flex-col gap-2">
                 <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] px-4 py-2 shadow-card dark:border-slate-700 dark:bg-slate-800/90">
                     <p class="text-[10px] font-black uppercase text-slate-500">Coordinates</p>
-                    <p class="text-xs font-mono font-bold">@Model.Latitude, @Model.Longitude</p>
-                </div>
-            </div>
-
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div class="relative flex items-center justify-center">
-                    <div class="absolute h-20 w-20 rounded-full bg-rose-500/20 animate-ping"></div>
-                    <div class="h-6 w-6 rounded-full bg-rose-600 border-4 border-white dark:border-slate-900 shadow-2xl relative z-10"></div>
-                    <div class="absolute bottom-8 bg-slate-900 text-white text-[10px] font-black px-3 py-1 rounded-lg whitespace-nowrap shadow-xl border border-slate-700">
-                        CRITICAL RISK: CRANE ZONE
-                    </div>
+                    <p class="text-xs font-mono font-bold">@Model.Latitude.ToString("F4"), @Model.Longitude.ToString("F4")</p>
                 </div>
             </div>
         </div>
@@ -69,40 +70,76 @@
                     </svg>
                     System Alerts
                 </h3>
-
                 <div class="space-y-4">
-                    <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border-l-4 border-rose-500">
-                        <p class="text-xs font-black text-rose-600 dark:text-rose-400">Weather Shutdown Advised</p>
-                        <p class="text-[10px] font-bold text-slate-500 mt-1">Wind speeds exceed 40km/h. Crane operations must be suspended immediately.</p>
-                    </div>
-
-                    <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500">
-                        <p class="text-xs font-black text-amber-600 dark:text-amber-400">Delayed Supplier Impact</p>
-                        <p class="text-[10px] font-bold text-slate-500 mt-1">Traffic data suggests Steel Girder delivery is 4 hours behind schedule.</p>
-                    </div>
+                    @if (Model.SystemAlerts.Any())
+                    {
+                        @foreach (var a in Model.SystemAlerts)
+                        {
+                            <div class="p-4 rounded-2xl @(a.Severity == "Critical" ? "bg-rose-50 dark:bg-rose-500/10 border-l-4 border-rose-500" : "bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500")">
+                                <p class="text-xs font-black @(a.Severity == "Critical" ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400")">@a.RuleName</p>
+                                <p class="text-[10px] font-bold text-slate-500 mt-1">@a.MeasuredValues</p>
+                                <p class="text-[10px] text-slate-400 mt-1">@a.TriggeredAt.ToLocalTime().ToString("g") · @a.Severity</p>
+                                @if (a.RiskId.HasValue)
+                                {
+                                    <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = a.RiskId })" class="inline-block mt-2 text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:underline">Open Risk →</a>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-[10px] font-bold text-slate-500">No alerts. Run sync to evaluate rules.</p>
+                    }
                 </div>
             </div>
 
-            <button class="w-full bg-slate-900 hover:bg-black text-white rounded-2xl py-4 text-xs font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 group">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-emerald-500 transition-transform group-hover:rotate-180">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                Sync All API Nodes
-            </button>
+            @if (Model.SelectedSiteId > 0)
+            {
+                <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client" })" id="monitoring-sync-form" class="block">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-black text-white rounded-2xl py-4 text-xs font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 group">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-emerald-500 transition-transform group-hover:rotate-180">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                        Sync API for this site
+                    </button>
+                </form>
+                <div class="flex items-center gap-2 mt-3" id="auto-sync-control">
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Auto sync (every 10 min)</span>
+                    <button type="button" id="auto-sync-off" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 border-2 border-slate-300 dark:border-slate-500">OFF</button>
+                    <button type="button" id="auto-sync-on" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-2 border-transparent hover:border-emerald-500/50">ON</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1 hidden" id="auto-sync-status">Next sync in <span id="auto-sync-countdown">10:00</span></p>
+                @if (ViewData["EnableSimulation"] as bool? == true)
+                {
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-3 mb-2">DEV: Simulate</p>
+                    <div class="flex gap-2">
+                        <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client", siteId = Model.SelectedSiteId, simulate = "wind" })" class="flex-1">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest">Simulate High Wind</button>
+                        </form>
+                        <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client", siteId = Model.SelectedSiteId, simulate = "storm" })" class="flex-1">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest">Simulate Thunderstorm</button>
+                        </form>
+                    </div>
+                }
+            }
         </div>
     </div>
+
     <div class="rounded-xl border border-slate-200 bg-[#fcfcfc] overflow-hidden shadow-card dark:border-slate-700 dark:bg-slate-800/90 mt-6">
         <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
             <div>
                 <h2 class="text-xs font-black tracking-widest text-slate-900 uppercase dark:text-white">Active Risk Feed</h2>
-                <p class="text-[10px] font-bold text-slate-400">Real-time status of identified threats</p>
+                <p class="text-[10px] font-bold text-slate-400">Real-time status · AUTO = from weather rules</p>
             </div>
             <div class="flex gap-2">
-                <span class="px-3 py-1 bg-rose-500/10 text-rose-600 text-[10px] font-black rounded-lg">3 CRITICAL</span>
-                <span class="px-3 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black rounded-lg">5 PENDING</span>
+                <span class="px-3 py-1 bg-rose-500/10 text-rose-600 text-[10px] font-black rounded-lg">@criticalCount CRITICAL</span>
+                <span class="px-3 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black rounded-lg">@pendingCount PENDING</span>
             </div>
         </div>
-
         <div class="divide-y divide-slate-100 dark:divide-slate-800">
             @foreach (var risk in Model.HighPriorityRisks)
             {
@@ -110,7 +147,7 @@
                     <div class="flex items-center gap-4">
                         <div class="relative">
                             <div class="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl">
-                                @(risk.Category == "Operational" ? "🏗️" : "📉")
+                                @(risk.Category?.Contains("Weather") == true ? "⛈️" : risk.Category == "Operational" ? "🏗️" : "📉")
                             </div>
                             @if (risk.Priority == "Critical")
                             {
@@ -120,11 +157,18 @@
                                 </span>
                             }
                         </div>
-
                         <div>
                             <div class="flex items-center gap-2">
                                 <h4 class="text-sm font-medium text-slate-900 dark:text-white">@risk.Title</h4>
                                 <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 font-medium uppercase">@risk.Category</span>
+                                @if (risk.SourceType == "WeatherAPI")
+                                {
+                                    <span class="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-black">AUTO</span>
+                                }
+                                else
+                                {
+                                    <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-medium">MANUAL</span>
+                                }
                             </div>
                             <div class="flex items-center gap-3 mt-1 text-[11px] font-medium text-slate-500">
                                 <span class="flex items-center gap-1">📍 @risk.ProjectSite</span>
@@ -133,34 +177,26 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-8">
                         <div class="text-right hidden md:block">
                             <p class="text-[10px] font-black text-slate-400 uppercase">Last Update</p>
-                            <p class="text-xs font-bold text-slate-700 dark:text-slate-300">2 mins ago</p>
+                            <p class="text-xs font-bold text-slate-700 dark:text-slate-300">@(risk.DateLogged != default ? risk.DateLogged.ToLocalTime().ToString("g") : "—")</p>
                         </div>
-
                         <div class="flex gap-2">
-                            <button class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm" title="View Logs">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-500">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                                </svg>
-                            </button>
-                            <button class="p-2.5 rounded-xl bg-slate-900 text-white hover:bg-indigo-600 transition-all shadow-lg" title="Quick Resolve">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                            </button>
+                            <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = risk.Id })" class="p-2.5 rounded-xl bg-slate-900 text-white hover:bg-indigo-600 transition-all shadow-lg" title="Open Risk">Open Risk</a>
                         </div>
                     </div>
                 </div>
             }
         </div>
-
         <div class="p-4 bg-slate-50 dark:bg-slate-800/30 text-center">
-            <button class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-500 transition-all">
+            <a href="@Url.Action("Identification", "Risks", new { area = "Client" })" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-500 transition-all">
                 View Full Risk Archive ↓
-            </button>
+            </a>
         </div>
     </div>
 </div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="~/js/monitoring.js" asp-append-version="true"></script>

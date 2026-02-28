@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WEB_Sentro.Models.Identity;
@@ -16,14 +17,22 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly RiskAttachmentService _attachmentService;
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly MonitoringHubService _monitoringHub;
+        private readonly IOpenWeatherService _openWeather;
+        private readonly IWebHostEnvironment _env;
+        private readonly IConfiguration _config;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
             _attachmentService = attachmentService;
             _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
+            _monitoringHub = monitoringHub;
+            _openWeather = openWeather;
+            _env = env;
+            _config = config;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -325,28 +334,74 @@ namespace Web_Sentro.Areas.Client.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Monitoring()
+        public async Task<IActionResult> Monitoring(int? siteId = null)
         {
             ViewData["Title"] = "Risk Monitoring Hub";
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return View(new RiskMonitoringViewModel());
+
+            var sites = await _monitoringHub.GetSitesAsync(orgId.Value);
+            var siteList = sites.Select(s => new MonitoringSiteItemViewModel { SiteId = s.SiteId, Name = s.Name, Latitude = s.Latitude, Longitude = s.Longitude }).ToList();
+            var selectedId = siteId ?? siteList.FirstOrDefault()?.SiteId ?? 0;
+            var selectedSite = siteList.FirstOrDefault(s => s.SiteId == selectedId) ?? siteList.FirstOrDefault();
+
+            var temperature = 0.0;
+            var weatherCondition = "—";
+            var windSpeed = 0.0;
+            var apiOk = false;
+            if (selectedSite != null)
+            {
+                var weather = await _openWeather.GetWeatherAsync(selectedSite.Latitude, selectedSite.Longitude);
+                temperature = weather.TempC;
+                weatherCondition = weather.Condition ?? (weather.WeatherId > 0 ? $"Id {weather.WeatherId}" : "—");
+                windSpeed = weather.WindSpeedKmh;
+                apiOk = weather.ApiOk;
+            }
+
+            var systemAlerts = await _monitoringHub.GetRecentAlertsAsync(orgId.Value, selectedId > 0 ? selectedId : null, 20);
+            var lastSync = selectedId > 0 ? await _monitoringHub.GetLastSyncUtcAsync(orgId.Value, selectedId) : null;
+            if (TempData["LastSyncUtc"] is DateTime tdSync) lastSync = tdSync;
+            if (TempData["ApiHealthOk"] is bool tdApi) apiOk = (bool)tdApi;
+
             var activeCount = await _riskService.GetActiveRisksCountAsync(orgId, IsSuperAdmin());
             var highPriority = await _riskService.GetHighPriorityRisksAsync(orgId, IsSuperAdmin(), 10);
 
             var model = new RiskMonitoringViewModel
             {
-                ProjectName = "Sentro Tower - Davao",
-                Latitude = 7.0707,
-                Longitude = 125.6083,
-                Temperature = 31,
-                WeatherCondition = "Thunderstorm Warning",
-                WindSpeed = 45.5,
+                ProjectName = selectedSite?.Name ?? "Select site",
+                Latitude = selectedSite?.Latitude ?? 7.0707,
+                Longitude = selectedSite?.Longitude ?? 125.6083,
+                Temperature = temperature,
+                WeatherCondition = weatherCondition,
+                WindSpeed = windSpeed,
                 ActiveRisksCount = activeCount,
-                HighPriorityRisks = highPriority
+                HighPriorityRisks = highPriority,
+                Sites = siteList,
+                SelectedSiteId = selectedId,
+                SystemAlerts = systemAlerts.Select(a => new MonitoringAlertItemViewModel { AlertId = a.AlertId, RuleName = a.RuleName, MeasuredValues = a.MeasuredValues, Severity = a.Severity, TriggeredAt = a.TriggeredAt, RiskId = a.RiskId }).ToList(),
+                LastSyncUtc = lastSync,
+                ApiHealthOk = apiOk
             };
+            ViewData["EnableSimulation"] = _env.IsDevelopment() || string.Equals(_config["Monitoring:EnableSimulation"], "true", StringComparison.OrdinalIgnoreCase);
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MonitoringSync(int siteId, string? simulate = null)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
+
+            var (lastSync, apiOk) = await _monitoringHub.RunSyncForSiteAsync(orgId.Value, siteId, user.Id, simulate, HttpContext.RequestAborted);
+            if (lastSync.HasValue) TempData["LastSyncUtc"] = lastSync.Value;
+            TempData["ApiHealthOk"] = apiOk;
+            return RedirectToAction(nameof(Monitoring), new { siteId });
         }
     }
 }

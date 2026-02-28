@@ -191,7 +191,7 @@ namespace WEB_Sentro.Services
                 .OrderByDescending(r => r.Priority == "Critical" ? 3 : r.Priority == "High" ? 2 : r.Priority == "Medium" ? 1 : 0)
                 .ThenByDescending(r => r.CreatedAt)
                 .Take(top)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.SourceType, r.CreatedAt })
                 .ToListAsync(ct);
 
             var userIds = list.Select(x => x.ReportByUserId).Distinct().ToList();
@@ -206,8 +206,55 @@ namespace WEB_Sentro.Services
                 Category = r.Category ?? "No Category",
                 Priority = r.Priority ?? "Medium",
                 DetectedBy = userNames.TryGetValue(r.ReportByUserId, out var name) ? name : "Unknown",
-                ProjectSite = r.ProjectSite ?? ""
+                ProjectSite = r.ProjectSite ?? "",
+                SourceType = r.SourceType,
+                DateLogged = r.CreatedAt
             }).ToList();
+        }
+
+        public async Task<bool> HasOpenRiskForSiteRuleAsync(int orgId, int siteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var since = DateTime.UtcNow.AddHours(-withinHours);
+            return await db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId && r.LocationId == siteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
+                    && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.CreatedAt >= since)
+                .AnyAsync(ct);
+        }
+
+        /// <summary>Returns the RiskId of an existing open risk for the same OrgId+SiteId+RuleCode within the last withinHours, or null.</summary>
+        public async Task<int?> GetExistingOpenRiskIdForSiteRuleAsync(int orgId, int siteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var since = DateTime.UtcNow.AddHours(-withinHours);
+            return await db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId && r.LocationId == siteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
+                    && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.CreatedAt >= since)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => (int?)r.RiskId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<Risk?> CreateRiskFromMonitoringAsync(int orgId, int siteId, string ruleCode, string title, string priority, string reportByUserId, string? siteName, string? descriptionWithMeasuredValues, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var risk = new Risk
+            {
+                OrgId = orgId,
+                LocationId = siteId,
+                ReportByUserId = reportByUserId,
+                Title = title,
+                Category = ruleCode,
+                SourceType = "WeatherAPI",
+                ProjectSite = siteName,
+                Description = descriptionWithMeasuredValues ?? $"Auto-created from monitoring rule: {ruleCode}",
+                Status = "Monitoring",
+                Priority = priority,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Risks.Add(risk);
+            await db.SaveChangesAsync(ct);
+            return risk;
         }
 
         public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, bool superAdmin, CancellationToken ct = default)

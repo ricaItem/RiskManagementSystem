@@ -197,6 +197,83 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.ToTable("MitigationTasks", (string)null);
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MonitoringAlert", b =>
+                {
+                    b.Property<int>("AlertId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AlertId"));
+
+                    b.Property<string>("MeasuredValues")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RiskId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RuleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RuleName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TriggeredAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AlertId");
+
+                    b.HasIndex("TriggeredAt");
+
+                    b.HasIndex("OrgId", "SiteId");
+
+                    b.ToTable("MonitoringAlerts", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MonitoringSite", b =>
+                {
+                    b.Property<int>("SiteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SiteId"));
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SiteId");
+
+                    b.HasIndex("OrgId");
+
+                    b.ToTable("MonitoringSites", (string)null);
+                });
+
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Risk", b =>
                 {
                     b.Property<int>("RiskId")
