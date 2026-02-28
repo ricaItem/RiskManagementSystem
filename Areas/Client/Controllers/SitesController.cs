@@ -59,7 +59,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 .OrderBy(s => s.SiteName)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(s => new { s.SiteId, s.SiteCode, s.SiteName, s.Status, s.ProjectManagerUserId, s.City, s.Province })
+                .Select(s => new { s.SiteId, s.SiteCode, s.SiteName, s.Status, s.ProjectManagerUserId, s.City, s.Province, s.Latitude, s.Longitude })
                 .ToListAsync();
 
             var siteIds = sites.Select(x => x.SiteId).ToList();
@@ -87,7 +87,9 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 ManagerName = !string.IsNullOrEmpty(s.ProjectManagerUserId) && managerNames.TryGetValue(s.ProjectManagerUserId, out var mn) ? mn : null,
                 Location = string.Join(", ", new[] { s.City, s.Province }.Where(x => !string.IsNullOrEmpty(x))),
                 ActiveRisks = riskBySite.TryGetValue(s.SiteId, out var r) ? r.Active : 0,
-                CriticalRisks = riskBySite.TryGetValue(s.SiteId, out var r2) ? r2.Critical : 0
+                CriticalRisks = riskBySite.TryGetValue(s.SiteId, out var r2) ? r2.Critical : 0,
+                Latitude = s.Latitude,
+                Longitude = s.Longitude
             }).ToList();
 
             var model = new SiteIndexViewModel
@@ -312,6 +314,8 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public string Location { get; set; } = "";
         public int ActiveRisks { get; set; }
         public int CriticalRisks { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
     }
 
     public class SiteIndexViewModel

@@ -3,7 +3,7 @@
     Layout = "_LayoutClient";
     var totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 1;
 }
-<div class="animate-in fade-in min-h-screen space-y-8 duration-500">
+<div class="animate-in fade-in min-h-screen space-y-4 duration-500">
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Project <span class="text-emerald-500 italic">Sites</span></h1>
@@ -31,129 +31,151 @@
         </form>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead>
-                    <tr class="border-b border-slate-200 bg-slate-50 font-black tracking-tighter text-[10px] text-slate-500 uppercase dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
-                        <th class="px-4 py-3">Code</th>
-                        <th class="px-4 py-3">Name</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3">Manager</th>
-                        <th class="px-4 py-3">Location</th>
-                        <th class="px-4 py-3 text-center">Active Risks</th>
-                        <th class="px-4 py-3 text-center">Critical</th>
-                        <th class="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                    @foreach (var s in Model.Items)
-                    {
-                        var statusCls = s.Status == "Active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                            s.Status == "OnHold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                            s.Status == "Completed" ? "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300" :
-                            "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400";
-                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <td class="px-4 py-3 font-mono font-bold text-slate-900 dark:text-white">@s.SiteCode</td>
-                            <td class="px-4 py-3 font-bold text-slate-900 dark:text-white">@s.SiteName</td>
-                            <td class="px-4 py-3"><span class="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase @statusCls">@s.Status</span></td>
-                            <td class="px-4 py-3 text-slate-600 dark:text-slate-400">@(s.ManagerName ?? "—")</td>
-                            <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[180px] truncate">@(s.Location ?? "—")</td>
-                            <td class="px-4 py-3 text-center font-bold text-slate-700 dark:text-slate-300">@s.ActiveRisks</td>
-                            <td class="px-4 py-3 text-center"><span class="font-bold @(s.CriticalRisks > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-400")">@s.CriticalRisks</span></td>
-                            <td class="px-4 py-3">
-                                <div class="flex justify-end gap-2">
-                                    <a href="@Url.Action("Details", "Sites", new { area = "Client", id = s.SiteId })" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">View</a>
-                                    @if (s.Status != "Archived")
+    @* Split layout: map 9/12, list 3/12; height fills viewport minus header *@
+    <div id="sites-split-container" class="grid grid-cols-1 lg:grid-cols-12 gap-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90 overflow-hidden" style="min-height: calc(100vh - 14rem);">
+        <div class="lg:col-span-9 relative min-h-[320px] flex-shrink-0">
+            <div id="sites-map" class="absolute inset-0 w-full h-full rounded-l-xl"></div>
+        </div>
+        <div class="lg:col-span-3 flex flex-col min-h-0 border-l border-slate-200 dark:border-slate-700">
+            <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Sites</span>
+            </div>
+            <div id="sites-list" class="flex-1 overflow-y-auto custom-scrollbar">
+                @foreach (var s in Model.Items)
+                {
+                    var statusCls = s.Status == "Active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                        s.Status == "OnHold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                        s.Status == "Completed" ? "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300" :
+                        "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400";
+                    var hasCoords = s.Latitude.HasValue && s.Longitude.HasValue;
+                    <div class="sites-list-item border-b border-slate-100 dark:border-slate-700/50 px-3 py-2.5 cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                         role="button"
+                         tabindex="0"
+                         data-site-id="@s.SiteId"
+                         data-lat="@(hasCoords ? s.Latitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                         data-lng="@(hasCoords ? s.Longitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-slate-900 dark:text-white truncate">@s.SiteName</p>
+                                <p class="text-[10px] font-mono text-slate-500 dark:text-slate-400">@s.SiteCode</p>
+                                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <span class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase @statusCls">@s.Status</span>
+                                    @if (!hasCoords)
                                     {
-                                        <a href="@Url.Action("Edit", "Sites", new { area = "Client", id = s.SiteId })" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Edit</a>
-                                        <form action="@Url.Action("Archive", "Sites", new { area = "Client", id = s.SiteId })" method="post" class="inline" onsubmit="return confirm('Archive this site?');">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:border-slate-600 dark:hover:bg-slate-700">Archive</button>
-                                        </form>
+                                        <span class="rounded px-1.5 py-0.5 text-[9px] font-medium bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400">No location</span>
                                     }
                                 </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        @if (Model.Items.Count == 0)
-        {
-            <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No sites found.</p>
-        }
-        @if (totalPages > 1)
-        {
-            <div class="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
-                <p class="text-xs text-slate-500 dark:text-slate-400">Showing @((Model.PageNumber - 1) * Model.PageSize + 1)–@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount</p>
-                <div class="flex gap-2">
-                    @if (Model.PageNumber > 1)
-                    {
-                        <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber - 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold dark:border-slate-600">Previous</a>
-                    }
-                    @if (Model.PageNumber < totalPages)
-                    {
-                        <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber + 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold dark:border-slate-600">Next</a>
-                    }
-                </div>
+                            </div>
+                            <div class="flex gap-1 flex-shrink-0">
+                                <a href="@Url.Action("Details", "Sites", new { area = "Client", id = s.SiteId })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" onclick="event.stopPropagation();">View</a>
+                                @if (s.Status != "Archived")
+                                {
+                                    <a href="@Url.Action("Edit", "Sites", new { area = "Client", id = s.SiteId })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" onclick="event.stopPropagation();">Edit</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (Model.Items.Count == 0)
+                {
+                    <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No sites found.</p>
+                }
             </div>
-        }
+            @if (totalPages > 1)
+            {
+                <div class="flex items-center justify-between border-t border-slate-200 px-3 py-2 dark:border-slate-700 flex-shrink-0">
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400">@((Model.PageNumber - 1) * Model.PageSize + 1)–@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount</p>
+                    <div class="flex gap-1">
+                        @if (Model.PageNumber > 1)
+                        {
+                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber - 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold dark:border-slate-600">Prev</a>
+                        }
+                        @if (Model.PageNumber < totalPages)
+                        {
+                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber + 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold dark:border-slate-600">Next</a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
-<!-- Add Site Modal -->
-<div id="addSiteModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addSiteModalTitle">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300" id="addSiteModal">
-        <form action="@Url.Action("Create", "Sites", new { area = "Client" })" method="post" class="p-6 space-y-5" onsubmit="var b=document.getElementById('addSiteSubmitBtn');if(b){b.disabled=true;b.textContent='Creating...';}">
+<!-- Add Site Modal: map to pick location + form to save name, etc. -->
+<div id="addSiteModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addSiteModalTitle">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col relative z-[1101]" id="addSiteModal">
+        <form action="@Url.Action("Create", "Sites", new { area = "Client" })" method="post" class="flex flex-col flex-1 min-h-0" onsubmit="var b=document.getElementById('addSiteSubmitBtn');if(b){b.disabled=true;b.textContent='Creating...';}">
             @Html.AntiForgeryToken()
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center flex-shrink-0 px-6 pt-5 pb-2">
                 <h2 id="addSiteModalTitle" class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">New <span class="text-emerald-500 italic">Site</span></h2>
                 <button type="button" onclick="closeAddSiteModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1" aria-label="Close">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
-            @if (ViewData["CreateError"] != null)
-            {
-                <div class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">@ViewData["CreateError"]</div>
-            }
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+                @if (ViewData["CreateError"] != null)
+                {
+                    <div class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">@ViewData["CreateError"]</div>
+                }
+                @* Map: address search (auto-picker) + click/drag to set location; address fields auto-filled *@
                 <div>
-                    <label for="addSite_SiteCode" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Site Code</label>
-                    <input type="text" id="addSite_SiteCode" name="SiteCode" required maxlength="30" placeholder="e.g. SITE-001" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    <label class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Location on map</label>
+                    <div class="mb-2 flex gap-2">
+                        <div class="relative flex-1">
+                            <input type="text" id="addSite_AddressSearch" placeholder="Search address or place..." maxlength="200"
+                                   class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-20 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                            <button type="button" id="addSite_SearchBtn" class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Search</button>
+                        </div>
+                        <button type="button" id="addSite_MyLocationBtn" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" title="Use my location">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
+                    <div id="addSite_SearchResults" class="mb-2 hidden max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"></div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Click on the map or drag the marker to set the site location. Address fields below will auto-fill.</p>
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800" style="height: 220px;">
+                        <div id="addSiteMap" class="w-full h-full"></div>
+                    </div>
+                    <input type="hidden" name="Latitude" id="addSite_Latitude" />
+                    <input type="hidden" name="Longitude" id="addSite_Longitude" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="addSite_SiteCode" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Site Code</label>
+                        <input type="text" id="addSite_SiteCode" name="SiteCode" required maxlength="30" placeholder="e.g. SITE-001" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    </div>
+                    <div>
+                        <label for="addSite_SiteName" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Site Name</label>
+                        <input type="text" id="addSite_SiteName" name="SiteName" required maxlength="150" placeholder="Site name" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    </div>
                 </div>
                 <div>
-                    <label for="addSite_SiteName" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Site Name</label>
-                    <input type="text" id="addSite_SiteName" name="SiteName" required maxlength="150" placeholder="Site name" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                </div>
-            </div>
-            <div>
-                <label for="addSite_Status" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</label>
-                <select id="addSite_Status" name="Status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white">
-                    <option value="Active">Active</option>
-                    <option value="OnHold">On Hold</option>
-                    <option value="Completed">Completed</option>
-                </select>
-            </div>
-            <div>
-                <label for="addSite_AddressLine" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Address</label>
-                <input type="text" id="addSite_AddressLine" name="AddressLine" maxlength="200" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-            </div>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label for="addSite_City" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">City</label>
-                    <input type="text" id="addSite_City" name="City" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    <label for="addSite_Status" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</label>
+                    <select id="addSite_Status" name="Status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                        <option value="Active">Active</option>
+                        <option value="OnHold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                    </select>
                 </div>
                 <div>
-                    <label for="addSite_Province" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Province</label>
-                    <input type="text" id="addSite_Province" name="Province" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    <label for="addSite_AddressLine" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Address</label>
+                    <input type="text" id="addSite_AddressLine" name="AddressLine" maxlength="200" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="addSite_City" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">City</label>
+                        <input type="text" id="addSite_City" name="City" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    </div>
+                    <div>
+                        <label for="addSite_Province" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Province</label>
+                        <input type="text" id="addSite_Province" name="Province" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                    </div>
+                </div>
+                <div>
+                    <label for="addSite_BudgetAllocated" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Budget Allocated</label>
+                    <input type="number" id="addSite_BudgetAllocated" name="BudgetAllocated" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
                 </div>
             </div>
-            <div>
-                <label for="addSite_BudgetAllocated" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Budget Allocated</label>
-                <input type="number" id="addSite_BudgetAllocated" name="BudgetAllocated" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-            </div>
-            <div class="flex gap-3 pt-2">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
                 <button type="button" onclick="closeAddSiteModal()" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
                 <button type="submit" id="addSiteSubmitBtn" class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-700">Create Site</button>
             </div>
@@ -161,7 +183,14 @@
     </div>
 </div>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
+    var addSiteMapInstance = null;
+    var addSiteMarker = null;
+    var ADD_SITE_DEFAULT_LAT = 7.0707, ADD_SITE_DEFAULT_LNG = 125.6083;
+    var NOMINATIM_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'SentroSitePicker/1.0' };
+
     function openAddSiteModal() {
         var overlay = document.getElementById('addSiteModalOverlay');
         var modal = document.getElementById('addSiteModal');
@@ -171,17 +200,216 @@
             overlay.classList.replace('opacity-0', 'opacity-100');
             modal.classList.replace('scale-95', 'scale-100');
         }, 10);
+        setTimeout(initAddSiteMap, 100);
     }
+
+    function addSiteSetMarkerAndCoords(lat, lng) {
+        var latInput = document.getElementById('addSite_Latitude');
+        var lngInput = document.getElementById('addSite_Longitude');
+        if (latInput) latInput.value = lat.toFixed(6);
+        if (lngInput) lngInput.value = lng.toFixed(6);
+        if (addSiteMarker) {
+            addSiteMarker.setLatLng([lat, lng]);
+        } else if (addSiteMapInstance) {
+            addSiteMarker = L.marker([lat, lng], { draggable: true }).addTo(addSiteMapInstance);
+            addSiteMarker.on('dragend', function() {
+                var pos = addSiteMarker.getLatLng();
+                addSiteSetMarkerAndCoords(pos.lat, pos.lng);
+                addSiteReverseGeocode(pos.lat, pos.lng);
+            });
+        }
+        if (addSiteMapInstance) addSiteMapInstance.setView([lat, lng], Math.max(addSiteMapInstance.getZoom(), 14));
+    }
+
+    function addSiteReverseGeocode(lat, lng) {
+        var addressEl = document.getElementById('addSite_AddressLine');
+        var cityEl = document.getElementById('addSite_City');
+        var provinceEl = document.getElementById('addSite_Province');
+        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json', { headers: NOMINATIM_HEADERS })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.address) return;
+                var a = data.address;
+                var road = [a.house_number, a.road].filter(Boolean).join(' ');
+                var city = a.city || a.town || a.village || a.municipality || a.county || '';
+                var state = a.state || a.province || '';
+                if (addressEl) addressEl.value = road || data.display_name || '';
+                if (cityEl) cityEl.value = city;
+                if (provinceEl) provinceEl.value = state;
+            })
+            .catch(function() {});
+    }
+
+    function initAddSiteMap() {
+        var mapEl = document.getElementById('addSiteMap');
+        if (!mapEl || typeof L === 'undefined') return;
+        if (addSiteMapInstance) return;
+        var latInput = document.getElementById('addSite_Latitude');
+        var lngInput = document.getElementById('addSite_Longitude');
+        addSiteMapInstance = L.map('addSiteMap').setView([ADD_SITE_DEFAULT_LAT, ADD_SITE_DEFAULT_LNG], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(addSiteMapInstance);
+        addSiteMapInstance.on('click', function(e) {
+            var lat = e.latlng.lat, lng = e.latlng.lng;
+            if (!addSiteMarker) {
+                addSiteMarker = L.marker([lat, lng], { draggable: true }).addTo(addSiteMapInstance);
+                addSiteMarker.on('dragend', function() {
+                    var pos = addSiteMarker.getLatLng();
+                    addSiteSetMarkerAndCoords(pos.lat, pos.lng);
+                    addSiteReverseGeocode(pos.lat, pos.lng);
+                });
+            } else {
+                addSiteMarker.setLatLng(e.latlng);
+            }
+            addSiteSetMarkerAndCoords(lat, lng);
+            addSiteReverseGeocode(lat, lng);
+        });
+        var searchInput = document.getElementById('addSite_AddressSearch');
+        var searchBtn = document.getElementById('addSite_SearchBtn');
+        var resultsEl = document.getElementById('addSite_SearchResults');
+        function doSearch() {
+            var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+            if (!q) return;
+            if (resultsEl) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; }
+            fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=5', { headers: NOMINATIM_HEADERS })
+                .then(function(r) { return r.json(); })
+                .then(function(list) {
+                    if (!resultsEl || !list || list.length === 0) return;
+                    resultsEl.innerHTML = list.map(function(item) {
+                        return '<button type="button" class="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700" data-lat="' + item.lat + '" data-lng="' + item.lon + '">' + (item.display_name || '').replace(/</g, '&lt;') + '</button>';
+                    }).join('');
+                    resultsEl.classList.remove('hidden');
+                    resultsEl.querySelectorAll('button').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var lat = parseFloat(btn.getAttribute('data-lat')), lng = parseFloat(btn.getAttribute('data-lng'));
+                            addSiteSetMarkerAndCoords(lat, lng);
+                            addSiteReverseGeocode(lat, lng);
+                            if (searchInput) searchInput.value = btn.textContent.trim();
+                            resultsEl.classList.add('hidden');
+                        });
+                    });
+                })
+                .catch(function() {});
+        }
+        if (searchBtn) searchBtn.addEventListener('click', doSearch);
+        if (searchInput) searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+        var myLocBtn = document.getElementById('addSite_MyLocationBtn');
+        if (myLocBtn) {
+            myLocBtn.addEventListener('click', function() {
+                if (!navigator.geolocation) { alert('Geolocation is not supported'); return; }
+                myLocBtn.disabled = true;
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+                        addSiteSetMarkerAndCoords(lat, lng);
+                        addSiteReverseGeocode(lat, lng);
+                        myLocBtn.disabled = false;
+                    },
+                    function() {
+                        alert('Could not get your location');
+                        myLocBtn.disabled = false;
+                    }
+                );
+            });
+        }
+    }
+
     function closeAddSiteModal() {
         var overlay = document.getElementById('addSiteModalOverlay');
         var modal = document.getElementById('addSiteModal');
         if (!overlay || !modal) return;
         overlay.classList.replace('opacity-100', 'opacity-0');
         modal.classList.replace('scale-100', 'scale-95');
-        setTimeout(function() { overlay.classList.add('hidden'); }, 300);
+        setTimeout(function() {
+            overlay.classList.add('hidden');
+            if (addSiteMapInstance) {
+                addSiteMapInstance.remove();
+                addSiteMapInstance = null;
+                addSiteMarker = null;
+            }
+        }, 300);
     }
     var overlayEl = document.getElementById('addSiteModalOverlay');
     if (overlayEl) overlayEl.addEventListener('click', function(e) {
         if (e.target === this) closeAddSiteModal();
     });
+
+    (function sitesMapAndList() {
+        var sites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items.Select(s => new { id = s.SiteId, code = s.SiteCode, name = s.SiteName, status = s.Status, lat = s.Latitude, lng = s.Longitude }).ToList()));
+        var mapEl = document.getElementById('sites-map');
+        var listEl = document.getElementById('sites-list');
+        if (!mapEl || typeof L === 'undefined') return;
+
+        var DEFAULT_LAT = 7.0707, DEFAULT_LNG = 125.6083, FOCUS_ZOOM = 15;
+        var selectedSiteId = null;
+        var markerBySiteId = new Map();
+        var markersLayer = L.layerGroup();
+
+        var map = L.map('sites-map').setView([DEFAULT_LAT, DEFAULT_LNG], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        markersLayer.addTo(map);
+
+        var sitesWithCoords = sites.filter(function(s) { return s.lat != null && s.lng != null; });
+        sitesWithCoords.forEach(function(s) {
+            var lat = Number(s.lat), lng = Number(s.lng);
+            var popupContent = '<strong>' + (s.name || '').replace(/</g, '&lt;') + '</strong>' + (s.code ? ' <span class="text-slate-500">(' + (s.code || '').replace(/</g, '&lt;') + ')</span>' : '');
+            var marker = L.marker([lat, lng]).bindPopup(popupContent);
+            marker._siteId = s.id;
+            marker.on('click', function() {
+                selectedSiteId = s.id;
+                highlightListRow(s.id);
+                var row = listEl && listEl.querySelector('[data-site-id="' + s.id + '"]');
+                if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            });
+            markersLayer.addLayer(marker);
+            markerBySiteId.set(String(s.id), marker);
+        });
+
+        if (sitesWithCoords.length > 0) {
+            var bounds = L.latLngBounds(sitesWithCoords.map(function(s) { return [Number(s.lat), Number(s.lng)]; }));
+            map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+        }
+
+        function highlightListRow(siteId) {
+            if (!listEl) return;
+            listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
+                var id = el.getAttribute('data-site-id');
+                if (id === String(siteId)) {
+                    el.classList.add('bg-emerald-50', 'dark:bg-emerald-900/20', 'ring-2', 'ring-emerald-500/50');
+                } else {
+                    el.classList.remove('bg-emerald-50', 'dark:bg-emerald-900/20', 'ring-2', 'ring-emerald-500/50');
+                }
+            });
+        }
+
+        if (listEl) {
+            listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    var siteId = el.getAttribute('data-site-id');
+                    var lat = el.getAttribute('data-lat'), lng = el.getAttribute('data-lng');
+                    selectedSiteId = siteId ? parseInt(siteId, 10) : null;
+                    highlightListRow(selectedSiteId);
+                    if (lat && lng) {
+                        var latNum = parseFloat(lat), lngNum = parseFloat(lng);
+                        map.flyTo([latNum, lngNum], FOCUS_ZOOM);
+                        var m = markerBySiteId.get(String(siteId));
+                        if (m) m.openPopup();
+                    }
+                });
+                el.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        el.click();
+                    }
+                });
+            });
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (map) map.remove();
+        });
+    })();
 </script>
