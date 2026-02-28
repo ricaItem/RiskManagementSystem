@@ -1,0 +1,48 @@
+@model List<WEB_Sentro.Areas.Client.Controllers.MonitoringSiteRowViewModel>
+@{
+    Layout = "_LayoutClient";
+}
+<div class="animate-in fade-in min-h-screen space-y-8 duration-500">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Weather <span class="text-emerald-500 italic">Monitoring Sites</span></h1>
+            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Link monitoring sites to project sites</p>
+        </div>
+        <a asp-controller="Risks" asp-action="Monitoring" class="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">← Monitoring Hub</a>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="rounded-xl border border-slate-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-slate-700 dark:bg-emerald-900/20 dark:text-emerald-300">@TempData["Message"]</div>
+    }
+
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
+        <table class="w-full text-left text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 bg-slate-50 font-black tracking-tighter text-[10px] text-slate-500 uppercase dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+                    <th class="px-4 py-3">Name</th>
+                    <th class="px-4 py-3">Linked Site</th>
+                    <th class="px-4 py-3">Coordinates</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                @foreach (var row in Model)
+                {
+                    <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="px-4 py-3 font-bold text-slate-900 dark:text-white">@row.Name</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">@(row.SiteName ?? "—")</td>
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-500 dark:text-slate-400">@row.Latitude.ToString("F4"), @row.Longitude.ToString("F4")</td>
+                        <td class="px-4 py-3 text-right">
+                            <a asp-action="Edit" asp-route-id="@row.MonitoringSiteId" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Count == 0)
+        {
+            <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No monitoring sites.</p>
+        }
+    </div>
+</div>

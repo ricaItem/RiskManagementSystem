@@ -36,7 +36,7 @@ namespace WEB_Sentro.Services
         public async Task<DateTime?> GetLastSyncUtcAsync(int orgId, int siteId, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
-            var t = await db.MonitoringAlerts.AsNoTracking().Where(a => a.OrgId == orgId && a.SiteId == siteId).MaxAsync(a => (DateTime?)a.TriggeredAt, ct);
+            var t = await db.MonitoringAlerts.AsNoTracking().Where(a => a.OrgId == orgId && a.MonitoringSiteId == siteId).MaxAsync(a => (DateTime?)a.TriggeredAt, ct);
             return t;
         }
 
@@ -44,7 +44,7 @@ namespace WEB_Sentro.Services
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var q = db.MonitoringAlerts.AsNoTracking().Where(a => a.OrgId == orgId);
-            if (siteId.HasValue) q = q.Where(a => a.SiteId == siteId.Value);
+            if (siteId.HasValue) q = q.Where(a => a.MonitoringSiteId == siteId.Value);
             var list = await q.OrderByDescending(a => a.TriggeredAt).Take(top)
                 .Select(a => new MonitoringAlertViewModel { AlertId = a.AlertId, RuleName = a.RuleName, MeasuredValues = a.MeasuredValues, Severity = a.Severity, TriggeredAt = a.TriggeredAt, RiskId = a.RiskId })
                 .ToListAsync(ct);
@@ -54,7 +54,7 @@ namespace WEB_Sentro.Services
         public async Task<(DateTime? LastSyncUtc, bool ApiOk)> RunSyncForSiteAsync(int orgId, int siteId, string userId, string? simulate = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
-            var site = await db.MonitoringSites.AsNoTracking().FirstOrDefaultAsync(s => s.SiteId == siteId && s.OrgId == orgId, ct);
+            var site = await db.MonitoringSites.AsNoTracking().FirstOrDefaultAsync(s => s.MonitoringSiteId == siteId && s.OrgId == orgId, ct);
             if (site == null) return (null, false);
 
             WeatherSnapshot weather;
@@ -99,7 +99,7 @@ namespace WEB_Sentro.Services
                 var alert = new MonitoringAlert
                 {
                     OrgId = orgId,
-                    SiteId = siteId,
+                    MonitoringSiteId = siteId,
                     RuleCode = r.RuleCode,
                     RuleName = r.RuleName,
                     MeasuredValues = r.MeasuredValues.Length > 500 ? r.MeasuredValues.Substring(0, 500) : r.MeasuredValues,
@@ -120,7 +120,7 @@ namespace WEB_Sentro.Services
                         var desc = $"Rule: {r.RuleCode}. Measured: {r.MeasuredValues}. At {now:O}.";
                         if (desc.Length > 500) desc = desc.Substring(0, 500);
                         var risk = await _riskService.CreateRiskFromMonitoringAsync(orgId, siteId, r.RuleCode,
-                            $"[AUTO] {r.RuleName} - {site.Name}", r.Severity, userId, site.Name, desc, ct);
+                            $"[AUTO] {r.RuleName} - {site.Name}", r.Severity, userId, site.Name, desc, site.SiteId, ct);
                         if (risk != null)
                         {
                             alert.RiskId = risk.RiskId;

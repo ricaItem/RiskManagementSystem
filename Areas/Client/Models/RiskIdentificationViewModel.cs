@@ -16,6 +16,8 @@ namespace Web_Sentro.Areas.Client.Models
         public string? Status { get; set; }
         public string? ReportedBy { get; set; }
         public string? ReportByUserId { get; set; }
+        public int? SiteId { get; set; }
+        public string? SiteName { get; set; }
         public int OrgId { get; set; }
         public DateTime? DeletedAt { get; set; }
         public int AttachmentsCount { get; set; }

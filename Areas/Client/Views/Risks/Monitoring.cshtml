@@ -6,13 +6,14 @@
 }
 
 <div class="animate-in fade-in min-h-screen space-y-8 duration-1000">
-    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+        <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 Risk <span class="text-emerald-500 italic">Monitoring Hub</span>
             </h1>
             <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Real-Time Site Intelligence & API Integration</p>
         </div>
+        <a asp-controller="MonitoringSites" asp-action="Index" class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Manage monitoring sites</a>
     </div>
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-800 p-6 shadow-card dark:border-slate-700 dark:bg-slate-900 relative overflow-hidden">
@@ -33,7 +34,7 @@
                     <select name="siteId" id="monitoring-site-select" class="rounded-xl border border-slate-600 bg-slate-700 text-white text-sm font-bold px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="this.form.submit()">
                         @foreach (var s in Model.Sites)
                         {
-                            <option value="@s.SiteId" selected="@(s.SiteId == Model.SelectedSiteId)">@s.Name</option>
+                            <option value="@s.SiteId" selected="@(s.SiteId == Model.SelectedSiteId)">@s.Name@(s.SiteName != null ? $" ({s.SiteName})" : "")</option>
                         }
                     </select>
                 </form>
@@ -171,7 +172,7 @@
                                 }
                             </div>
                             <div class="flex items-center gap-3 mt-1 text-[11px] font-medium text-slate-500">
-                                <span class="flex items-center gap-1">📍 @risk.ProjectSite</span>
+                                <span class="flex items-center gap-1">📍 @(risk.SiteName ?? risk.ProjectSite ?? "—")</span>
                                 <span class="h-1 w-1 rounded-full bg-slate-300"></span>
                                 <span>Detected by: <span class="text-indigo-500 font-bold">@risk.DetectedBy</span></span>
                             </div>

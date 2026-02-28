@@ -22,6 +22,7 @@ namespace Web_Sentro.Areas.Client.Models
     {
         public int SiteId { get; set; }
         public string Name { get; set; } = "";
+        public string? SiteName { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
     }

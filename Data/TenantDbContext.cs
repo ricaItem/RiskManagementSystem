@@ -13,6 +13,7 @@ namespace WEB_Sentro.Data
         {
         }
 
+        public DbSet<Site> Sites { get; set; } = null!;
         public DbSet<Risk> Risks { get; set; } = null!;
         public DbSet<RiskEvaluation> RiskEvaluations { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
@@ -26,7 +27,26 @@ namespace WEB_Sentro.Data
         {
             base.OnModelCreating(builder);
 
-            // Copied from ApplicationDbContext.OnModelCreating for tenant entities
+            builder.Entity<Site>(e =>
+            {
+                e.ToTable("Sites");
+                e.HasKey(x => x.SiteId);
+                e.Property(x => x.SiteCode).HasMaxLength(30);
+                e.Property(x => x.SiteName).HasMaxLength(150);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.AddressLine).HasMaxLength(200);
+                e.Property(x => x.City).HasMaxLength(80);
+                e.Property(x => x.Province).HasMaxLength(80);
+                e.Property(x => x.Latitude).HasPrecision(9, 6);
+                e.Property(x => x.Longitude).HasPrecision(9, 6);
+                e.Property(x => x.ProjectManagerUserId).HasMaxLength(450);
+                e.Property(x => x.BudgetAllocated).HasPrecision(18, 2);
+                e.HasIndex(x => x.SiteCode).IsUnique();
+                e.HasIndex(x => x.Status);
+                e.HasIndex(x => x.ProjectManagerUserId);
+                e.HasIndex(x => x.OrgId);
+            });
+
             builder.Entity<Risk>(e =>
             {
                 e.ToTable("Risks");
@@ -39,9 +59,11 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Priority).HasMaxLength(20);
                 e.Property(x => x.ProjectSite).HasMaxLength(200);
                 e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.SiteId);
                 e.HasIndex(x => x.Status);
                 e.HasIndex(x => x.CreatedAt);
                 e.HasQueryFilter(x => x.DeletedAt == null);
+                e.HasOne(x => x.Site).WithMany(s => s.Risks).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<RiskEvaluation>(e =>
@@ -105,9 +127,11 @@ namespace WEB_Sentro.Data
             builder.Entity<MonitoringSite>(e =>
             {
                 e.ToTable("MonitoringSites");
-                e.HasKey(x => x.SiteId);
+                e.HasKey(x => x.MonitoringSiteId);
                 e.Property(x => x.Name).HasMaxLength(100);
                 e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.SiteId);
+                e.HasOne(x => x.Site).WithMany(s => s.MonitoringSites).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<MonitoringAlert>(e =>
@@ -118,7 +142,7 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.RuleName).HasMaxLength(100);
                 e.Property(x => x.MeasuredValues).HasMaxLength(500);
                 e.Property(x => x.Severity).HasMaxLength(20);
-                e.HasIndex(x => new { x.OrgId, x.SiteId });
+                e.HasIndex(x => new { x.OrgId, x.MonitoringSiteId });
                 e.HasIndex(x => x.TriggeredAt);
             });
         }

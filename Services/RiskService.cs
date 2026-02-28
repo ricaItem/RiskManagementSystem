@@ -23,6 +23,7 @@ namespace WEB_Sentro.Services
             string? search,
             string? status,
             string? category,
+            int? siteId = null,
             bool showDeleted = false,
             CancellationToken ct = default)
         {
@@ -67,11 +68,18 @@ namespace WEB_Sentro.Services
             }
             if (!string.IsNullOrWhiteSpace(category))
                 q = q.Where(r => r.Category == category);
+            if (siteId.HasValue)
+                q = q.Where(r => r.SiteId == siteId.Value);
 
             var list = await q
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId, r.SiteId })
                 .ToListAsync(ct);
+
+            var siteIds = list.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
+            var siteNames = siteIds.Count > 0
+                ? await db.Sites.AsNoTracking().Where(s => siteIds.Contains(s.SiteId)).Select(s => new { s.SiteId, s.SiteName }).ToDictionaryAsync(x => x.SiteId, x => x.SiteName, ct)
+                : new Dictionary<int, string>();
 
             var riskIds = list.Select(x => x.RiskId).ToList();
             var attachments = await db.Attachments.AsNoTracking()
@@ -98,6 +106,8 @@ namespace WEB_Sentro.Services
                 ReportedBy = userNames.TryGetValue(r.ReportByUserId, out var rb) ? rb : "",
                 ReportByUserId = r.ReportByUserId,
                 ProjectSite = r.ProjectSite ?? "",
+                SiteId = r.SiteId,
+                SiteName = r.SiteId.HasValue && siteNames.TryGetValue(r.SiteId.Value, out var sn) ? sn : null,
                 DateLogged = r.CreatedAt,
                 DateReported = r.CreatedAt,
                 Status = r.Status ?? "Draft",
@@ -123,7 +133,7 @@ namespace WEB_Sentro.Services
                 .FirstOrDefaultAsync(r => r.RiskId == riskId, ct);
         }
 
-        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", CancellationToken ct = default)
+        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", int? siteId = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -138,6 +148,7 @@ namespace WEB_Sentro.Services
                 Description = description,
                 Status = status == "For_Review" ? "For_Review" : "Draft",
                 Priority = "Unassessed",
+                SiteId = siteId,
                 CreatedAt = DateTime.UtcNow
             };
             db.Risks.Add(risk);
@@ -191,8 +202,13 @@ namespace WEB_Sentro.Services
                 .OrderByDescending(r => r.Priority == "Critical" ? 3 : r.Priority == "High" ? 2 : r.Priority == "Medium" ? 1 : 0)
                 .ThenByDescending(r => r.CreatedAt)
                 .Take(top)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.SourceType, r.CreatedAt })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.SourceType, r.CreatedAt, r.SiteId })
                 .ToListAsync(ct);
+
+            var siteIds = list.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
+            var siteNames = siteIds.Count > 0
+                ? await db.Sites.AsNoTracking().Where(s => siteIds.Contains(s.SiteId)).Select(s => new { s.SiteId, s.SiteName }).ToDictionaryAsync(x => x.SiteId, x => x.SiteName, ct)
+                : new Dictionary<int, string>();
 
             var userIds = list.Select(x => x.ReportByUserId).Distinct().ToList();
             var users = await _platformDb.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
@@ -207,41 +223,44 @@ namespace WEB_Sentro.Services
                 Priority = r.Priority ?? "Medium",
                 DetectedBy = userNames.TryGetValue(r.ReportByUserId, out var name) ? name : "Unknown",
                 ProjectSite = r.ProjectSite ?? "",
+                SiteId = r.SiteId,
+                SiteName = r.SiteId.HasValue && siteNames.TryGetValue(r.SiteId.Value, out var sn) ? sn : null,
                 SourceType = r.SourceType,
                 DateLogged = r.CreatedAt
             }).ToList();
         }
 
-        public async Task<bool> HasOpenRiskForSiteRuleAsync(int orgId, int siteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
+        public async Task<bool> HasOpenRiskForSiteRuleAsync(int orgId, int monitoringSiteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var since = DateTime.UtcNow.AddHours(-withinHours);
             return await db.Risks.AsNoTracking()
-                .Where(r => r.OrgId == orgId && r.LocationId == siteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
+                .Where(r => r.OrgId == orgId && r.LocationId == monitoringSiteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
                     && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.CreatedAt >= since)
                 .AnyAsync(ct);
         }
 
         /// <summary>Returns the RiskId of an existing open risk for the same OrgId+SiteId+RuleCode within the last withinHours, or null.</summary>
-        public async Task<int?> GetExistingOpenRiskIdForSiteRuleAsync(int orgId, int siteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
+        public async Task<int?> GetExistingOpenRiskIdForSiteRuleAsync(int orgId, int monitoringSiteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var since = DateTime.UtcNow.AddHours(-withinHours);
             return await db.Risks.AsNoTracking()
-                .Where(r => r.OrgId == orgId && r.LocationId == siteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
+                .Where(r => r.OrgId == orgId && r.LocationId == monitoringSiteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
                     && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.CreatedAt >= since)
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => (int?)r.RiskId)
                 .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<Risk?> CreateRiskFromMonitoringAsync(int orgId, int siteId, string ruleCode, string title, string priority, string reportByUserId, string? siteName, string? descriptionWithMeasuredValues, CancellationToken ct = default)
+        public async Task<Risk?> CreateRiskFromMonitoringAsync(int orgId, int monitoringSiteId, string ruleCode, string title, string priority, string reportByUserId, string? siteName, string? descriptionWithMeasuredValues, int? projectSiteId = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var risk = new Risk
             {
                 OrgId = orgId,
-                LocationId = siteId,
+                LocationId = monitoringSiteId,
+                SiteId = projectSiteId,
                 ReportByUserId = reportByUserId,
                 Title = title,
                 Category = ruleCode,
@@ -257,7 +276,7 @@ namespace WEB_Sentro.Services
             return risk;
         }
 
-        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, bool superAdmin, CancellationToken ct = default)
+        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, bool superAdmin, CancellationToken ct = default)
         {
             if (!orgId.HasValue)
                 return;
@@ -274,6 +293,7 @@ namespace WEB_Sentro.Services
             if (sourceType != null) risk.SourceType = sourceType;
             if (priority != null) risk.Priority = priority;
             if (projectSite != null) risk.ProjectSite = projectSite;
+            risk.SiteId = siteId;
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
         }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Services;
 using Web_Sentro.Areas.Client.Models;
@@ -48,7 +49,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         private bool IsRiskManager() => User.IsInRole("RiskManager");
         private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
 
-        public async Task<IActionResult> Identification(string? search, string? status, string? category, bool showDeleted = false, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Identification(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10)
         {
             ViewData["Title"] = "Risk Identification";
             var user = await GetCurrentUserAsync();
@@ -60,7 +61,26 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var employeeOnly = EmployeeOnly();
             var includeDeleted = showDeleted && (IsAdmin() || IsSuperAdmin());
-            var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, includeDeleted);
+            var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, siteId, includeDeleted);
+
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                var sites = await db.Sites.AsNoTracking().Where(s => s.OrgId == orgId.Value && s.Status != "Archived").OrderBy(s => s.SiteName).Select(s => new { s.SiteId, s.SiteName, s.SiteCode }).ToListAsync();
+                var siteOptions = sites.Select(s => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})" }).ToList();
+                var filterList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "", Text = "All Sites" } };
+                filterList.AddRange(siteOptions);
+                ViewBag.SiteFilterList = filterList;
+                var formList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "", Text = "Unassigned" } };
+                formList.AddRange(siteOptions);
+                ViewBag.SitesForRiskForm = formList;
+            }
+            else
+            {
+                ViewBag.SiteFilterList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                ViewBag.SitesForRiskForm = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+            }
+            ViewBag.SelectedSiteId = siteId;
             var totalCount = list.Count;
             var items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
@@ -81,7 +101,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> IdentifyNewRisk([Bind("Title,Category,ProjectSite,Description,SourceType")] RiskIdentificationViewModel model, string? submitType)
+        public async Task<IActionResult> IdentifyNewRisk([Bind("Title,Category,ProjectSite,Description,SourceType,SiteId")] RiskIdentificationViewModel model, string? submitType)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -98,7 +118,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                 model.SourceType,
                 model.ProjectSite?.Trim(),
                 model.Description?.Trim(),
-                status);
+                status,
+                model.SiteId);
 
             await using (var db = await _tenantDbFactory.CreateAsync(user.OrganizationId))
             {
@@ -197,7 +218,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string? Priority, string ProjectSite, string? ReportedDate)
+        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string? Priority, string ProjectSite, string? ReportedDate, int? SiteId)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -209,7 +230,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (EmployeeOnly() && (risk.ReportByUserId != user.Id || risk.Status != "Draft"))
                 return Forbid();
 
-            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, IsSuperAdmin());
+            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, IsSuperAdmin());
             return RedirectToAction("Identification");
         }
 
@@ -344,7 +365,21 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!orgId.HasValue) return View(new RiskMonitoringViewModel());
 
             var sites = await _monitoringHub.GetSitesAsync(orgId.Value);
-            var siteList = sites.Select(s => new MonitoringSiteItemViewModel { SiteId = s.SiteId, Name = s.Name, Latitude = s.Latitude, Longitude = s.Longitude }).ToList();
+            var siteIds = sites.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
+            Dictionary<int, string> siteNames = new();
+            if (siteIds.Count > 0)
+            {
+                await using var dbSites = await _tenantDbFactory.CreateAsync(orgId.Value);
+                siteNames = await dbSites.Sites.AsNoTracking().Where(s => siteIds.Contains(s.SiteId)).ToDictionaryAsync(s => s.SiteId, s => s.SiteName);
+            }
+            var siteList = sites.Select(s => new MonitoringSiteItemViewModel
+            {
+                SiteId = s.MonitoringSiteId,
+                Name = s.Name,
+                SiteName = s.SiteId.HasValue && siteNames.TryGetValue(s.SiteId.Value, out var sn) ? sn : null,
+                Latitude = s.Latitude,
+                Longitude = s.Longitude
+            }).ToList();
             var selectedId = siteId ?? siteList.FirstOrDefault()?.SiteId ?? 0;
             var selectedSite = siteList.FirstOrDefault(s => s.SiteId == selectedId) ?? siteList.FirstOrDefault();
 
