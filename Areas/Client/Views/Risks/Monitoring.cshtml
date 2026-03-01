@@ -94,7 +94,7 @@
                 </div>
             </div>
 
-            @if (Model.SelectedSiteId > 0)
+            @if (Model.SelectedSiteId != 0)
             {
                 <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client" })" id="monitoring-sync-form" class="block">
                     @Html.AntiForgeryToken()

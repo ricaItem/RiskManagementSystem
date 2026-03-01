@@ -12,7 +12,7 @@ namespace WEB_Sentro.Data.Migrations.Tenant
             migrationBuilder.CreateTable(
                 name: "MonitoringSites",
                 columns: table => new
-                {
+                {   
                     SiteId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     OrgId = table.Column<int>(type: "int", nullable: false),

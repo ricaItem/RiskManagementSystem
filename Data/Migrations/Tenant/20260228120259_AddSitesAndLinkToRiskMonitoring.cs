@@ -43,7 +43,9 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                 table: "Risks",
                 type: "int",
                 nullable: true);
+
             migrationBuilder.CreateIndex(name: "IX_Risks_SiteId", table: "Risks", column: "SiteId");
+
             migrationBuilder.AddForeignKey(
                 name: "FK_Risks_Sites_SiteId",
                 table: "Risks",
@@ -52,52 +54,171 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                 principalColumn: "SiteId",
                 onDelete: ReferentialAction.Restrict);
 
-            migrationBuilder.RenameColumn(
-                name: "SiteId",
-                table: "MonitoringSites",
-                newName: "MonitoringSiteId");
+            // Fix MonitoringSites: rename SiteId -> MonitoringSiteId if needed, then add SiteId FK to Sites.
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[MonitoringSites]', N'U') IS NOT NULL
+BEGIN
+    -- If legacy PK column is still named SiteId, rename it to MonitoringSiteId.
+    IF COL_LENGTH(N'dbo.MonitoringSites', N'SiteId') IS NOT NULL
+       AND COL_LENGTH(N'dbo.MonitoringSites', N'MonitoringSiteId') IS NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[MonitoringSites].[SiteId]', N'MonitoringSiteId', N'COLUMN';
+    END
 
-            migrationBuilder.AddColumn<int>(
-                name: "SiteId",
-                table: "MonitoringSites",
-                type: "int",
-                nullable: true);
-            migrationBuilder.CreateIndex(name: "IX_MonitoringSites_SiteId", table: "MonitoringSites", column: "SiteId");
-            migrationBuilder.AddForeignKey(
-                name: "FK_MonitoringSites_Sites_SiteId",
-                table: "MonitoringSites",
-                column: "SiteId",
-                principalTable: "Sites",
-                principalColumn: "SiteId",
-                onDelete: ReferentialAction.Restrict);
+    -- Ensure Sites FK column exists
+    IF COL_LENGTH(N'dbo.MonitoringSites', N'SiteId') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[MonitoringSites] ADD [SiteId] int NULL;
+    END
 
-            migrationBuilder.RenameColumn(
-                name: "SiteId",
-                table: "MonitoringAlerts",
-                newName: "MonitoringSiteId");
-            migrationBuilder.DropIndex(name: "IX_MonitoringAlerts_OrgId_SiteId", table: "MonitoringAlerts");
-            migrationBuilder.CreateIndex(name: "IX_MonitoringAlerts_OrgId_MonitoringSiteId", table: "MonitoringAlerts", columns: new[] { "OrgId", "MonitoringSiteId" });
-            migrationBuilder.AddForeignKey(
-                name: "FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId",
-                table: "MonitoringAlerts",
-                column: "MonitoringSiteId",
-                principalTable: "MonitoringSites",
-                principalColumn: "MonitoringSiteId",
-                onDelete: ReferentialAction.Restrict);
+    -- Ensure index on SiteId exists
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringSites_SiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringSites')
+    )
+    BEGIN
+        CREATE INDEX [IX_MonitoringSites_SiteId] ON [dbo].[MonitoringSites]([SiteId]);
+    END
+
+    -- Ensure FK exists
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.foreign_keys
+        WHERE name = N'FK_MonitoringSites_Sites_SiteId'
+          AND parent_object_id = OBJECT_ID(N'dbo.MonitoringSites')
+    )
+    BEGIN
+        ALTER TABLE [dbo].[MonitoringSites] ADD CONSTRAINT [FK_MonitoringSites_Sites_SiteId]
+            FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Sites]([SiteId]) ON DELETE NO ACTION;
+    END
+END
+");
+
+            // Fix MonitoringAlerts: rename SiteId -> MonitoringSiteId safely (schema-qualified) and update index + FK.
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[MonitoringAlerts]', N'U') IS NOT NULL
+BEGIN
+    -- Rename only if old column exists and new one doesn't
+    IF COL_LENGTH(N'dbo.MonitoringAlerts', N'SiteId') IS NOT NULL
+       AND COL_LENGTH(N'dbo.MonitoringAlerts', N'MonitoringSiteId') IS NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[MonitoringAlerts].[SiteId]', N'MonitoringSiteId', N'COLUMN';
+    END
+
+    -- Drop legacy index if it exists
+    IF EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringAlerts_OrgId_SiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+    )
+    BEGIN
+        DROP INDEX [IX_MonitoringAlerts_OrgId_SiteId] ON [dbo].[MonitoringAlerts];
+    END
+
+    -- Create new index if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringAlerts_OrgId_MonitoringSiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+    )
+    BEGIN
+        CREATE INDEX [IX_MonitoringAlerts_OrgId_MonitoringSiteId]
+            ON [dbo].[MonitoringAlerts]([OrgId], [MonitoringSiteId]);
+    END
+
+    -- Add FK only if it doesn't exist AND column exists
+    IF COL_LENGTH(N'dbo.MonitoringAlerts', N'MonitoringSiteId') IS NOT NULL
+       AND OBJECT_ID(N'[dbo].[MonitoringSites]', N'U') IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1 FROM sys.foreign_keys
+           WHERE name = N'FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId'
+             AND parent_object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+       )
+    BEGIN
+        ALTER TABLE [dbo].[MonitoringAlerts] WITH CHECK
+        ADD CONSTRAINT [FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId]
+            FOREIGN KEY ([MonitoringSiteId]) REFERENCES [dbo].[MonitoringSites]([MonitoringSiteId]) ON DELETE NO ACTION;
+    END
+END
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(name: "FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId", table: "MonitoringAlerts");
-            migrationBuilder.DropIndex(name: "IX_MonitoringAlerts_OrgId_MonitoringSiteId", table: "MonitoringAlerts");
-            migrationBuilder.RenameColumn(name: "MonitoringSiteId", table: "MonitoringAlerts", newName: "SiteId");
-            migrationBuilder.CreateIndex(name: "IX_MonitoringAlerts_OrgId_SiteId", table: "MonitoringAlerts", columns: new[] { "OrgId", "SiteId" });
+            // Reverse MonitoringAlerts changes safely
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[MonitoringAlerts]', N'U') IS NOT NULL
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM sys.foreign_keys
+        WHERE name = N'FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId'
+          AND parent_object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+    )
+    BEGIN
+        ALTER TABLE [dbo].[MonitoringAlerts]
+        DROP CONSTRAINT [FK_MonitoringAlerts_MonitoringSites_MonitoringSiteId];
+    END
 
-            migrationBuilder.DropForeignKey(name: "FK_MonitoringSites_Sites_SiteId", table: "MonitoringSites");
-            migrationBuilder.DropIndex(name: "IX_MonitoringSites_SiteId", table: "MonitoringSites");
-            migrationBuilder.DropColumn(name: "SiteId", table: "MonitoringSites");
-            migrationBuilder.RenameColumn(name: "MonitoringSiteId", table: "MonitoringSites", newName: "SiteId");
+    IF EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringAlerts_OrgId_MonitoringSiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+    )
+    BEGIN
+        DROP INDEX [IX_MonitoringAlerts_OrgId_MonitoringSiteId] ON [dbo].[MonitoringAlerts];
+    END
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringAlerts_OrgId_SiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringAlerts')
+    )
+    BEGIN
+        -- Recreate old index only if SiteId exists
+        IF COL_LENGTH(N'dbo.MonitoringAlerts', N'SiteId') IS NOT NULL
+        BEGIN
+            CREATE INDEX [IX_MonitoringAlerts_OrgId_SiteId] ON [dbo].[MonitoringAlerts]([OrgId], [SiteId]);
+        END
+    END
+
+    -- Rename column back if needed
+    IF COL_LENGTH(N'dbo.MonitoringAlerts', N'MonitoringSiteId') IS NOT NULL
+       AND COL_LENGTH(N'dbo.MonitoringAlerts', N'SiteId') IS NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[MonitoringAlerts].[MonitoringSiteId]', N'SiteId', N'COLUMN';
+    END
+END
+");
+
+            // Reverse MonitoringSites changes safely
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[MonitoringSites]', N'U') IS NOT NULL
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM sys.foreign_keys
+        WHERE name = N'FK_MonitoringSites_Sites_SiteId'
+          AND parent_object_id = OBJECT_ID(N'dbo.MonitoringSites')
+    )
+        ALTER TABLE [dbo].[MonitoringSites] DROP CONSTRAINT [FK_MonitoringSites_Sites_SiteId];
+
+    IF EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE name = N'IX_MonitoringSites_SiteId'
+          AND object_id = OBJECT_ID(N'dbo.MonitoringSites')
+    )
+        DROP INDEX [IX_MonitoringSites_SiteId] ON [dbo].[MonitoringSites];
+
+    IF COL_LENGTH(N'dbo.MonitoringSites', N'SiteId') IS NOT NULL
+        ALTER TABLE [dbo].[MonitoringSites] DROP COLUMN [SiteId];
+
+    IF COL_LENGTH(N'dbo.MonitoringSites', N'MonitoringSiteId') IS NOT NULL
+       AND COL_LENGTH(N'dbo.MonitoringSites', N'SiteId') IS NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[MonitoringSites].[MonitoringSiteId]', N'SiteId', N'COLUMN';
+    END
+END
+");
 
             migrationBuilder.DropForeignKey(name: "FK_Risks_Sites_SiteId", table: "Risks");
             migrationBuilder.DropIndex(name: "IX_Risks_SiteId", table: "Risks");

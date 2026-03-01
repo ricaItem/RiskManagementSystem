@@ -23,6 +23,7 @@ namespace WEB_Sentro.Data
         public DbSet<MonitoringSite> MonitoringSites { get; set; } = null!;
         public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
 
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -107,6 +108,7 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Summary).HasMaxLength(255);
                 e.Property(x => x.TargetCloseDate).HasColumnType("date");
                 e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.DeletedAt);
                 e.HasIndex(x => x.RiskId).IsUnique();
                 e.HasOne(x => x.Risk).WithOne(r => r.MitigationPlan).HasForeignKey<MitigationPlan>(x => x.RiskId).OnDelete(DeleteBehavior.Restrict);
             });

@@ -14,6 +14,18 @@ namespace WEB_Sentro.Services
         public int? RiskId { get; set; }
     }
 
+    /// <summary>Site entry for the Risk Monitoring Hub. Sourced from Sites table; may have a linked MonitoringSite.</summary>
+    public class MonitoringHubSiteItem
+    {
+        /// <summary>When &gt; 0, existing MonitoringSiteId. When 0, this is a Site-only row (use DbSiteId to create MonitoringSite on first sync).</summary>
+        public int MonitoringSiteId { get; set; }
+        /// <summary>Site id from Sites table. Used when MonitoringSiteId is 0 to create a MonitoringSite on sync.</summary>
+        public int DbSiteId { get; set; }
+        public string Name { get; set; } = "";
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
     public class MonitoringHubService
     {
         private readonly ITenantDbFactory _tenantDbFactory;
@@ -25,6 +37,68 @@ namespace WEB_Sentro.Services
             _tenantDbFactory = tenantDbFactory;
             _openWeather = openWeather;
             _riskService = riskService;
+        }
+
+        /// <summary>Returns sites for the Hub from the Sites table (DB), not seeded MonitoringSites. Each Site appears once; if it has a linked MonitoringSite that is used for coordinates/sync.</summary>
+        public async Task<List<MonitoringHubSiteItem>> GetSitesForHubAsync(int orgId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var sites = await db.Sites.AsNoTracking()
+                .Where(s => s.OrgId == orgId && s.Status != "Archived")
+                .OrderBy(s => s.SiteName)
+                .Select(s => new { s.SiteId, s.SiteName, s.Latitude, s.Longitude })
+                .ToListAsync(ct);
+            var siteIds = sites.Select(s => s.SiteId).ToList();
+            Dictionary<int, MonitoringSite> monitoringBySite;
+            if (siteIds.Count == 0)
+            {
+                monitoringBySite = new Dictionary<int, MonitoringSite>();
+            }
+            else
+            {
+                var monList = await db.MonitoringSites.AsNoTracking()
+                    .Where(m => m.OrgId == orgId && m.SiteId != null && siteIds.Contains(m.SiteId!.Value))
+                    .ToListAsync(ct);
+                monitoringBySite = monList.GroupBy(m => m.SiteId!.Value).ToDictionary(g => g.Key, g => g.First());
+            }
+
+            return sites.Select(s =>
+            {
+                var mon = monitoringBySite.GetValueOrDefault(s.SiteId);
+                var lat = mon != null ? mon.Latitude : (double)(s.Latitude ?? 0);
+                var lon = mon != null ? mon.Longitude : (double)(s.Longitude ?? 0);
+                return new MonitoringHubSiteItem
+                {
+                    MonitoringSiteId = mon?.MonitoringSiteId ?? 0,
+                    DbSiteId = s.SiteId,
+                    Name = s.SiteName,
+                    Latitude = lat,
+                    Longitude = lon
+                };
+            }).ToList();
+        }
+
+        /// <summary>Ensures a MonitoringSite exists for the given DB Site; creates one using Site coordinates if missing. Returns the MonitoringSiteId.</summary>
+        public async Task<int> EnsureMonitoringSiteForSiteAsync(int orgId, int dbSiteId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var existing = await db.MonitoringSites.FirstOrDefaultAsync(m => m.OrgId == orgId && m.SiteId == dbSiteId, ct);
+            if (existing != null) return existing.MonitoringSiteId;
+
+            var site = await db.Sites.AsNoTracking().FirstOrDefaultAsync(s => s.SiteId == dbSiteId && s.OrgId == orgId, ct);
+            if (site == null) return 0;
+
+            var created = new MonitoringSite
+            {
+                OrgId = orgId,
+                SiteId = dbSiteId,
+                Name = site.SiteName,
+                Latitude = (double)(site.Latitude ?? 0),
+                Longitude = (double)(site.Longitude ?? 0)
+            };
+            db.MonitoringSites.Add(created);
+            await db.SaveChangesAsync(ct);
+            return created.MonitoringSiteId;
         }
 
         public async Task<List<MonitoringSite>> GetSitesAsync(int orgId, CancellationToken ct = default)

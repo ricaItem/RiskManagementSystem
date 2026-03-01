@@ -34,18 +34,14 @@
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                Risk <span class="italic" style="color: var(--brand-accent);">Intelligence</span>
+                Risk <span class="italic" style="color: var(--brand-accent);">Identification</span>
             </h1>
-            <p class="mt-1 text-sm font-medium tracking-wide text-[var(--text-secondary)] dark:text-slate-500">Enterprise Threat Identification & Management</p>
-        </div>
+            </div>
 
         <div class="flex items-center gap-3">
-            <button onclick="toggleNewRiskModal()" class="btn-primary group relative flex items-center gap-3 rounded-xl px-6 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:scale-95">
-                <span class="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style="background: var(--brand-accent);"></span>
-                    <span class="relative inline-flex h-3 w-3 rounded-full" style="background: var(--brand-accent);"></span>
-                </span>
-                New Risk Entry
+            <button onclick="toggleNewRiskModal()"
+                    class="btn-primary group relative flex items-center gap-3 rounded-xl px-6 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:scale-95">
+                + New Risk Entry
             </button>
         </div>
     </div>
@@ -123,7 +119,6 @@
     </form>
 
     <div class="rounded-xl sentro-card p-5 dark:border-slate-700 dark:bg-slate-800/90">
-        <h3 class="mb-4 text-xs font-semibold tracking-wide text-[var(--text-primary)] dark:text-white">Risk Registry</h3>
         <div class="overflow-x-auto">
             <table class="w-full text-left" id="risksTable">
                 <thead>
@@ -131,7 +126,6 @@
                         <th class="pb-2 pr-4">Risk Identity</th>
                         <th class="pb-2 pr-4">Category</th>
                         <th class="pb-2 pr-4">Site</th>
-                        <th class="pb-2 pr-4">Project Site</th>
                         <th class="pb-2 pr-4 text-center">Priority</th>
                         <th class="pb-2 pr-4 text-center">Status</th>
                         <th class="pb-2 pr-4">Date Reported</th>
@@ -182,12 +176,6 @@
                                 <span class="rounded-lg bg-slate-100 px-2.5 py-1 font-medium text-slate-600 text-[10px] uppercase dark:bg-slate-800 dark:text-slate-400">@(risk.Category ?? "")</span>
                             </td>
                             <td class="py-3 pr-4 max-w-[120px] truncate font-medium text-[11px] text-slate-600 dark:text-slate-400" title="@(risk.SiteName ?? "Unassigned")">@(risk.SiteName ?? "Unassigned")</td>
-                            <td class="py-3 pr-4">
-                                <div class="flex max-w-[120px] items-center gap-2 truncate font-bold tracking-tighter text-[11px] text-slate-600 uppercase dark:text-slate-400" title="@(risk.ProjectSite ?? "")">
-                                    <svg class="h-3 w-3 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-width="2" /></svg>
-                                    @(risk.ProjectSite ?? "")
-                                </div>
-                            </td>
                             <td class="py-3 pr-4 text-center">
                                 @{ var priorityCls = priorityVal == "Critical" ? "text-rose-500" : priorityVal == "High" ? "text-orange-500" : priorityVal == "Medium" ? "text-amber-500" : priorityVal == "Low" ? "text-emerald-500" : "text-slate-400"; }
                                 <span class="rounded-lg px-3 py-1 font-black text-[10px] uppercase @(priorityVal == "Critical" ? "bg-rose-500/10 text-rose-500" : "bg-slate-100 dark:bg-slate-800 text-slate-500")">@priorityVal</span>
@@ -277,8 +265,9 @@
                 <h2 class="text-xl font-black text-slate-900 uppercase dark:text-white">Identify New Risk</h2>
                 <button type="button" onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500" aria-label="Close"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form action="@Url.Action("IdentifyNewRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data" class="space-y-4" onsubmit="var btns=this.querySelectorAll('button[type=submit]');btns.forEach(function(b){b.disabled=true;});">
+            <form id="identifyRiskForm" action="@Url.Action("IdentifyNewRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data" class="space-y-4" onsubmit="var btns=this.querySelectorAll('button[type=button][data-risk-submit]');btns.forEach(function(b){b.disabled=true;});">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="submitType" id="riskSubmitType" value="Draft" />
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Date Reported</label>
@@ -306,7 +295,7 @@
                     </div>
                     <div class="space-y-1">
                         <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Status</label>
-                        <input type="text" readonly value="Draft" class="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" />
+                        <input type="text" readonly value="Draft" class="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" title="Save Draft = Draft; Submit Risk = For review" />
                     </div>
                 </div>
                 <div class="space-y-1">
@@ -318,16 +307,10 @@
                         }
                     </select>
                 </div>
+                <input type="hidden" name="ProjectSite" value="" />
                 <div class="space-y-1">
                     <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Reported By</label>
                     <input type="text" readonly value="Auto-filled" class="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" />
-                </div>
-                <div class="space-y-2">
-                    <div class="relative">
-                        <input type="text" id="addProjectSite" name="ProjectSite" placeholder="Job Site Location" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-bold dark:border-slate-700 dark:bg-slate-800" required />
-                        <button type="button" onclick="autoDetectLocation('addProjectSite', 'addMap')" class="absolute top-1/2 right-2 -translate-y-1/2 p-2 text-emerald-500 transition-transform hover:scale-110" aria-label="Detect location"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-width="2" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg></button>
-                    </div>
-                    <div id="addMap" class="h-40 w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"></div>
                 </div>
                 <div class="space-y-1">
                     <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Attachments</label>
@@ -335,8 +318,8 @@
                 </div>
                 @if (TempData["AttachmentError"] != null) { <p class="text-xs text-rose-600 dark:text-rose-400">@TempData["AttachmentError"]</p> }
                 <div class="flex gap-3 pt-2">
-                    <button type="submit" name="submitType" value="Draft" class="flex-1 rounded-2xl bg-slate-200 py-3.5 text-xs font-black tracking-widest text-slate-700 uppercase shadow disabled:opacity-70 dark:bg-slate-700 dark:text-slate-300">Save Draft</button>
-                    <button type="submit" name="submitType" value="Submit" class="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-xs font-black tracking-widest text-white uppercase shadow-lg disabled:opacity-70">Submit Risk</button>
+                    <button type="button" data-risk-submit="Draft" class="flex-1 rounded-2xl bg-slate-200 py-3.5 text-xs font-black tracking-widest text-slate-700 uppercase shadow disabled:opacity-70 dark:bg-slate-700 dark:text-slate-300">Save Draft</button>
+                    <button type="button" data-risk-submit="Submit" class="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-xs font-black tracking-widest text-white uppercase shadow-lg disabled:opacity-70">Submit Risk</button>
                 </div>
             </form>
         </div>
@@ -393,10 +376,6 @@
                 <div class="space-y-1">
                     <label class="ml-1 block font-black text-[10px] text-slate-400 uppercase">Site</label>
                     <div id="viewSiteName" class="min-h-[2.75rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"></div>
-                </div>
-                <div class="space-y-1">
-                    <label class="ml-1 block font-black text-[10px] text-slate-400 uppercase">Project/Site (location)</label>
-                    <div id="viewProjectSite" class="min-h-[2.75rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
@@ -488,10 +467,7 @@
                             }
                         </select>
                     </div>
-                    <div class="space-y-1">
-                        <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Project/Site (location)</label>
-                        <input type="text" id="viewEditProjectSite" name="ProjectSite" placeholder="Job Site Location" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-700 dark:bg-slate-800" required />
-                    </div>
+                    <input type="hidden" name="ProjectSite" id="viewEditProjectSite" />
                     <div class="space-y-1">
                         <label class="ml-1 font-black text-[10px] text-slate-400 uppercase">Attachments</label>
                         <input type="file" name="Attachments" multiple accept="image/*" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:file:bg-emerald-900/30 dark:file:text-emerald-300" />
@@ -564,6 +540,18 @@
         document.body.style.overflow = m.classList.contains('hidden') ? 'auto' : 'hidden';
     };
 
+    (function initIdentifyRiskForm() {
+        const form = document.getElementById('identifyRiskForm');
+        if (!form) return;
+        form.querySelectorAll('button[data-risk-submit]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var hidden = document.getElementById('riskSubmitType');
+                if (hidden) hidden.value = this.getAttribute('data-risk-submit') || 'Draft';
+                form.submit();
+            });
+        });
+    })();
+
     window.toggleViewModal = function() {
         const m = document.getElementById('viewRiskModal');
         m.classList.add('hidden');
@@ -584,7 +572,6 @@
         document.getElementById('viewStatus').textContent = risk.Status || '';
         document.getElementById('viewSourceType').textContent = risk.SourceType || '';
         document.getElementById('viewSiteName').textContent = risk.SiteName || 'Unassigned';
-        document.getElementById('viewProjectSite').textContent = risk.ProjectSite || '';
         document.getElementById('viewDateReported').textContent = risk.DateReported || '';
         document.getElementById('viewReportedBy').textContent = risk.ReportedBy || '—';
 
@@ -617,7 +604,8 @@
         document.getElementById('viewEditStatus').value = risk.Status || '';
         document.getElementById('viewEditReportedBy').value = risk.ReportedBy || '';
         document.getElementById('viewEditSiteId').value = risk.SiteId != null ? risk.SiteId.toString() : '';
-        document.getElementById('viewEditProjectSite').value = risk.ProjectSite || '';
+        var editProjectSiteEl = document.getElementById('viewEditProjectSite');
+        if (editProjectSiteEl) editProjectSiteEl.value = risk.ProjectSite || '';
 
         document.getElementById('viewModalSubmitRiskId').value = risk.Id;
         document.getElementById('viewModalAssessLink').href = assessBaseUrl + '/' + risk.Id;

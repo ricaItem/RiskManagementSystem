@@ -17,10 +17,6 @@
                 Assess <span class="text-emerald-500 italic">@Model.RiskTitle</span>
             </h1>
         </div>
-        <div class="hidden text-right md:block">
-            <span class="font-black tracking-tighter text-[10px] text-slate-400 uppercase">Category</span>
-            <p class="font-bold text-slate-700 dark:text-slate-300">@category</p>
-        </div>
     </div>
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
@@ -71,22 +67,24 @@
 
         <div class="space-y-6 lg:col-span-4">
 
-            <div class="rounded-[2rem] bg-slate-900 p-8 text-white shadow-2xl dark:bg-indigo-950">
-                <p class="mb-2 font-black tracking-[0.2em] text-[10px] text-indigo-300/60 uppercase">Calculated Risk Index</p>
+            <!-- UPDATED: White Card -->
+            <div class="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <p class="mb-2 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase">Calculated Risk Index</p>
+
                 <div class="flex items-baseline gap-3">
-                    <span id="displayScore" class="text-7xl font-black italic">1</span>
+                    <span id="displayScore" class="text-7xl font-black italic text-slate-900 dark:text-white">1</span>
                     <span id="displayLevel" class="text-lg font-black text-emerald-400 uppercase">Low</span>
                 </div>
 
-                <div class="mt-8 flex justify-between border-t border-white/10 pt-6 text-center">
+                <div class="mt-8 flex justify-between border-t border-slate-200 pt-6 text-center dark:border-slate-700">
                     <div>
                         <p class="font-black text-[10px] text-slate-400 uppercase">Likelihood</p>
-                        <p id="valL" class="text-xl font-black">1</p>
+                        <p id="valL" class="text-xl font-black text-slate-900 dark:text-white">1</p>
                     </div>
-                    <div class="text-xl font-light text-slate-500">×</div>
+                    <div class="text-xl font-light text-slate-400">×</div>
                     <div>
                         <p class="font-black text-[10px] text-slate-400 uppercase">Impact</p>
-                        <p id="valI" class="text-xl font-black">1</p>
+                        <p id="valI" class="text-xl font-black text-slate-900 dark:text-white">1</p>
                     </div>
                 </div>
             </div>
@@ -107,7 +105,9 @@
                     </select>
                 </div>
 
-                <button type="submit" class="w-full transform rounded-2xl bg-indigo-600 py-5 text-xs font-black tracking-widest text-white uppercase shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-1 hover:bg-indigo-700">
+                <!-- UPDATED: Navy Button -->
+                <button type="submit"
+                        class="w-full transform rounded-2xl bg-slate-900 py-5 text-xs font-black tracking-widest text-white uppercase shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 hover:bg-slate-800 dark:bg-indigo-900 dark:hover:bg-indigo-800">
                     Finalize Assessment
                 </button>
             </form>
@@ -118,21 +118,17 @@
 
 <script>
     function updateScore(l, i, score, element) {
-        // Visual Feedback: Remove focus from others and highlight selected
         document.querySelectorAll('button[type="button"]').forEach(btn => btn.style.border = "none");
         element.style.border = "4px solid white";
         element.style.boxShadow = "0 0 20px rgba(0,0,0,0.1)";
 
-        // Update Hidden Fields
         document.getElementById('hiddenL').value = l;
         document.getElementById('hiddenI').value = i;
 
-        // Update Display
         document.getElementById('displayScore').innerText = score;
         document.getElementById('valL').innerText = l;
         document.getElementById('valI').innerText = i;
 
-        // Determine Level
         let level = { text: 'Low', cls: 'text-emerald-400' };
         if (score >= 20) level = { text: 'Critical', cls: 'text-rose-500' };
         else if (score >= 15) level = { text: 'High', cls: 'text-orange-400' };

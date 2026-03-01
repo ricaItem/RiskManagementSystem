@@ -28,8 +28,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
+        private bool IsAdmin() => User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string filter = "active")
         {
             ViewData["Title"] = "Mitigation Planning";
             var user = await GetCurrentUserAsync();
@@ -38,21 +39,91 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = user.OrganizationId;
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
-            var risks = await db.Risks
+            var isArchived = string.Equals(filter, "archived", StringComparison.OrdinalIgnoreCase);
+            var query = db.Risks
                 .AsNoTracking()
-                .Where(r => r.OrgId == orgId && r.Status == "MitigationRequired" && r.DeletedAt == null)
+                .Include(r => r.MitigationPlan)
+                .Where(r => r.OrgId == orgId && r.Status == "MitigationRequired" && r.DeletedAt == null);
+
+            query = isArchived
+                ? query.Where(r => r.MitigationPlan != null && r.MitigationPlan.DeletedAt != null)
+                : query.Where(r => r.MitigationPlan == null || r.MitigationPlan.DeletedAt == null);
+
+            var risks = await query
                 .OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt)
-                .Select(r => new MitigationRiskCardViewModel
+                .Select(r => new
                 {
-                    RiskId = r.RiskId,
-                    Title = r.Title,
-                    Category = r.Category,
-                    Priority = r.Priority,
-                    CreatedAt = r.CreatedAt
+                    r.RiskId,
+                    PlanId = r.MitigationPlan != null ? r.MitigationPlan.PlanId : 0,
+                    r.Title,
+                    r.Category,
+                    r.Priority,
+                    r.CreatedAt,
+                    IsArchived = r.MitigationPlan != null && r.MitigationPlan.DeletedAt != null
                 })
                 .ToListAsync();
 
-            return View(risks);
+            var planIds = risks.Where(r => r.PlanId > 0).Select(r => r.PlanId).Distinct().ToList();
+            var planProgress = new Dictionary<int, (int Percent, List<string> AssigneeIds)>();
+            if (planIds.Count > 0)
+            {
+                var tasks = await db.MitigationTasks
+                    .AsNoTracking()
+                    .Where(t => planIds.Contains(t.PlanId))
+                    .Select(t => new { t.PlanId, t.Status, t.AssignedToUserId })
+                    .ToListAsync();
+
+                foreach (var planId in planIds)
+                {
+                    var planTasks = tasks.Where(t => t.PlanId == planId).ToList();
+                    var total = planTasks.Count;
+                    var done = planTasks.Count(t => t.Status == "Done");
+                    var percent = total > 0 ? (int)Math.Round((double)done / total * 100) : 0;
+                    var assigneeIds = planTasks
+                        .Where(t => !string.IsNullOrEmpty(t.AssignedToUserId))
+                        .Select(t => t.AssignedToUserId!)
+                        .Distinct()
+                        .ToList();
+                    planProgress[planId] = (percent, assigneeIds);
+                }
+            }
+
+            var allAssigneeIds = planProgress.Values.SelectMany(p => p.AssigneeIds).Distinct().ToList();
+            var userDisplayNames = new Dictionary<string, string>();
+            if (allAssigneeIds.Count > 0)
+            {
+                var users = await _platformDb.Users.AsNoTracking()
+                    .Where(u => allAssigneeIds.Contains(u.Id))
+                    .Select(u => new { u.Id, DisplayName = u.FirstName + " " + u.LastName })
+                    .ToListAsync();
+                foreach (var u in users)
+                    userDisplayNames[u.Id] = (u.DisplayName ?? "").Trim();
+            }
+
+            var model = risks.Select(r =>
+            {
+                var (percent, assigneeIds) = r.PlanId > 0 && planProgress.TryGetValue(r.PlanId, out var pp) ? pp : (0, new List<string>());
+                var displayNames = assigneeIds
+                    .Where(id => userDisplayNames.TryGetValue(id, out var name) && !string.IsNullOrEmpty(name))
+                    .Select(id => userDisplayNames[id])
+                    .Distinct()
+                    .ToList();
+                return new MitigationRiskCardViewModel
+                {
+                    RiskId = r.RiskId,
+                    PlanId = r.PlanId,
+                    Title = r.Title ?? "",
+                    Category = r.Category,
+                    Priority = r.Priority,
+                    CreatedAt = r.CreatedAt,
+                    IsArchived = r.IsArchived,
+                    ProgressPercent = percent,
+                    AssignedToDisplayNames = displayNames
+                };
+            }).ToList();
+
+            ViewBag.Filter = isArchived ? "archived" : "active";
+            return View(model);
         }
 
         public async Task<IActionResult> Board(int riskId)
@@ -75,6 +146,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(p => p.RiskId == riskId);
             if (plan == null)
                 return RedirectToAction("Identification", "Risks", new { area = "Client" });
+            if (plan.DeletedAt != null)
+                return RedirectToAction(nameof(Index), new { archived = 1 });
 
             var tasks = await db.MitigationTasks
                 .AsNoTracking()
@@ -114,7 +187,48 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.PlanId = plan.PlanId;
             ViewBag.RiskStatus = risk.Status;
             ViewBag.OrgUsers = orgUsers;
+            ViewBag.IsAdmin = IsAdmin();
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SoftDeletePlan(int planId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+            var plan = await db.MitigationPlans.Include(p => p.Risk).FirstOrDefaultAsync(p => p.PlanId == planId);
+            if (plan == null || plan.Risk.OrgId != user.OrganizationId) return Json(new { ok = false });
+            if (plan.DeletedAt != null) return Json(new { ok = true });
+            plan.DeletedAt = DateTime.UtcNow;
+            plan.Status = "Archived";
+            await db.SaveChangesAsync();
+            _riskService.AddAuditLog(db, plan.Risk.OrgId, user.Id, "MitigationPlan", plan.PlanId, "PlanArchived", "Mitigation plan archived", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await db.SaveChangesAsync();
+            return Json(new { ok = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteTask(int taskId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsAdmin()) return Json(new { ok = false });
+
+            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+            var task = await db.MitigationTasks
+                .Include(t => t.Plan)
+                .ThenInclude(p => p!.Risk)
+                .FirstOrDefaultAsync(t => t.TaskId == taskId);
+            if (task == null || task.Plan.Risk.OrgId != user.OrganizationId) return Json(new { ok = false });
+            db.MitigationTasks.Remove(task);
+            await db.SaveChangesAsync();
+            _riskService.AddAuditLog(db, task.Plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskDeleted", $"Task deleted: {task.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
+            await db.SaveChangesAsync();
+            return Json(new { ok = true });
         }
 
         [HttpPost]

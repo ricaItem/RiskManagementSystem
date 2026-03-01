@@ -109,7 +109,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (string.IsNullOrWhiteSpace(model?.Title))
                 return RedirectToAction("Identification");
 
-            var status = (submitType == "Submit") ? "For_Review" : "Draft";
+            var status = string.Equals(submitType?.Trim(), "Submit", StringComparison.OrdinalIgnoreCase)
+              ? "For_Review"
+              : "Draft";
             var risk = await _riskService.CreateRiskAsync(
                 user.OrganizationId,
                 user.Id,
@@ -364,19 +366,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return View(new RiskMonitoringViewModel());
 
-            var sites = await _monitoringHub.GetSitesAsync(orgId.Value);
-            var siteIds = sites.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
-            Dictionary<int, string> siteNames = new();
-            if (siteIds.Count > 0)
+            var hubSites = await _monitoringHub.GetSitesForHubAsync(orgId.Value);
+            var siteList = hubSites.Select(s => new MonitoringSiteItemViewModel
             {
-                await using var dbSites = await _tenantDbFactory.CreateAsync(orgId.Value);
-                siteNames = await dbSites.Sites.AsNoTracking().Where(s => siteIds.Contains(s.SiteId)).ToDictionaryAsync(s => s.SiteId, s => s.SiteName);
-            }
-            var siteList = sites.Select(s => new MonitoringSiteItemViewModel
-            {
-                SiteId = s.MonitoringSiteId,
+                SiteId = s.MonitoringSiteId > 0 ? s.MonitoringSiteId : -s.DbSiteId,
                 Name = s.Name,
-                SiteName = s.SiteId.HasValue && siteNames.TryGetValue(s.SiteId.Value, out var sn) ? sn : null,
+                SiteName = null,
                 Latitude = s.Latitude,
                 Longitude = s.Longitude
             }).ToList();
@@ -396,8 +391,9 @@ namespace Web_Sentro.Areas.Client.Controllers
                 apiOk = weather.ApiOk;
             }
 
-            var systemAlerts = await _monitoringHub.GetRecentAlertsAsync(orgId.Value, selectedId > 0 ? selectedId : null, 20);
-            var lastSync = selectedId > 0 ? await _monitoringHub.GetLastSyncUtcAsync(orgId.Value, selectedId) : null;
+            var monitoringSiteIdForAlerts = selectedId > 0 ? selectedId : (int?)null;
+            var systemAlerts = await _monitoringHub.GetRecentAlertsAsync(orgId.Value, monitoringSiteIdForAlerts, 20);
+            var lastSync = monitoringSiteIdForAlerts.HasValue ? await _monitoringHub.GetLastSyncUtcAsync(orgId.Value, monitoringSiteIdForAlerts.Value) : null;
             if (TempData["LastSyncUtc"] is DateTime tdSync) lastSync = tdSync;
             if (TempData["ApiHealthOk"] is bool tdApi) apiOk = (bool)tdApi;
 
@@ -433,10 +429,22 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
 
-            var (lastSync, apiOk) = await _monitoringHub.RunSyncForSiteAsync(orgId.Value, siteId, user.Id, simulate, HttpContext.RequestAborted);
+            int monitoringSiteId;
+            if (siteId <= 0)
+            {
+                var dbSiteId = -siteId;
+                monitoringSiteId = await _monitoringHub.EnsureMonitoringSiteForSiteAsync(orgId.Value, dbSiteId, HttpContext.RequestAborted);
+                if (monitoringSiteId == 0) return RedirectToAction(nameof(Monitoring));
+            }
+            else
+            {
+                monitoringSiteId = siteId;
+            }
+
+            var (lastSync, apiOk) = await _monitoringHub.RunSyncForSiteAsync(orgId.Value, monitoringSiteId, user.Id, simulate, HttpContext.RequestAborted);
             if (lastSync.HasValue) TempData["LastSyncUtc"] = lastSync.Value;
             TempData["ApiHealthOk"] = apiOk;
-            return RedirectToAction(nameof(Monitoring), new { siteId });
+            return RedirectToAction(nameof(Monitoring), new { siteId = monitoringSiteId });
         }
     }
 }
