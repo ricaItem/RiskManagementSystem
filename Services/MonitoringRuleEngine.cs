@@ -55,7 +55,7 @@ namespace WEB_Sentro.Services
                 });
             }
 
-            var heatIndex = w.HeatIndexC ?? HeatIndex(w.TempC, w.Humidity);
+            var heatIndex = w.HeatIndexC ?? HeatIndexC(w.TempC, w.Humidity);
             if (heatIndex >= HeatIndexThreshold || w.TempC >= TempHeatThreshold)
             {
                 results.Add(new MonitoringRuleResult
@@ -70,7 +70,7 @@ namespace WEB_Sentro.Services
             return results;
         }
 
-        private static double HeatIndex(double tempC, int humidity)
+        public static double HeatIndexC(double tempC, int humidity)
         {
             if (tempC < 27) return tempC;
             var t = tempC * 9 / 5 + 32;

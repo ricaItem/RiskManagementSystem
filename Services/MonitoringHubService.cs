@@ -10,16 +10,18 @@ namespace WEB_Sentro.Services
         public string RuleName { get; set; } = "";
         public string? MeasuredValues { get; set; }
         public string Severity { get; set; } = "";
+        public string Status { get; set; } = "Active";
         public DateTime TriggeredAt { get; set; }
+        public DateTime? ResolvedAtUtc { get; set; }
+        public DateTime? AcknowledgedAtUtc { get; set; }
+        public string? AcknowledgedByUserId { get; set; }
+        public string? AcknowledgedByDisplayName { get; set; }
         public int? RiskId { get; set; }
     }
 
-    /// <summary>Site entry for the Risk Monitoring Hub. Sourced from Sites table; may have a linked MonitoringSite.</summary>
     public class MonitoringHubSiteItem
     {
-        /// <summary>When &gt; 0, existing MonitoringSiteId. When 0, this is a Site-only row (use DbSiteId to create MonitoringSite on first sync).</summary>
         public int MonitoringSiteId { get; set; }
-        /// <summary>Site id from Sites table. Used when MonitoringSiteId is 0 to create a MonitoringSite on sync.</summary>
         public int DbSiteId { get; set; }
         public string Name { get; set; } = "";
         public double Latitude { get; set; }
@@ -31,6 +33,7 @@ namespace WEB_Sentro.Services
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly IOpenWeatherService _openWeather;
         private readonly RiskService _riskService;
+        private const int AutoRiskDedupeHours = 12;
 
         public MonitoringHubService(ITenantDbFactory tenantDbFactory, IOpenWeatherService openWeather, RiskService riskService)
         {
@@ -39,7 +42,6 @@ namespace WEB_Sentro.Services
             _riskService = riskService;
         }
 
-        /// <summary>Returns sites for the Hub from the Sites table (DB), not seeded MonitoringSites. Each Site appears once; if it has a linked MonitoringSite that is used for coordinates/sync.</summary>
         public async Task<List<MonitoringHubSiteItem>> GetSitesForHubAsync(int orgId, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
@@ -51,9 +53,7 @@ namespace WEB_Sentro.Services
             var siteIds = sites.Select(s => s.SiteId).ToList();
             Dictionary<int, MonitoringSite> monitoringBySite;
             if (siteIds.Count == 0)
-            {
                 monitoringBySite = new Dictionary<int, MonitoringSite>();
-            }
             else
             {
                 var monList = await db.MonitoringSites.AsNoTracking()
@@ -78,7 +78,6 @@ namespace WEB_Sentro.Services
             }).ToList();
         }
 
-        /// <summary>Ensures a MonitoringSite exists for the given DB Site; creates one using Site coordinates if missing. Returns the MonitoringSiteId.</summary>
         public async Task<int> EnsureMonitoringSiteForSiteAsync(int orgId, int dbSiteId, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
@@ -110,8 +109,13 @@ namespace WEB_Sentro.Services
         public async Task<DateTime?> GetLastSyncUtcAsync(int orgId, int siteId, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
-            var t = await db.MonitoringAlerts.AsNoTracking().Where(a => a.OrgId == orgId && a.MonitoringSiteId == siteId).MaxAsync(a => (DateTime?)a.TriggeredAt, ct);
-            return t;
+            var fromSnap = await db.MonitoringSnapshots.AsNoTracking()
+                .Where(s => s.OrgId == orgId && s.MonitoringSiteId == siteId)
+                .MaxAsync(s => (DateTime?)s.CapturedAtUtc, ct);
+            if (fromSnap.HasValue) return fromSnap.Value;
+            return await db.MonitoringAlerts.AsNoTracking()
+                .Where(a => a.OrgId == orgId && a.MonitoringSiteId == siteId)
+                .MaxAsync(a => (DateTime?)a.TriggeredAt, ct);
         }
 
         public async Task<List<MonitoringAlertViewModel>> GetRecentAlertsAsync(int orgId, int? siteId, int top = 20, CancellationToken ct = default)
@@ -120,9 +124,65 @@ namespace WEB_Sentro.Services
             var q = db.MonitoringAlerts.AsNoTracking().Where(a => a.OrgId == orgId);
             if (siteId.HasValue) q = q.Where(a => a.MonitoringSiteId == siteId.Value);
             var list = await q.OrderByDescending(a => a.TriggeredAt).Take(top)
-                .Select(a => new MonitoringAlertViewModel { AlertId = a.AlertId, RuleName = a.RuleName, MeasuredValues = a.MeasuredValues, Severity = a.Severity, TriggeredAt = a.TriggeredAt, RiskId = a.RiskId })
-                .ToListAsync(ct);
+                .Select(a => new MonitoringAlertViewModel
+                {
+                    AlertId = a.AlertId,
+                    RuleName = a.RuleName,
+                    MeasuredValues = a.MeasuredValues,
+                    Severity = a.Severity,
+                    Status = a.Status ?? "Active",
+                    TriggeredAt = a.TriggeredAt,
+                    ResolvedAtUtc = a.ResolvedAtUtc,
+                    AcknowledgedAtUtc = a.AcknowledgedAtUtc,
+                    AcknowledgedByUserId = a.AcknowledgedByUserId,
+                    RiskId = a.RiskId
+                }).ToListAsync(ct);
             return list;
+        }
+
+        public async Task EnsureDefaultRulesAsync(TenantDbContext db, int orgId, CancellationToken ct = default)
+        {
+            if (await db.MonitoringRules.AnyAsync(r => r.OrgId == orgId, ct)) return;
+
+            var defaults = new[]
+            {
+                new MonitoringRule { OrgId = orgId, Name = "High wind speed", Metric = "WindSpeed", Threshold = 40, Operator = ">", Severity = "High", CooldownMinutes = 60, Enabled = true },
+                new MonitoringRule { OrgId = orgId, Name = "Critical wind speed", Metric = "WindSpeed", Threshold = 60, Operator = ">", Severity = "Critical", CooldownMinutes = 60, Enabled = true },
+                new MonitoringRule { OrgId = orgId, Name = "Heavy rain", Metric = "RainMm", Threshold = 10, Operator = ">=", Severity = "High", CooldownMinutes = 60, Enabled = true },
+                new MonitoringRule { OrgId = orgId, Name = "High heat index", Metric = "HeatIndex", Threshold = 40, Operator = ">=", Severity = "High", CooldownMinutes = 120, Enabled = true },
+                new MonitoringRule { OrgId = orgId, Name = "Critical heat index", Metric = "HeatIndex", Threshold = 45, Operator = ">=", Severity = "Critical", CooldownMinutes = 120, Enabled = true }
+            };
+            foreach (var r in defaults)
+                db.MonitoringRules.Add(r);
+            await db.SaveChangesAsync(ct);
+        }
+
+        private static decimal GetMetricValue(WeatherSnapshot w, string metric)
+        {
+            switch (metric)
+            {
+                case "Temperature": return (decimal)w.TempC;
+                case "WindSpeed": return (decimal)w.WindSpeedKmh;
+                case "Humidity": return (decimal)w.Humidity;
+                case "RainMm": return (decimal)w.Rain_1h_mm;
+                case "HeatIndex":
+                    var hi = w.HeatIndexC ?? MonitoringRuleEngine.HeatIndexC(w.TempC, w.Humidity);
+                    return (decimal)hi;
+                default: return 0;
+            }
+        }
+
+        private static bool EvalRule(decimal value, string op, decimal threshold)
+        {
+            return op switch
+            {
+                ">" => value > threshold,
+                ">=" => value >= threshold,
+                "<" => value < threshold,
+                "<=" => value <= threshold,
+                "=" => value == threshold,
+                _ => value > threshold
+            };
         }
 
         public async Task<(DateTime? LastSyncUtc, bool ApiOk)> RunSyncForSiteAsync(int orgId, int siteId, string userId, string? simulate = null, CancellationToken ct = default)
@@ -133,83 +193,176 @@ namespace WEB_Sentro.Services
 
             WeatherSnapshot weather;
             if (string.Equals(simulate, "wind", StringComparison.OrdinalIgnoreCase))
-            {
-                weather = new WeatherSnapshot
-                {
-                    FetchedAt = DateTime.UtcNow,
-                    ApiOk = true,
-                    TempC = 30,
-                    WindSpeedKmh = 55,
-                    Condition = "Windy",
-                    WeatherId = 0,
-                    Humidity = 50,
-                    Rain_1h_mm = 0
-                };
-            }
+                weather = new WeatherSnapshot { FetchedAt = DateTime.UtcNow, ApiOk = true, TempC = 30, WindSpeedKmh = 55, Condition = "Windy", WeatherId = 0, Humidity = 50, Rain_1h_mm = 0 };
             else if (string.Equals(simulate, "storm", StringComparison.OrdinalIgnoreCase))
-            {
-                weather = new WeatherSnapshot
-                {
-                    FetchedAt = DateTime.UtcNow,
-                    ApiOk = true,
-                    TempC = 28,
-                    WindSpeedKmh = 30,
-                    Condition = "Thunderstorm",
-                    WeatherId = 211,
-                    Humidity = 80,
-                    Rain_1h_mm = 0
-                };
-            }
+                weather = new WeatherSnapshot { FetchedAt = DateTime.UtcNow, ApiOk = true, TempC = 28, WindSpeedKmh = 30, Condition = "Thunderstorm", WeatherId = 211, Humidity = 80, Rain_1h_mm = 0 };
             else
-            {
                 weather = await _openWeather.GetWeatherAsync(site.Latitude, site.Longitude, ct);
+
+            var now = DateTime.UtcNow;
+            var snapshot = new MonitoringSnapshot
+            {
+                OrgId = orgId,
+                MonitoringSiteId = siteId,
+                CapturedAtUtc = now,
+                Temperature = (decimal)weather.TempC,
+                WindSpeed = (decimal)weather.WindSpeedKmh,
+                Humidity = weather.Humidity,
+                RainMm = (decimal)weather.Rain_1h_mm,
+                Condition = weather.Condition,
+                RawJson = null
+            };
+            db.MonitoringSnapshots.Add(snapshot);
+
+            await EnsureDefaultRulesAsync(db, orgId, ct);
+
+            var triggeredByRule = new List<(int? RuleId, string RuleCode, string RuleName, string Severity, string MeasuredValues)>();
+            var dbRules = await db.MonitoringRules.AsNoTracking().Where(r => r.OrgId == orgId && r.Enabled).ToListAsync(ct);
+            foreach (var rule in dbRules)
+            {
+                var value = GetMetricValue(weather, rule.Metric);
+                if (!EvalRule(value, rule.Operator, rule.Threshold)) continue;
+                var ruleCode = $"Rule_{rule.RuleId}";
+                var measured = $"{rule.Metric}={value:F1}, threshold {rule.Operator} {rule.Threshold}";
+                triggeredByRule.Add((rule.RuleId, ruleCode, rule.Name, rule.Severity, measured));
             }
 
-            var results = MonitoringRuleEngine.Evaluate(weather);
-            var now = DateTime.UtcNow;
-
-            foreach (var r in results)
+            var staticResults = MonitoringRuleEngine.Evaluate(weather);
+            foreach (var r in staticResults)
             {
-                var alert = new MonitoringAlert
-                {
-                    OrgId = orgId,
-                    MonitoringSiteId = siteId,
-                    RuleCode = r.RuleCode,
-                    RuleName = r.RuleName,
-                    MeasuredValues = r.MeasuredValues.Length > 500 ? r.MeasuredValues.Substring(0, 500) : r.MeasuredValues,
-                    Severity = r.Severity,
-                    TriggeredAt = now
-                };
+                if (triggeredByRule.Any(t => t.RuleName == r.RuleName)) continue;
+                triggeredByRule.Add((null, r.RuleCode, r.RuleName, r.Severity, r.MeasuredValues.Length > 500 ? r.MeasuredValues.Substring(0, 500) : r.MeasuredValues));
+            }
 
-                if (r.Severity == "High" || r.Severity == "Critical")
+            var since3h = now.AddHours(-3);
+            var snapshots3h = await db.MonitoringSnapshots.AsNoTracking()
+                .Where(s => s.OrgId == orgId && s.MonitoringSiteId == siteId && s.CapturedAtUtc >= since3h)
+                .OrderBy(s => s.CapturedAtUtc)
+                .Select(s => new { s.RainMm, s.CapturedAtUtc })
+                .ToListAsync(ct);
+            var rainAccumulation3h = snapshots3h.Sum(s => s.RainMm ?? 0);
+            var rainSnapshotCount = snapshots3h.Count(s => (s.RainMm ?? 0) > 0);
+            if (rainAccumulation3h >= 30 || rainSnapshotCount >= 3)
+            {
+                var floodMeasured = $"RainAccumulationLast3Hours={rainAccumulation3h:F1}mm (threshold 30mm); rainy snapshots={rainSnapshotCount}";
+                if (!triggeredByRule.Any(t => t.RuleCode == "Flood_risk_likely"))
+                    triggeredByRule.Add((null, "Flood_risk_likely", "Flood risk likely (next 3 hours)", "High", floodMeasured.Length > 500 ? floodMeasured.Substring(0, 500) : floodMeasured));
+            }
+
+            var activeAlertsForSite = await db.MonitoringAlerts
+                .Where(a => a.OrgId == orgId && a.MonitoringSiteId == siteId && a.Status == "Active")
+                .ToListAsync(ct);
+
+            foreach (var t in triggeredByRule)
+            {
+                var ruleId = t.RuleId;
+                var ruleName = t.RuleName;
+                var ruleCode = t.RuleCode;
+                var cooldownMins = dbRules.FirstOrDefault(r => r.RuleId == ruleId)?.CooldownMinutes ?? 60;
+                var cooldownUntil = now.AddMinutes(-cooldownMins);
+                var existing = activeAlertsForSite.FirstOrDefault(a =>
+                    (ruleId.HasValue && a.RuleId == ruleId) || (!ruleId.HasValue && a.RuleName == ruleName));
+                if (existing != null)
                 {
-                    var existingRiskId = await _riskService.GetExistingOpenRiskIdForSiteRuleAsync(orgId, siteId, r.RuleCode, 6, ct);
-                    if (existingRiskId.HasValue)
+                    if (existing.TriggeredAt >= cooldownUntil)
                     {
-                        alert.RiskId = existingRiskId.Value;
-                        await _riskService.EnsureMitigationPlanExistsAsync(existingRiskId.Value, orgId, userId, ct);
-                    }
-                    else
-                    {
-                        var desc = $"Rule: {r.RuleCode}. Measured: {r.MeasuredValues}. At {now:O}.";
-                        if (desc.Length > 500) desc = desc.Substring(0, 500);
-                        var risk = await _riskService.CreateRiskFromMonitoringAsync(orgId, siteId, r.RuleCode,
-                            $"[AUTO] {r.RuleName} - {site.Name}", r.Severity, userId, site.Name, desc, site.SiteId, ct);
-                        if (risk != null)
-                        {
-                            alert.RiskId = risk.RiskId;
-                            await _riskService.EnsureMitigationPlanExistsAsync(risk.RiskId, orgId, userId, ct);
-                            var evidence = $"Rule={r.RuleCode}, Values={r.MeasuredValues}, At={now:O}";
-                            _riskService.AddAuditLog(db, orgId, userId, "MonitoringEvent", risk.RiskId, "AutoRiskCreated", evidence.Length > 255 ? evidence.Substring(0, 255) : evidence, null);
-                        }
+                        existing.MeasuredValues = t.MeasuredValues;
+                        existing.TriggeredAt = now;
                     }
                 }
+                else
+                {
+                    var alert = new MonitoringAlert
+                    {
+                        OrgId = orgId,
+                        MonitoringSiteId = siteId,
+                        RuleId = ruleId,
+                        RuleCode = ruleCode,
+                        RuleName = ruleName,
+                        MeasuredValues = t.MeasuredValues.Length > 500 ? t.MeasuredValues.Substring(0, 500) : t.MeasuredValues,
+                        Severity = t.Severity,
+                        Status = "Active",
+                        TriggeredAt = now
+                    };
+                    if (t.Severity == "High" || t.Severity == "Critical")
+                    {
+                        var existingRiskId = await _riskService.GetExistingOpenRiskIdForSiteRuleAsync(orgId, siteId, ruleCode, AutoRiskDedupeHours, ct);
+                        if (existingRiskId.HasValue)
+                        {
+                            alert.RiskId = existingRiskId.Value;
+                            var risk = await db.Risks.FirstOrDefaultAsync(r => r.RiskId == existingRiskId.Value, ct);
+                            if (risk != null)
+                            {
+                                risk.UpdatedAt = now;
+                                risk.Status = "MitigationRequired";
+                                var desc = $"Rule: {ruleCode}. Measured: {t.MeasuredValues}. At {now:O}.";
+                                risk.Description = desc.Length > 500 ? desc.Substring(0, 500) : desc;
+                            }
+                            await _riskService.EnsureAutoRiskEvaluationForRiskAsync(existingRiskId.Value, orgId, t.Severity, t.MeasuredValues, userId, ct);
+                            await _riskService.EnsureMitigationPlanExistsAsync(existingRiskId.Value, orgId, userId, t.Severity, ct);
+                        }
+                        else
+                        {
+                            var title = $"[AUTO] {ruleName} - {site.Name}";
+                            var desc = $"Rule: {ruleCode}. Measured: {t.MeasuredValues}. At {now:O}.";
+                            if (desc.Length > 500) desc = desc.Substring(0, 500);
+                            var risk = await _riskService.CreateRiskFromMonitoringAsync(orgId, siteId, ruleCode, title, t.Severity, userId, site.Name, desc, site.SiteId, ct);
+                            if (risk != null)
+                            {
+                                alert.RiskId = risk.RiskId;
+                                await _riskService.EnsureMitigationPlanExistsAsync(risk.RiskId, orgId, userId, t.Severity, ct);
+                                _riskService.AddAuditLog(db, orgId, userId, "MonitoringEvent", risk.RiskId, "AutoRiskCreated", desc.Length > 255 ? desc.Substring(0, 255) : desc, null);
+                            }
+                        }
+                    }
+                    db.MonitoringAlerts.Add(alert);
+                    activeAlertsForSite.Add(alert);
+                }
+            }
 
-                db.MonitoringAlerts.Add(alert);
+            var triggeredRuleKeys = triggeredByRule.Select(x => x.RuleId.HasValue ? $"R{x.RuleId}" : x.RuleName).ToHashSet();
+            foreach (var alert in activeAlertsForSite.Where(a => a.AlertId != 0))
+            {
+                var key = alert.RuleId.HasValue ? $"R{alert.RuleId}" : alert.RuleName;
+                if (triggeredRuleKeys.Contains(key)) continue;
+                alert.Status = "Resolved";
+                alert.ResolvedAtUtc = now;
             }
 
             await db.SaveChangesAsync(ct);
             return (now, weather.ApiOk);
+        }
+
+        public async Task<bool> AcknowledgeAlertAsync(int orgId, int alertId, string userId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var alert = await db.MonitoringAlerts.FirstOrDefaultAsync(a => a.AlertId == alertId && a.OrgId == orgId && a.Status == "Active", ct);
+            if (alert == null) return false;
+            alert.AcknowledgedAtUtc = DateTime.UtcNow;
+            alert.AcknowledgedByUserId = userId;
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<MonitoringAlert?> GetAlertAsync(int orgId, int alertId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            return await db.MonitoringAlerts.AsNoTracking().FirstOrDefaultAsync(a => a.AlertId == alertId && a.OrgId == orgId, ct);
+        }
+
+        public async Task<int?> CreateRiskFromAlertAndLinkAsync(int orgId, int alertId, string userId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var alert = await db.MonitoringAlerts.FirstOrDefaultAsync(a => a.AlertId == alertId && a.OrgId == orgId, ct);
+            if (alert == null || alert.RiskId.HasValue) return null;
+            var site = await db.MonitoringSites.AsNoTracking().FirstOrDefaultAsync(s => s.MonitoringSiteId == alert.MonitoringSiteId && s.OrgId == orgId, ct);
+            var siteName = site?.Name ?? "";
+            var risk = await _riskService.CreateRiskFromMonitoringAsync(orgId, alert.MonitoringSiteId, alert.RuleCode,
+                $"[AUTO] {alert.RuleName} - {siteName}", alert.Severity, userId, siteName, alert.MeasuredValues, site?.SiteId, ct);
+            if (risk == null) return null;
+            alert.RiskId = risk.RiskId;
+            await db.SaveChangesAsync(ct);
+            return risk.RiskId;
         }
     }
 }

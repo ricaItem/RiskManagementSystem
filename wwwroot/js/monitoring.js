@@ -31,8 +31,12 @@
     }
 
     function getSiteId() {
-        if (siteSelect) return siteSelect.value || form.querySelector('input[name="siteId"]').value;
-        return form ? (form.querySelector('input[name="siteId"]') || {}).value : '';
+        if (form) {
+            var hidden = form.querySelector('input[name="siteId"]');
+            if (hidden && hidden.value) return hidden.value;
+        }
+        if (siteSelect) return siteSelect.value;
+        return '';
     }
 
     function runAutoSync() {

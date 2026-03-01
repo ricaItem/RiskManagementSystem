@@ -400,6 +400,32 @@ namespace Web_Sentro.Areas.Client.Controllers
             var activeCount = await _riskService.GetActiveRisksCountAsync(orgId, IsSuperAdmin());
             var highPriority = await _riskService.GetHighPriorityRisksAsync(orgId, IsSuperAdmin(), 10);
 
+            var ackUserIds = systemAlerts.Where(a => !string.IsNullOrEmpty(a.AcknowledgedByUserId)).Select(a => a.AcknowledgedByUserId!).Distinct().ToList();
+            var ackUserNames = new Dictionary<string, string>();
+            if (ackUserIds.Count > 0)
+            {
+                foreach (var uid in ackUserIds)
+                {
+                    var u = await _userManager.FindByIdAsync(uid);
+                    ackUserNames[uid] = u != null ? $"{u.FirstName} {u.LastName}".Trim() : "Unknown";
+                }
+            }
+
+            var posture = new SiteRiskPostureViewModel
+            {
+                ActiveAlertsCount = systemAlerts.Count(a => a.Status == "Active"),
+                CriticalAlertsCount = systemAlerts.Count(a => a.Severity == "Critical" && a.Status == "Active"),
+                OpenCriticalRisksCount = monitoringSiteIdForAlerts.HasValue ? await _riskService.GetOpenCriticalRisksCountForSiteAsync(orgId.Value, monitoringSiteIdForAlerts.Value) : 0,
+                OverdueMitigationTasksCount = monitoringSiteIdForAlerts.HasValue ? await _riskService.GetOverdueMitigationTasksCountForSiteAsync(orgId.Value, monitoringSiteIdForAlerts) : 0
+            };
+
+            var forecastChips = new List<ForecastChipViewModel>();
+            if (selectedSite != null)
+            {
+                forecastChips.Add(new ForecastChipViewModel { Label = "Wind peak", Value = $"{windSpeed:F0} km/h (current)" });
+                forecastChips.Add(new ForecastChipViewModel { Label = "Rain next 6h", Value = "—" });
+            }
+
             var model = new RiskMonitoringViewModel
             {
                 ProjectName = selectedSite?.Name ?? "Select site",
@@ -412,9 +438,23 @@ namespace Web_Sentro.Areas.Client.Controllers
                 HighPriorityRisks = highPriority,
                 Sites = siteList,
                 SelectedSiteId = selectedId,
-                SystemAlerts = systemAlerts.Select(a => new MonitoringAlertItemViewModel { AlertId = a.AlertId, RuleName = a.RuleName, MeasuredValues = a.MeasuredValues, Severity = a.Severity, TriggeredAt = a.TriggeredAt, RiskId = a.RiskId }).ToList(),
+                SystemAlerts = systemAlerts.Select(a => new MonitoringAlertItemViewModel
+                {
+                    AlertId = a.AlertId,
+                    RuleName = a.RuleName,
+                    MeasuredValues = a.MeasuredValues,
+                    Severity = a.Severity,
+                    Status = a.Status,
+                    TriggeredAt = a.TriggeredAt,
+                    ResolvedAtUtc = a.ResolvedAtUtc,
+                    AcknowledgedAtUtc = a.AcknowledgedAtUtc,
+                    AcknowledgedByDisplayName = a.AcknowledgedByUserId != null && ackUserNames.TryGetValue(a.AcknowledgedByUserId, out var dn) ? dn : null,
+                    RiskId = a.RiskId
+                }).ToList(),
                 LastSyncUtc = lastSync,
-                ApiHealthOk = apiOk
+                ApiHealthOk = apiOk,
+                SiteRiskPosture = posture,
+                ForecastChips = forecastChips
             };
             ViewData["EnableSimulation"] = _env.IsDevelopment() || string.Equals(_config["Monitoring:EnableSimulation"], "true", StringComparison.OrdinalIgnoreCase);
             return View(model);
@@ -445,6 +485,45 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (lastSync.HasValue) TempData["LastSyncUtc"] = lastSync.Value;
             TempData["ApiHealthOk"] = apiOk;
             return RedirectToAction(nameof(Monitoring), new { siteId = monitoringSiteId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcknowledgeAlert(int alertId, int? siteId = null)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
+            var ok = await _monitoringHub.AcknowledgeAlertAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
+            if (!ok) return NotFound();
+            return RedirectToAction(nameof(Monitoring), new { siteId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateMitigationPlanFromAlert(int alertId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
+            var alert = await _monitoringHub.GetAlertAsync(orgId.Value, alertId, HttpContext.RequestAborted);
+            if (alert == null) return NotFound();
+            int riskId;
+            if (alert.RiskId.HasValue)
+            {
+                riskId = alert.RiskId.Value;
+                await _riskService.EnsureAutoRiskEvaluationForRiskAsync(riskId, orgId.Value, alert.Severity, alert.MeasuredValues, user.Id, HttpContext.RequestAborted);
+            }
+            else
+            {
+                var created = await _monitoringHub.CreateRiskFromAlertAndLinkAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
+                if (!created.HasValue) return NotFound();
+                riskId = created.Value;
+            }
+            await _riskService.EnsureMitigationPlanExistsAsync(riskId, orgId.Value, user.Id, alert.Severity, HttpContext.RequestAborted);
+            return RedirectToAction("Board", "Mitigation", new { area = "Client", riskId });
         }
     }
 }

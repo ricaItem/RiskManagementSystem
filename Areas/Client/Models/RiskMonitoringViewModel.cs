@@ -16,6 +16,23 @@ namespace Web_Sentro.Areas.Client.Models
         public List<MonitoringAlertItemViewModel> SystemAlerts { get; set; } = new();
         public DateTime? LastSyncUtc { get; set; }
         public bool ApiHealthOk { get; set; }
+
+        public SiteRiskPostureViewModel SiteRiskPosture { get; set; } = new();
+        public List<ForecastChipViewModel> ForecastChips { get; set; } = new();
+    }
+
+    public class SiteRiskPostureViewModel
+    {
+        public int ActiveAlertsCount { get; set; }
+        public int CriticalAlertsCount { get; set; }
+        public int OpenCriticalRisksCount { get; set; }
+        public int OverdueMitigationTasksCount { get; set; }
+    }
+
+    public class ForecastChipViewModel
+    {
+        public string Label { get; set; } = "";
+        public string Value { get; set; } = "";
     }
 
     public class MonitoringSiteItemViewModel
@@ -33,7 +50,11 @@ namespace Web_Sentro.Areas.Client.Models
         public string RuleName { get; set; } = "";
         public string? MeasuredValues { get; set; }
         public string Severity { get; set; } = "";
+        public string Status { get; set; } = "Active";
         public DateTime TriggeredAt { get; set; }
+        public DateTime? ResolvedAtUtc { get; set; }
+        public DateTime? AcknowledgedAtUtc { get; set; }
+        public string? AcknowledgedByDisplayName { get; set; }
         public int? RiskId { get; set; }
     }
 }

@@ -12,6 +12,7 @@ namespace WEB_Sentro.Data.Entities
         public string? Description { get; set; }
         public string? Category { get; set; }
         public string? SourceType { get; set; }
+        public string? MonitoringRuleCode { get; set; }
         public string Status { get; set; } = "Draft";
         public string? Priority { get; set; }
         public string? ProjectSite { get; set; }

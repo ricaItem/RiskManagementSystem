@@ -208,6 +208,13 @@ namespace WEB_Sentro.Data.Migrations.Tenant
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AlertId"));
 
+                    b.Property<DateTime?>("AcknowledgedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AcknowledgedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("MeasuredValues")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -218,6 +225,9 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.Property<int>("OrgId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("RiskId")
                         .HasColumnType("int");
 
@@ -226,12 +236,20 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("RuleId")
+                        .HasColumnType("int");
+
                     b.Property<string>("RuleName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -282,6 +300,104 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.ToTable("MonitoringSites", (string)null);
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MonitoringRule", b =>
+                {
+                    b.Property<int>("RuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RuleId"));
+
+                    b.Property<int>("CooldownMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Metric")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Operator")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Threshold")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("RuleId");
+
+                    b.HasIndex("OrgId");
+
+                    b.ToTable("MonitoringRules", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.MonitoringSnapshot", b =>
+                {
+                    b.Property<int>("SnapshotId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SnapshotId"));
+
+                    b.Property<DateTime>("CapturedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Condition")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("Humidity")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("MonitoringSiteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("RainMm")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<string>("RawJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal?>("WindSpeed")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.HasKey("SnapshotId");
+
+                    b.HasIndex("OrgId", "MonitoringSiteId");
+
+                    b.HasIndex("CapturedAtUtc");
+
+                    b.ToTable("MonitoringSnapshots", (string)null);
+                });
+
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Risk", b =>
                 {
                     b.Property<int>("RiskId")
@@ -306,6 +422,10 @@ namespace WEB_Sentro.Data.Migrations.Tenant
 
                     b.Property<int?>("LocationId")
                         .HasColumnType("int");
+
+                    b.Property<string>("MonitoringRuleCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("OrgId")
                         .HasColumnType("int");

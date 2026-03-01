@@ -187,6 +187,29 @@ namespace WEB_Sentro.Services
             return await q.CountAsync(ct);
         }
 
+        public async Task<int> GetOpenCriticalRisksCountForSiteAsync(int orgId, int monitoringSiteId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            return await db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId && r.LocationId == monitoringSiteId && r.DeletedAt == null
+                    && (r.Priority == "Critical" || r.Priority == "High")
+                    && r.Status != "Closed_Invalid" && r.Status != "Rejected")
+                .CountAsync(ct);
+        }
+
+        public async Task<int> GetOverdueMitigationTasksCountForSiteAsync(int orgId, int? monitoringSiteId, CancellationToken ct = default)
+        {
+            if (!monitoringSiteId.HasValue) return 0;
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var today = DateTime.UtcNow.Date;
+            return await db.MitigationTasks.AsNoTracking()
+                .Where(t => t.Plan != null && t.Plan.Risk != null
+                    && t.Plan.Risk.OrgId == orgId && t.Plan.Risk.LocationId == monitoringSiteId
+                    && t.Plan.Risk.DeletedAt == null
+                    && t.DueDate.HasValue && t.DueDate.Value < today && t.Status != "Done")
+                .CountAsync(ct);
+        }
+
         public async Task<List<RiskIdentificationViewModel>> GetHighPriorityRisksAsync(int? orgId, bool superAdmin, int top = 10, CancellationToken ct = default)
         {
             if (!orgId.HasValue)
@@ -240,13 +263,13 @@ namespace WEB_Sentro.Services
                 .AnyAsync(ct);
         }
 
-        /// <summary>Returns the RiskId of an existing open risk for the same OrgId+SiteId+RuleCode within the last withinHours, or null.</summary>
-        public async Task<int?> GetExistingOpenRiskIdForSiteRuleAsync(int orgId, int monitoringSiteId, string ruleCode, int withinHours = 6, CancellationToken ct = default)
+        /// <summary>Returns the RiskId of an existing open risk for the same OrgId+SiteId+MonitoringRuleCode within the last withinHours, or null.</summary>
+        public async Task<int?> GetExistingOpenRiskIdForSiteRuleAsync(int orgId, int monitoringSiteId, string ruleCode, int withinHours = 12, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var since = DateTime.UtcNow.AddHours(-withinHours);
             return await db.Risks.AsNoTracking()
-                .Where(r => r.OrgId == orgId && r.LocationId == monitoringSiteId && r.Category == ruleCode && r.SourceType == "WeatherAPI"
+                .Where(r => r.OrgId == orgId && r.LocationId == monitoringSiteId && r.MonitoringRuleCode == ruleCode && r.SourceType == "WeatherAPI"
                     && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.CreatedAt >= since)
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => (int?)r.RiskId)
@@ -256,6 +279,7 @@ namespace WEB_Sentro.Services
         public async Task<Risk?> CreateRiskFromMonitoringAsync(int orgId, int monitoringSiteId, string ruleCode, string title, string priority, string reportByUserId, string? siteName, string? descriptionWithMeasuredValues, int? projectSiteId = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var isHighOrCritical = string.Equals(priority, "Critical", StringComparison.OrdinalIgnoreCase) || string.Equals(priority, "High", StringComparison.OrdinalIgnoreCase);
             var risk = new Risk
             {
                 OrgId = orgId,
@@ -263,17 +287,77 @@ namespace WEB_Sentro.Services
                 SiteId = projectSiteId,
                 ReportByUserId = reportByUserId,
                 Title = title,
-                Category = ruleCode,
+                Category = "Weather",
+                MonitoringRuleCode = ruleCode,
                 SourceType = "WeatherAPI",
                 ProjectSite = siteName,
                 Description = descriptionWithMeasuredValues ?? $"Auto-created from monitoring rule: {ruleCode}",
-                Status = "Monitoring",
+                Status = isHighOrCritical ? "MitigationRequired" : "Monitoring",
                 Priority = priority,
                 CreatedAt = DateTime.UtcNow
             };
             db.Risks.Add(risk);
             await db.SaveChangesAsync(ct);
+            await EnsureAutoRiskEvaluationAsync(db, risk.RiskId, orgId, priority, descriptionWithMeasuredValues, reportByUserId, ct);
+            await db.SaveChangesAsync(ct);
             return risk;
+        }
+
+        /// <summary>Creates or updates a single RiskEvaluation for an AUTO risk from monitoring (Likelihood/Impact from severity).</summary>
+        public async Task EnsureAutoRiskEvaluationAsync(TenantDbContext db, int riskId, int orgId, string severity, string? measuredValuesRemarks, string userId, CancellationToken ct = default)
+        {
+            var (likelihood, impact) = severity switch
+            {
+                _ when string.Equals(severity, "Critical", StringComparison.OrdinalIgnoreCase) => (5, 5),
+                _ when string.Equals(severity, "High", StringComparison.OrdinalIgnoreCase) => (4, 4),
+                _ when string.Equals(severity, "Medium", StringComparison.OrdinalIgnoreCase) => (3, 3),
+                _ => (2, 2)
+            };
+            var riskScore = RiskEvaluationService.ComputeRiskScore(likelihood, impact);
+            var riskLevel = RiskEvaluationService.RiskLevelFromScore(riskScore);
+            var r = measuredValuesRemarks ?? "";
+            var remarks = r.Length > 255 ? r.Substring(0, 255) : r;
+
+            var existing = await db.RiskEvaluations.Where(e => e.RiskId == riskId).OrderByDescending(e => e.EvaluatedAt).FirstOrDefaultAsync(ct);
+            if (existing != null)
+            {
+                existing.LikelihoodScore = likelihood;
+                existing.ImpactScore = impact;
+                existing.RiskScore = riskScore;
+                existing.RiskLevel = riskLevel;
+                existing.EvaluatedByUserId = userId;
+                existing.Remarks = remarks;
+                existing.EvaluatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                db.RiskEvaluations.Add(new RiskEvaluation
+                {
+                    RiskId = riskId,
+                    EvaluatedByUserId = userId,
+                    LikelihoodScore = likelihood,
+                    ImpactScore = impact,
+                    RiskScore = riskScore,
+                    RiskLevel = riskLevel,
+                    Decision = "Auto",
+                    Remarks = remarks,
+                    EvaluatedAt = DateTime.UtcNow
+                });
+            }
+            var risk = await db.Risks.FirstOrDefaultAsync(r => r.RiskId == riskId && r.OrgId == orgId, ct);
+            if (risk != null)
+            {
+                risk.Priority = riskLevel;
+                risk.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        /// <summary>Ensures an AUTO risk has a RiskEvaluation (creates or updates). Call when risk already exists (e.g. from Create Plan or sync update).</summary>
+        public async Task EnsureAutoRiskEvaluationForRiskAsync(int riskId, int orgId, string severity, string? measuredValuesRemarks, string userId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            await EnsureAutoRiskEvaluationAsync(db, riskId, orgId, severity, measuredValuesRemarks, userId, ct);
+            await db.SaveChangesAsync(ct);
         }
 
         public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, bool superAdmin, CancellationToken ct = default)
@@ -403,7 +487,7 @@ namespace WEB_Sentro.Services
             return true;
         }
 
-        public async Task EnsureMitigationPlanExistsAsync(int riskId, int orgId, string userId, CancellationToken ct = default)
+        public async Task EnsureMitigationPlanExistsAsync(int riskId, int orgId, string userId, string? severity = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -429,7 +513,7 @@ namespace WEB_Sentro.Services
             var hasTasks = await db.MitigationTasks.AnyAsync(t => t.PlanId == plan.PlanId, ct);
             if (hasTasks) return;
 
-            var titles = GetDefaultTaskTitlesForRisk(risk.Category, risk.SourceType);
+            var titles = GetDefaultTaskTitlesForRisk(risk.Category, risk.SourceType, severity);
             var now = DateTime.UtcNow;
             foreach (var title in titles)
             {
@@ -445,12 +529,17 @@ namespace WEB_Sentro.Services
             await db.SaveChangesAsync(ct);
         }
 
-        private static string[] GetDefaultTaskTitlesForRisk(string? category, string? sourceType)
+        private static string[] GetDefaultTaskTitlesForRisk(string? category, string? sourceType, string? severity = null)
         {
             var cat = (category ?? "").Trim();
             var src = (sourceType ?? "").Trim();
+            var sev = (severity ?? "").Trim();
             if (cat.Contains("Weather", StringComparison.OrdinalIgnoreCase) || src.Equals("WeatherAPI", StringComparison.OrdinalIgnoreCase) || src.Equals("Weather", StringComparison.OrdinalIgnoreCase))
+            {
+                if (sev.Equals("Critical", StringComparison.OrdinalIgnoreCase))
+                    return new[] { "Assign safety officer and due date", "Suspend crane operations if wind exceeds threshold", "Secure loose materials and barricade area", "Communicate toolbox talk: high wind protocol" };
                 return new[] { "Suspend crane operations", "Secure loose materials", "Conduct toolbox talk" };
+            }
             if (cat.Contains("Supplier", StringComparison.OrdinalIgnoreCase) || src.Equals("SupplierAPI", StringComparison.OrdinalIgnoreCase) || src.Equals("Supplier", StringComparison.OrdinalIgnoreCase))
                 return new[] { "Contact supplier", "Arrange backup supplier", "Update procurement schedule" };
             return new[] { "Investigate the risk", "Assign owner and due date", "Implement control measures", "Verify controls are effective" };

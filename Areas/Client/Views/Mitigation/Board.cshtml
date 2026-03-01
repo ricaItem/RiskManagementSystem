@@ -29,6 +29,30 @@
         "Done" => "Done",
         _ => s
     };
+
+    <style>
+        .soft-card {
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .soft-card-hover:hover {
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.10);
+        }
+
+        .kanban-scroll::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
+        }
+
+        .kanban-scroll::-webkit-scrollbar-thumb {
+            background: rgba(100,116,139,.25);
+            border-radius: 999px;
+        }
+
+        .kanban-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
 }
 
 @Html.AntiForgeryToken()

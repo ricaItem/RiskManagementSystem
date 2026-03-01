@@ -36,7 +36,6 @@
         return 0;
     }
 
-    // Summary numbers (server-side)
     var total = Model.Count();
     var avgProgress = total == 0 ? 0 : (int)Math.Round(Model.Average(x => ClampPercent(x.ProgressPercent)));
     var criticalCount = Model.Count(x => (x.Priority ?? "").Contains("Critical", StringComparison.OrdinalIgnoreCase));
@@ -48,14 +47,12 @@
 
 <div class="animate-in fade-in min-h-screen w-full duration-1000">
     <div class="w-full">
-        <!-- Title, KPI cards, and search bar with consistent spacing -->
         <div class="space-y-5">
             <!-- Page title -->
             <div>
                 <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                     Mitigation <span class="italic" style="color: var(--brand-accent);">Planning</span>
                 </h1>
-                <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Strategy execution</p>
             </div>
 
             <!-- KPI strip -->
@@ -78,7 +75,6 @@
             </div>
             </div>
 
-            <!-- Search bar group (below KPI cards) -->
             <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900/50">
             <select id="statusFilter" class="h-9 rounded-xl border border-slate-200 bg-white px-3.5 text-[10px] font-black uppercase tracking-wider outline-none focus:ring-2 focus:ring-[var(--brand-accent)] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
                     onchange="window.location.href = '@Url.Action("Index", "Mitigation", new { area = "Client" })' + '?filter=' + this.value;">
@@ -117,7 +113,6 @@
 
         <!-- Main content (full width) -->
         <div class="mt-6">
-                <!-- Empty results -->
                 <div id="noResults" class="hidden mb-6 rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center">
                     <div class="text-sm font-black text-slate-800">No results</div>
                     <div class="mt-1 text-xs font-bold text-slate-500">Try clearing search / category filters.</div>
@@ -127,7 +122,6 @@
                     </button>
                 </div>
 
-                <!-- YOUR GRID (UNCHANGED CARD MARKUP INSIDE) -->
                 <div id="gridView" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     @foreach (var risk in Model)
                     {
@@ -135,8 +129,7 @@
                         var pct = ClampPercent(risk.ProgressPercent);
                         var boardUrl = risk.IsArchived ? "#" : Url.Action("Board", "Mitigation", new { area = "Client", riskId = risk.RiskId });
 
-                        // Added ONLY data attributes for filtering/sorting; card HTML untouched
-                        <div class="mitigation-item group relative flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300"
+                        <div class="mitigation-item group relative flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/90 dark:hover:border-slate-600"
                              data-title="@risk.Title"
                              data-category="@risk.Category"
                              data-plan-id="@risk.PlanId"
@@ -145,7 +138,7 @@
                              data-progress="@pct">
 
                             <div class="flex items-center justify-between mb-4">
-                                <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase">@risk.Category</span>
+                                <span class="font-black tracking-widest text-[9px] text-slate-400 uppercase dark:text-slate-500">@risk.Category</span>
                                 <div class="flex items-center gap-2">
                                     @if (tone == "critical")
                                     {
@@ -155,13 +148,13 @@
                                     }
                                     else
                                     {
-                                        <span class="text-[8px] font-black uppercase text-slate-400">@PriorityLabel(risk.Priority)</span>
+                                        <span class="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500">@PriorityLabel(risk.Priority)</span>
                                         <div class="h-2.5 w-2.5 rounded-full @PriorityDotClass(tone)"></div>
                                     }
                                     @if (!risk.IsArchived)
                                     {
                                         <div class="relative">
-                                            <button type="button" onclick="event.stopPropagation(); toggleCardMenu(this)" aria-label="Options" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                                            <button type="button" onclick="event.stopPropagation(); toggleCardMenu(this)" aria-label="Options" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200">
                                                 <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                                             </button>
                                             <div class="card-dropdown absolute right-0 top-full z-20 mt-1 hidden min-w-[140px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
@@ -175,30 +168,30 @@
                                 </div>
                             </div>
 
-                            <h3 class="mb-6 text-[18px] font-bold text-slate-800">@risk.Title</h3>
+                            <h3 class="mb-6 text-[18px] font-bold text-slate-800 dark:text-slate-100">@risk.Title</h3>
 
                             <div class="mb-6">
                                 <div class="flex items-center justify-between mb-1.5">
-                                    <span class="text-[9px] font-black uppercase text-slate-400">Done</span>
-                                    <span class="text-[10px] font-black text-slate-600">@pct%</span>
+                                    <span class="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">Done</span>
+                                    <span class="text-[10px] font-black text-slate-600 dark:text-slate-300">@pct%</span>
                                 </div>
-                                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
                                     <div class="h-full bg-[#00C875]" style="width: @(pct + "%")"></div>
                                 </div>
                             </div>
 
-                            <div class="h-px w-full bg-slate-100 mb-4"></div>
+                            <div class="h-px w-full bg-slate-100 dark:bg-slate-600 mb-4"></div>
 
                             <div class="flex items-center justify-between">
                                 <div class="flex -space-x-2">
                                     @foreach (var name in risk.AssignedToDisplayNames.Take(3))
                                     {
-                                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-indigo-100 text-[10px] font-black text-indigo-700">
+                                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white dark:border-slate-800 bg-indigo-100 dark:bg-indigo-900/60 text-[10px] font-black text-indigo-700 dark:text-indigo-200">
                                             @name[0]
                                         </div>
                                     }
                                 </div>
-                                <a href="@boardUrl" class="rounded-md bg-[#1e293b] px-4 py-2 text-[10px] font-black tracking-widest text-white uppercase hover:bg-slate-700">
+                                <a href="@boardUrl" class="rounded-md bg-[#1e293b] px-4 py-2 text-[10px] font-black tracking-widest text-white uppercase hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600">
                                     View Board
                                 </a>
                             </div>
@@ -206,7 +199,6 @@
                     }
                 </div>
 
-                <!-- YOUR LIST VIEW (card untouched; only data attributes + filtering/sorting will work) -->
                 <div id="listView" class="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 border-b border-slate-200">
@@ -271,7 +263,6 @@
     </div>
 </div>
 
-<!-- Archive plan confirmation (unchanged) -->
 <div id="archivePlanConfirmModal" class="fixed inset-0 z-[70] hidden">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeArchivePlanConfirm()"></div>
     <div class="relative flex min-h-screen items-center justify-center p-4">
@@ -311,7 +302,6 @@
         updateVisibleCount();
     }
 
-    // --- NEW: unified filtering (search + category) ---
     const searchEl = document.getElementById('riskSearch');
     const categoryEl = document.getElementById('categoryFilter');
     const sortEl = document.getElementById('sortBy');
@@ -352,7 +342,6 @@
         box.classList.toggle('hidden', anyVisible);
     }
 
-    // --- NEW: sorting (grid + list) ---
     function sortItems() {
         const mode = sortEl.value;
 
@@ -374,7 +363,6 @@
     }
 
     function sortArray(arr, mode) {
-        // NOTE: "recent" uses existing order (no change)
         if (mode === 'recent') return arr;
 
         const copy = arr.slice();
@@ -409,7 +397,6 @@
     categoryEl.addEventListener('change', applyFilters);
     sortEl.addEventListener('change', () => { sortItems(); applyFilters(); });
 
-    // Keep your existing dropdown + archive logic
     function toggleCardMenu(btn) {
         const dropdown = btn.nextElementSibling;
         if (!dropdown || !dropdown.classList.contains('card-dropdown')) return;
@@ -449,7 +436,7 @@
             .finally(() => { this.disabled = false; });
     });
 
-    // initial
+
     applyFilters();
     sortItems();
 </script>

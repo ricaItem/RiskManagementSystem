@@ -22,6 +22,8 @@ namespace WEB_Sentro.Data
         public DbSet<MitigationTask> MitigationTasks { get; set; } = null!;
         public DbSet<MonitoringSite> MonitoringSites { get; set; } = null!;
         public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
+        public DbSet<MonitoringSnapshot> MonitoringSnapshots { get; set; } = null!;
+        public DbSet<MonitoringRule> MonitoringRules { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -56,6 +58,7 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Description).HasMaxLength(500);
                 e.Property(x => x.Category).HasMaxLength(50);
                 e.Property(x => x.SourceType).HasMaxLength(50);
+                e.Property(x => x.MonitoringRuleCode).HasMaxLength(100);
                 e.Property(x => x.Status).HasMaxLength(20);
                 e.Property(x => x.Priority).HasMaxLength(20);
                 e.Property(x => x.ProjectSite).HasMaxLength(200);
@@ -144,8 +147,36 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.RuleName).HasMaxLength(100);
                 e.Property(x => x.MeasuredValues).HasMaxLength(500);
                 e.Property(x => x.Severity).HasMaxLength(20);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.AcknowledgedByUserId).HasMaxLength(450);
                 e.HasIndex(x => new { x.OrgId, x.MonitoringSiteId });
                 e.HasIndex(x => x.TriggeredAt);
+            });
+
+            builder.Entity<MonitoringSnapshot>(e =>
+            {
+                e.ToTable("MonitoringSnapshots");
+                e.HasKey(x => x.SnapshotId);
+                e.Property(x => x.Temperature).HasPrecision(6, 2);
+                e.Property(x => x.WindSpeed).HasPrecision(6, 2);
+                e.Property(x => x.Humidity).HasPrecision(5, 2);
+                e.Property(x => x.RainMm).HasPrecision(6, 2);
+                e.Property(x => x.Condition).HasMaxLength(100);
+                e.Property(x => x.RawJson).HasMaxLength(4000);
+                e.HasIndex(x => new { x.OrgId, x.MonitoringSiteId });
+                e.HasIndex(x => x.CapturedAtUtc);
+            });
+
+            builder.Entity<MonitoringRule>(e =>
+            {
+                e.ToTable("MonitoringRules");
+                e.HasKey(x => x.RuleId);
+                e.Property(x => x.Name).HasMaxLength(100);
+                e.Property(x => x.Metric).HasMaxLength(50);
+                e.Property(x => x.Operator).HasMaxLength(10);
+                e.Property(x => x.Severity).HasMaxLength(20);
+                e.Property(x => x.Threshold).HasPrecision(10, 2);
+                e.HasIndex(x => x.OrgId);
             });
         }
     }
