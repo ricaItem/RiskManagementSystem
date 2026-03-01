@@ -6,6 +6,10 @@ namespace Web_Sentro.Areas.Client.Models
         public string RiskTitle { get; set; }
         public int Likelihood { get; set; }
         public int Impact { get; set; }
+        /// <summary>Mitigate | Transfer | Accept | Avoid</summary>
+        public string? TreatmentDecision { get; set; }
+        /// <summary>Required when Accept/Transfer and config requires justification.</summary>
+        public string? TreatmentJustification { get; set; }
 
         public int RiskScore => Likelihood * Impact;
 

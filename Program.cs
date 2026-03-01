@@ -79,10 +79,15 @@ builder.Services.AddScoped<RiskAnalyticsService>();
 builder.Services.AddScoped<RiskAttachmentService>();
 builder.Services.AddScoped<RiskEvaluationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IRiskVersionService, RiskVersionService>();
+builder.Services.AddScoped<IRiskMatrixService, RiskMatrixService>();
+builder.Services.AddScoped<ControlService>();
+builder.Services.AddScoped<RiskExportService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
 builder.Services.AddScoped<MonitoringHubService>();
 builder.Services.AddHostedService<MonitoringSyncHostedService>();
+builder.Services.AddHostedService<RiskReviewReminderHostedService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -135,6 +140,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");

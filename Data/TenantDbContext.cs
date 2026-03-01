@@ -29,6 +29,13 @@ namespace WEB_Sentro.Data
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
         public DbSet<Expense> Expenses { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<RiskVersion> RiskVersions { get; set; } = null!;
+        public DbSet<RiskMatrixConfig> RiskMatrixConfigs { get; set; } = null!;
+        public DbSet<RiskMatrixCell> RiskMatrixCells { get; set; } = null!;
+        public DbSet<RiskAppetiteBand> RiskAppetiteBands { get; set; } = null!;
+        public DbSet<RiskTreatmentTrigger> RiskTreatmentTriggers { get; set; } = null!;
+        public DbSet<Control> Controls { get; set; } = null!;
+        public DbSet<RiskControl> RiskControls { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -67,10 +74,17 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Status).HasMaxLength(20);
                 e.Property(x => x.Priority).HasMaxLength(20);
                 e.Property(x => x.ProjectSite).HasMaxLength(200);
+                e.Property(x => x.RiskOwnerId).HasMaxLength(450);
+                e.Property(x => x.AccountableId).HasMaxLength(450);
+                e.Property(x => x.TreatmentDecision).HasMaxLength(50);
+                e.Property(x => x.TreatmentJustification).HasMaxLength(500);
+                e.Property(x => x.TreatmentSelectedByUserId).HasMaxLength(450);
                 e.HasIndex(x => x.OrgId);
                 e.HasIndex(x => x.SiteId);
                 e.HasIndex(x => x.Status);
                 e.HasIndex(x => x.CreatedAt);
+                e.HasIndex(x => new { x.OrgId, x.NextReviewDate });
+                e.HasIndex(x => new { x.OrgId, x.OverdueFlag });
                 e.HasQueryFilter(x => x.DeletedAt == null);
                 e.HasOne(x => x.Site).WithMany(s => s.Risks).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             });
@@ -246,6 +260,78 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => x.OrgId);
                 e.HasIndex(x => x.UserId);
                 e.HasIndex(x => x.CreatedAt);
+            });
+
+            builder.Entity<RiskVersion>(e =>
+            {
+                e.ToTable("RiskVersions");
+                e.HasKey(x => x.RiskVersionId);
+                e.Property(x => x.ChangedByUserId).HasMaxLength(450);
+                e.Property(x => x.SnapshotJson).HasMaxLength(8000);
+                e.Property(x => x.ChangeSummary).HasMaxLength(500);
+                e.HasIndex(x => x.RiskId);
+                e.HasIndex(x => new { x.RiskId, x.VersionNo });
+                e.HasOne(x => x.Risk).WithMany(r => r.Versions).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<RiskMatrixConfig>(e =>
+            {
+                e.ToTable("RiskMatrixConfigs");
+                e.HasKey(x => x.RiskMatrixConfigId);
+                e.Property(x => x.Name).HasMaxLength(100);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => new { x.OrgId, x.IsActive });
+            });
+
+            builder.Entity<RiskMatrixCell>(e =>
+            {
+                e.ToTable("RiskMatrixCells");
+                e.HasKey(x => x.RiskMatrixCellId);
+                e.HasIndex(x => new { x.RiskMatrixConfigId, x.Likelihood, x.Impact }).IsUnique();
+                e.HasOne(x => x.Config).WithMany(c => c.Cells).HasForeignKey(x => x.RiskMatrixConfigId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<RiskAppetiteBand>(e =>
+            {
+                e.ToTable("RiskAppetiteBands");
+                e.HasKey(x => x.RiskAppetiteBandId);
+                e.Property(x => x.BandName).HasMaxLength(50);
+                e.Property(x => x.TreatmentTrigger).HasMaxLength(100);
+                e.HasIndex(x => x.RiskMatrixConfigId);
+                e.HasOne(x => x.Config).WithMany(c => c.AppetiteBands).HasForeignKey(x => x.RiskMatrixConfigId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<RiskTreatmentTrigger>(e =>
+            {
+                e.ToTable("RiskTreatmentTriggers");
+                e.HasKey(x => x.RiskTreatmentTriggerId);
+                e.Property(x => x.BandName).HasMaxLength(50);
+                e.Property(x => x.AllowedDecisions).HasMaxLength(200);
+                e.HasIndex(x => x.RiskMatrixConfigId);
+                e.HasOne(x => x.Config).WithMany(c => c.TreatmentTriggers).HasForeignKey(x => x.RiskMatrixConfigId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<Control>(e =>
+            {
+                e.ToTable("Controls");
+                e.HasKey(x => x.ControlId);
+                e.Property(x => x.Name).HasMaxLength(150);
+                e.Property(x => x.Description).HasMaxLength(1000);
+                e.Property(x => x.OwnerId).HasMaxLength(450);
+                e.Property(x => x.Frequency).HasMaxLength(50);
+                e.Property(x => x.Type).HasMaxLength(50);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.HasIndex(x => x.OrgId);
+            });
+
+            builder.Entity<RiskControl>(e =>
+            {
+                e.ToTable("RiskControls");
+                e.HasKey(x => x.RiskControlId);
+                e.Property(x => x.Notes).HasMaxLength(500);
+                e.HasIndex(x => new { x.RiskId, x.ControlId }).IsUnique();
+                e.HasOne(x => x.Risk).WithMany(r => r.RiskControls).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.Control).WithMany(c => c.RiskControls).HasForeignKey(x => x.ControlId).OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

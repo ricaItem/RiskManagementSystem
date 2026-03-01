@@ -23,8 +23,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IConfiguration _config;
         private readonly INotificationService _notificationService;
+        private readonly RiskExportService _exportService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -36,6 +37,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _env = env;
             _config = config;
             _notificationService = notificationService;
+            _exportService = exportService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -166,16 +168,22 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return Forbid();
 
             var orgId = user.OrganizationId;
-            var ok = await _evaluationService.SaveAssessmentAsync(
+            var (ok, error) = await _evaluationService.SaveAssessmentAsync(
                 model.RiskId,
                 orgId,
                 user.Id,
                 model.Likelihood,
                 model.Impact,
                 null,
+                model.TreatmentDecision,
+                model.TreatmentJustification,
                 HttpContext.Connection.RemoteIpAddress?.ToString(),
                 IsSuperAdmin());
-            if (!ok) return NotFound();
+            if (!ok)
+            {
+                if (error != null) TempData["AssessmentError"] = error;
+                return RedirectToAction("Assess", new { id = model.RiskId });
+            }
 
             var risk = await _riskService.GetByIdForOrgAsync(model.RiskId, orgId, IsSuperAdmin());
             var status = risk?.Status ?? "";
@@ -239,7 +247,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (EmployeeOnly() && (risk.ReportByUserId != user.Id || risk.Status != "Draft"))
                 return Forbid();
 
-            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, IsSuperAdmin());
+            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, IsSuperAdmin(), changedByUserId: user.Id);
             return RedirectToAction("Identification");
         }
 
@@ -356,6 +364,37 @@ namespace Web_Sentro.Areas.Client.Controllers
             {
                 await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
                 _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskApproved", "Status: Reviewed → Approved", HttpContext.Connection.RemoteIpAddress?.ToString());
+                await _riskService.SaveChangesAsync(db);
+            }
+            return RedirectToAction("Identification");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportExcel(CancellationToken ct)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return Forbid();
+            var bytes = await _exportService.ExportToExcelAsync(orgId.Value, user.Id, EmployeeOnly(), ct);
+            var fileName = $"RiskRegister_{orgId.Value}_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkReviewed(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var ok = await _riskService.MarkReviewedAsync(id, orgId, user.Id, IsSuperAdmin());
+            if (!ok) return NotFound();
+            if (orgId.HasValue)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+                _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskMarkedReviewed", "Next review date set from band frequency", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
             return RedirectToAction("Identification");

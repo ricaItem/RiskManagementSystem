@@ -10,12 +10,16 @@ namespace WEB_Sentro.Services
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly RiskService _riskService;
         private readonly INotificationService _notificationService;
+        private readonly IRiskVersionService _versionService;
+        private readonly IRiskMatrixService _matrixService;
 
-        public RiskEvaluationService(ITenantDbFactory tenantDbFactory, RiskService riskService, INotificationService notificationService)
+        public RiskEvaluationService(ITenantDbFactory tenantDbFactory, RiskService riskService, INotificationService notificationService, IRiskVersionService versionService, IRiskMatrixService matrixService)
         {
             _tenantDbFactory = tenantDbFactory;
             _riskService = riskService;
             _notificationService = notificationService;
+            _versionService = versionService;
+            _matrixService = matrixService;
         }
 
         public static int ComputeRiskScore(int likelihood, int impact) => likelihood * impact;
@@ -57,17 +61,30 @@ namespace WEB_Sentro.Services
             };
         }
 
-        public async Task<bool> SaveAssessmentAsync(int riskId, int orgId, string userId, int likelihood, int impact, string? remarks, string? ipAddress, bool superAdmin, CancellationToken ct = default)
+        public async Task<(bool Ok, string? Error)> SaveAssessmentAsync(int riskId, int orgId, string userId, int likelihood, int impact, string? remarks, string? treatmentDecision, string? treatmentJustification, string? ipAddress, bool superAdmin, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
             var risk = await db.Risks.FirstOrDefaultAsync(r => r.RiskId == riskId && (superAdmin || r.OrgId == orgId), ct);
-            if (risk == null) return false;
+            if (risk == null) return (false, "Risk not found");
 
             likelihood = Math.Clamp(likelihood, 1, 5);
             impact = Math.Clamp(impact, 1, 5);
-            var riskScore = ComputeRiskScore(likelihood, impact);
-            var riskLevel = RiskLevelFromScore(riskScore);
+            var riskScore = await _matrixService.ComputeScoreAsync(orgId, likelihood, impact, ct);
+            var riskLevel = await _matrixService.GetBandForScoreAsync(orgId, riskScore, ct) ?? RiskLevelFromScore(riskScore);
+
+            var decision = treatmentDecision?.Trim();
+            if (!string.IsNullOrEmpty(decision))
+            {
+                var allowed = await _matrixService.GetAllowedDecisionsAsync(orgId, riskScore, ct);
+                if (allowed.Count > 0 && !allowed.Any(a => string.Equals(a, decision, StringComparison.OrdinalIgnoreCase)))
+                    return (false, $"Treatment decision '{decision}' is not allowed for this risk level. Allowed: {string.Join(", ", allowed)}.");
+                if (await _matrixService.RequiresJustificationAsync(orgId, riskScore, decision, ct))
+                {
+                    if (string.IsNullOrWhiteSpace(treatmentJustification))
+                        return (false, "Justification is required for Accept or Transfer for this risk level.");
+                }
+            }
 
             var latest = await db.RiskEvaluations
                 .Where(e => e.RiskId == riskId)
@@ -103,12 +120,26 @@ namespace WEB_Sentro.Services
             risk.Priority = riskLevel;
             risk.UpdatedAt = DateTime.UtcNow;
             risk.Status = riskScore >= 15 ? "MitigationRequired" : "Monitoring";
+            if (!string.IsNullOrEmpty(decision))
+            {
+                risk.TreatmentDecision = decision;
+                risk.TreatmentJustification = string.IsNullOrWhiteSpace(treatmentJustification) ? null : treatmentJustification.Trim().Length > 500 ? treatmentJustification.Trim().Substring(0, 500) : treatmentJustification.Trim();
+                risk.TreatmentSelectedAt = DateTime.UtcNow;
+                risk.TreatmentSelectedByUserId = userId;
+            }
+            var reviewDays = await _matrixService.GetReviewFrequencyDaysAsync(orgId, riskScore, ct);
+            if (reviewDays.HasValue && !risk.NextReviewDate.HasValue)
+            {
+                risk.NextReviewDate = DateTime.UtcNow.Date.AddDays(reviewDays.Value);
+                risk.OverdueFlag = false;
+            }
 
             _riskService.AddAuditLog(db, risk.OrgId, userId, "Risk", riskId, "RiskAssessmentSaved", $"Risk evaluated: {riskLevel} (score {riskScore})", ipAddress);
             await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, $"Assessment saved: {riskLevel} (score {riskScore})", ct);
             if (riskLevel == "High" || riskLevel == "Critical")
                 await _notificationService.NotifyRiskEventAsync(risk.OrgId, "HighCriticalAssessed", riskId, "High/Critical risk assessed", $"Risk '{risk.Title}' assessed as {riskLevel} (score {riskScore}).", risk.ReportByUserId, ct);
-            return true;
+            return (true, null);
         }
     }
 }

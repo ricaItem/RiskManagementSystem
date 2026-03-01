@@ -1,0 +1,68 @@
+@model Web_Sentro.Areas.Client.Models.RiskMatrixViewModel
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Risk Matrix";
+}
+<div class="animate-in fade-in mx-auto max-w-5xl space-y-8 duration-500">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Risk <span class="italic text-emerald-500">Matrix</span></h1>
+        @if (Model.ConfigId == 0)
+        {
+            <form method="post" asp-action="EnsureDefault" asp-controller="RiskMatrix" asp-area="Client">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-primary rounded-xl px-6 py-3">Create default matrix</button>
+            </form>
+        }
+    </div>
+    @if (TempData["MatrixMessage"] != null)
+    {
+        <div class="rounded-xl bg-emerald-100 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">@TempData["MatrixMessage"]</div>
+    }
+    @if (Model.ConfigId > 0)
+    {
+        <p class="text-sm text-slate-500">Config: <strong>@Model.Name</strong> (Id: @Model.ConfigId)</p>
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-4 font-black uppercase tracking-widest text-slate-500 text-[10px]">Appetite bands</h2>
+            <table class="w-full text-left text-sm">
+                <thead><tr class="border-b border-slate-200 dark:border-slate-700"><th class="pb-2">Band</th><th class="pb-2">Score range</th><th class="pb-2">Review (days)</th></tr></thead>
+                <tbody>
+                    @foreach (var b in Model.Bands)
+                    {
+                        <tr class="border-b border-slate-100 dark:border-slate-800"><td>@b.BandName</td><td>@b.MinScore – @b.MaxScore</td><td>@(b.ReviewFrequencyDays?.ToString() ?? "—")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-4 font-black uppercase tracking-widest text-slate-500 text-[10px]">Treatment triggers</h2>
+            <table class="w-full text-left text-sm">
+                <thead><tr class="border-b border-slate-200 dark:border-slate-700"><th class="pb-2">Band</th><th class="pb-2">Requires justification</th><th class="pb-2">Allowed decisions</th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.Triggers)
+                    {
+                        <tr class="border-b border-slate-100 dark:border-slate-800"><td>@(t.BandName ?? "—")</td><td>@(t.RequiresJustification ? "Yes" : "No")</td><td>@string.Join(", ", t.AllowedDecisions ?? new List<string>())</td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-4 font-black uppercase tracking-widest text-slate-500 text-[10px]">Score matrix (L × I → Score)</h2>
+            <div class="grid max-w-md grid-cols-5 gap-2">
+                @for (var i = 5; i >= 1; i--)
+                {
+                    @for (var l = 1; l <= 5; l++)
+                    {
+                        var cell = Model.Cells.FirstOrDefault(c => c.Impact == i && c.Likelihood == l);
+                        var score = cell?.Score ?? (l * i);
+                        <div class="rounded-lg bg-slate-100 p-2 text-center text-sm font-bold dark:bg-slate-800">@score</div>
+                    }
+                }
+            </div>
+            <p class="mt-2 text-[10px] text-slate-400">Rows: Impact 5→1, Cols: Likelihood 1→5</p>
+        </section>
+    }
+    else
+    {
+        <p class="text-slate-500">No risk matrix configured for your organisation. Click "Create default matrix" to seed a standard 5×5 matrix and appetite bands.</p>
+    }
+</div>

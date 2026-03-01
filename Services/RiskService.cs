@@ -9,11 +9,15 @@ namespace WEB_Sentro.Services
     {
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly PlatformDbContext _platformDb;
+        private readonly IRiskVersionService _versionService;
+        private readonly IRiskMatrixService _matrixService;
 
-        public RiskService(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb)
+        public RiskService(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb, IRiskVersionService versionService, IRiskMatrixService matrixService)
         {
             _tenantDbFactory = tenantDbFactory;
             _platformDb = platformDb;
+            _versionService = versionService;
+            _matrixService = matrixService;
         }
 
         public async Task<List<RiskIdentificationViewModel>> GetRisksForListAsync(
@@ -73,7 +77,7 @@ namespace WEB_Sentro.Services
 
             var list = await q
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId, r.SiteId })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId, r.SiteId, r.NextReviewDate, r.OverdueFlag, r.TreatmentDecision, r.RiskOwnerId, r.AccountableId })
                 .ToListAsync(ct);
 
             var siteIds = list.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
@@ -88,13 +92,20 @@ namespace WEB_Sentro.Services
                 .ToListAsync(ct);
             var attByRisk = attachments.Where(a => a.FileRef != null).GroupBy(a => a.RiskId).ToDictionary(g => g.Key, g => g.Select(x => x.FileRef!).ToList());
 
-            var userIds = list.Select(x => x.ReportByUserId).Distinct().ToList();
+            var userIds = list.Select(x => x.ReportByUserId).Concat(list.Where(x => x.RiskOwnerId != null).Select(x => x.RiskOwnerId!)).Concat(list.Where(x => x.AccountableId != null).Select(x => x.AccountableId!)).Distinct().ToList();
             var users = await _platformDb.Users
                 .AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.FirstName, u.LastName })
                 .ToListAsync(ct);
             var userNames = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
+
+            var riskIdsForScore = list.Select(x => x.RiskId).ToList();
+            var latestScores = await db.RiskEvaluations.AsNoTracking()
+                .Where(e => riskIdsForScore.Contains(e.RiskId))
+                .GroupBy(e => e.RiskId)
+                .Select(g => new { RiskId = g.Key, RiskScore = g.OrderByDescending(e => e.EvaluatedAt).Select(e => e.RiskScore).FirstOrDefault() })
+                .ToDictionaryAsync(x => x.RiskId, x => (int?)x.RiskScore, ct);
 
             return list.Select(r => new RiskIdentificationViewModel
             {
@@ -115,7 +126,15 @@ namespace WEB_Sentro.Services
                 OrgId = r.OrgId,
                 DeletedAt = r.DeletedAt,
                 AttachmentsCount = attByRisk.GetValueOrDefault(r.RiskId)?.Count ?? 0,
-                Attachments = attByRisk.GetValueOrDefault(r.RiskId) ?? new List<string>()
+                Attachments = attByRisk.GetValueOrDefault(r.RiskId) ?? new List<string>(),
+                NextReviewDate = r.NextReviewDate,
+                OverdueFlag = r.OverdueFlag,
+                TreatmentDecision = r.TreatmentDecision,
+                RiskOwnerId = r.RiskOwnerId,
+                AccountableId = r.AccountableId,
+                RiskOwnerName = r.RiskOwnerId != null && userNames.TryGetValue(r.RiskOwnerId, out var ro) ? ro : null,
+                AccountableName = r.AccountableId != null && userNames.TryGetValue(r.AccountableId, out var ac) ? ac : null,
+                RiskScore = latestScores.TryGetValue(r.RiskId, out var sc) ? sc : null
             }).ToList();
         }
 
@@ -171,6 +190,7 @@ namespace WEB_Sentro.Services
             risk.Status = "Submitted";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, "Submitted for review", ct);
             return true;
         }
 
@@ -313,8 +333,8 @@ namespace WEB_Sentro.Services
                 _ when string.Equals(severity, "Medium", StringComparison.OrdinalIgnoreCase) => (3, 3),
                 _ => (2, 2)
             };
-            var riskScore = RiskEvaluationService.ComputeRiskScore(likelihood, impact);
-            var riskLevel = RiskEvaluationService.RiskLevelFromScore(riskScore);
+            var riskScore = await _matrixService.ComputeScoreAsync(orgId, likelihood, impact, ct);
+            var riskLevel = await _matrixService.GetBandForScoreAsync(orgId, riskScore, ct) ?? RiskEvaluationService.RiskLevelFromScore(riskScore);
             var r = measuredValuesRemarks ?? "";
             var remarks = r.Length > 255 ? r.Substring(0, 255) : r;
 
@@ -360,7 +380,7 @@ namespace WEB_Sentro.Services
             await db.SaveChangesAsync(ct);
         }
 
-        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, bool superAdmin, CancellationToken ct = default)
+        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, bool superAdmin, string? changedByUserId = null, CancellationToken ct = default)
         {
             if (!orgId.HasValue)
                 return;
@@ -380,6 +400,8 @@ namespace WEB_Sentro.Services
             risk.SiteId = siteId;
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
+            if (changedByUserId != null)
+                await _versionService.SaveVersionAsync(riskId, risk.OrgId, changedByUserId, "Risk details updated", ct);
         }
 
         public async Task SoftDeleteAsync(int riskId, int? orgId, bool superAdmin, CancellationToken ct = default)
@@ -450,6 +472,7 @@ namespace WEB_Sentro.Services
             risk.Status = "Reviewed";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, "Status: Submitted → Reviewed", ct);
             return true;
         }
 
@@ -468,6 +491,7 @@ namespace WEB_Sentro.Services
             risk.Status = "Approved";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, "Status: Reviewed → Approved", ct);
             return true;
         }
 
@@ -486,6 +510,7 @@ namespace WEB_Sentro.Services
             risk.Status = "Rejected";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, "Status set to Rejected", ct);
             return true;
         }
 
@@ -564,5 +589,37 @@ namespace WEB_Sentro.Services
         }
 
         public async Task SaveChangesAsync(TenantDbContext db, CancellationToken ct = default) => await db.SaveChangesAsync(ct);
+
+        /// <summary>Marks risk as reviewed and sets NextReviewDate from appetite band frequency.</summary>
+        public async Task<bool> MarkReviewedAsync(int riskId, int? orgId, string userId, bool superAdmin, CancellationToken ct = default)
+        {
+            if (!orgId.HasValue) return false;
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+            var q = db.Risks.Where(r => r.RiskId == riskId);
+            if (!superAdmin) q = q.Where(r => r.OrgId == orgId.Value);
+            var risk = await q.FirstOrDefaultAsync(ct);
+            if (risk == null) return false;
+            var score = await db.RiskEvaluations.Where(e => e.RiskId == riskId).OrderByDescending(e => e.EvaluatedAt).Select(e => e.RiskScore).FirstOrDefaultAsync(ct);
+            var days = await _matrixService.GetReviewFrequencyDaysAsync(orgId.Value, score, ct);
+            risk.LastReviewedAt = DateTime.UtcNow;
+            risk.NextReviewDate = days.HasValue ? DateTime.UtcNow.Date.AddDays(days.Value) : DateTime.UtcNow.Date.AddDays(365);
+            risk.OverdueFlag = false;
+            risk.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await _versionService.SaveVersionAsync(riskId, risk.OrgId, userId, "Marked as reviewed", ct);
+            return true;
+        }
+
+        /// <summary>Updates OverdueFlag for all risks in org where NextReviewDate &lt; today.</summary>
+        public async Task UpdateOverdueFlagsAsync(int orgId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var today = DateTime.UtcNow.Date;
+            var overdue = await db.Risks.Where(r => r.OrgId == orgId && r.DeletedAt == null && r.NextReviewDate.HasValue && r.NextReviewDate.Value < today && !r.OverdueFlag).ToListAsync(ct);
+            foreach (var r in overdue)
+                r.OverdueFlag = true;
+            if (overdue.Count > 0)
+                await db.SaveChangesAsync(ct);
+        }
     }
 }

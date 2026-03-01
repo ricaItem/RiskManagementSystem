@@ -695,11 +695,47 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("AccountableId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("LastReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextReviewDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("OverdueFlag")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RiskOwnerId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TreatmentDecision")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TreatmentJustification")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("TreatmentSelectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TreatmentSelectedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("RiskId");
 
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("OrgId");
+
+                    b.HasIndex("OrgId", "NextReviewDate");
+
+                    b.HasIndex("OrgId", "OverdueFlag");
 
                     b.HasIndex("SiteId");
 
@@ -753,6 +789,267 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.HasIndex("RiskId");
 
                     b.ToTable("RiskEvaluations", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskVersion", b =>
+                {
+                    b.Property<int>("RiskVersionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskVersionId"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ChangeSummary")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RiskId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SnapshotJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(8000)");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("int");
+
+                    b.HasKey("RiskVersionId");
+
+                    b.HasIndex("RiskId");
+
+                    b.HasIndex("RiskId", "VersionNo");
+
+                    b.ToTable("RiskVersions", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskMatrixConfig", b =>
+                {
+                    b.Property<int>("RiskMatrixConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskMatrixConfigId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("RiskMatrixConfigId");
+
+                    b.HasIndex("OrgId");
+
+                    b.HasIndex("OrgId", "IsActive");
+
+                    b.ToTable("RiskMatrixConfigs", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskMatrixCell", b =>
+                {
+                    b.Property<int>("RiskMatrixCellId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskMatrixCellId"));
+
+                    b.Property<int>("Impact")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Likelihood")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RiskMatrixConfigId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.HasKey("RiskMatrixCellId");
+
+                    b.HasIndex("RiskMatrixConfigId", "Likelihood", "Impact")
+                        .IsUnique();
+
+                    b.ToTable("RiskMatrixCells", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskAppetiteBand", b =>
+                {
+                    b.Property<int>("RiskAppetiteBandId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskAppetiteBandId"));
+
+                    b.Property<string>("BandName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("MaxScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinScore")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReviewFrequencyDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RiskMatrixConfigId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TreatmentTrigger")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("RiskAppetiteBandId");
+
+                    b.HasIndex("RiskMatrixConfigId");
+
+                    b.ToTable("RiskAppetiteBands", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskTreatmentTrigger", b =>
+                {
+                    b.Property<int>("RiskTreatmentTriggerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskTreatmentTriggerId"));
+
+                    b.Property<string>("AllowedDecisions")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BandName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("MaxScore")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MinScore")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiresJustification")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RiskMatrixConfigId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RiskTreatmentTriggerId");
+
+                    b.HasIndex("RiskMatrixConfigId");
+
+                    b.ToTable("RiskTreatmentTriggers", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Control", b =>
+                {
+                    b.Property<int>("ControlId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ControlId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Frequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ControlId");
+
+                    b.HasIndex("OrgId");
+
+                    b.ToTable("Controls", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskControl", b =>
+                {
+                    b.Property<int>("RiskControlId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RiskControlId"));
+
+                    b.Property<int>("ControlId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LinkedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RiskId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RiskControlId");
+
+                    b.HasIndex("ControlId");
+
+                    b.HasIndex("RiskId", "ControlId")
+                        .IsUnique();
+
+                    b.ToTable("RiskControls", (string)null);
                 });
 
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Site", b =>
@@ -937,6 +1234,69 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.Navigation("Site");
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskVersion", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
+                        .WithMany("Versions")
+                        .HasForeignKey("RiskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Risk");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskMatrixCell", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.RiskMatrixConfig", "Config")
+                        .WithMany("Cells")
+                        .HasForeignKey("RiskMatrixConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Config");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskAppetiteBand", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.RiskMatrixConfig", "Config")
+                        .WithMany("AppetiteBands")
+                        .HasForeignKey("RiskMatrixConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Config");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskTreatmentTrigger", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.RiskMatrixConfig", "Config")
+                        .WithMany("TreatmentTriggers")
+                        .HasForeignKey("RiskMatrixConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Config");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskControl", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.Control", "Control")
+                        .WithMany("RiskControls")
+                        .HasForeignKey("ControlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
+                        .WithMany("RiskControls")
+                        .HasForeignKey("RiskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Control");
+
+                    b.Navigation("Risk");
+                });
+
             modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskEvaluation", b =>
                 {
                     b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
@@ -962,6 +1322,24 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.Navigation("Expenses");
 
                     b.Navigation("MitigationPlan");
+
+                    b.Navigation("RiskControls");
+
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.RiskMatrixConfig", b =>
+                {
+                    b.Navigation("AppetiteBands");
+
+                    b.Navigation("Cells");
+
+                    b.Navigation("TreatmentTriggers");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Control", b =>
+                {
+                    b.Navigation("RiskControls");
                 });
 
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Site", b =>

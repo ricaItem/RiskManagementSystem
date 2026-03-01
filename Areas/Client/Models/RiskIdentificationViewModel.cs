@@ -22,5 +22,15 @@ namespace Web_Sentro.Areas.Client.Models
         public DateTime? DeletedAt { get; set; }
         public int AttachmentsCount { get; set; }
         public List<string> Attachments { get; set; } = new();
+        // Phase 2 governance
+        public string? RiskOwnerId { get; set; }
+        public string? AccountableId { get; set; }
+        public string? RiskOwnerName { get; set; }
+        public string? AccountableName { get; set; }
+        public string? TreatmentDecision { get; set; }
+        public DateTime? NextReviewDate { get; set; }
+        public bool OverdueFlag { get; set; }
+        public int? RiskScore { get; set; }
+        public string? AppetiteBandName { get; set; }
     }
 }

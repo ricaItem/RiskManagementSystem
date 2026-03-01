@@ -43,6 +43,7 @@
             </div>
 
         <div class="flex items-center gap-3">
+            <a href="@Url.Action("ExportExcel", "Risks", new { area = "Client" })" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Export Excel</a>
             <button onclick="toggleNewRiskModal()"
                     class="btn-primary group relative flex items-center gap-3 rounded-xl px-6 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:scale-95">
                 + New Risk Entry
@@ -133,6 +134,7 @@
                         <th class="pb-2 pr-4 text-center">Priority</th>
                         <th class="pb-2 pr-4 text-center">Status</th>
                         <th class="pb-2 pr-4">Date Reported</th>
+                        <th class="pb-2 pr-4">Next Review</th>
                         <th class="pb-2 pr-4">Reported by</th>
                         <th class="w-48 pb-2 text-right">Actions</th>
                     </tr>
@@ -162,7 +164,9 @@
                             ReportByUserId = risk.ReportByUserId,
                             risk.OrgId,
                             DeletedAt = risk.DeletedAt,
-                            Attachments = risk.Attachments ?? new List<string>()
+                            Attachments = risk.Attachments ?? new List<string>(),
+                            NextReviewDate = risk.NextReviewDate?.ToString("yyyy-MM-dd"),
+                            OverdueFlag = risk.OverdueFlag
                         });
                         <tr class="risk-row group cursor-default transition-all hover:bg-slate-50/50 dark:hover:bg-white/5 @(isDeleted ? "opacity-60" : "")" data-risk="@Html.Raw(System.Net.WebUtility.HtmlEncode(riskJson))" data-status="@statusDisplay" data-priority="@priorityVal" data-deleted="@(isDeleted ? "1" : "0")">
                             <td class="py-3 pr-4">
@@ -201,6 +205,16 @@
                             </td>
                             <td class="py-3 pr-4">
                                 <span class="font-medium text-[10px] text-slate-500 uppercase dark:text-slate-400">@dateReported.ToString("MMM dd, yyyy")</span>
+                            </td>
+                            <td class="py-3 pr-4">
+                                @if (risk.NextReviewDate.HasValue)
+                                {
+                                    <span class="font-medium text-[10px] @(risk.OverdueFlag ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400")" title="@(risk.OverdueFlag ? "Overdue" : "Due")">@risk.NextReviewDate.Value.ToString("MMM dd, yyyy")@(risk.OverdueFlag ? " ⚠" : "")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-[10px] text-slate-400">—</span>
+                                }
                             </td>
                             <td class="py-3 pr-4">
                                 <span class="font-medium text-[10px] text-slate-600 dark:text-slate-300">@(reportedBy != "" ? reportedBy : "—")</span>
@@ -339,6 +353,11 @@
                 <h2 class="text-xl font-black text-slate-900 uppercase dark:text-white">Risk <span class="text-emerald-500">Details</span></h2>
                 <button type="button" onclick="toggleViewModal()" class="rounded-lg p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-slate-800" aria-label="Close"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
+            <div class="mb-4 flex gap-2 border-b border-slate-200 dark:border-slate-700">
+                <button type="button" id="viewTabDetails" class="view-tab rounded-t-lg border-b-2 border-[var(--brand-accent)] px-4 py-2 text-xs font-bold uppercase text-[var(--brand-accent)]" data-tab="details">Details</button>
+                <button type="button" id="viewTabVersions" class="view-tab rounded-t-lg border-b-2 border-transparent px-4 py-2 text-xs font-bold uppercase text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300" data-tab="versions">Versions</button>
+                <button type="button" id="viewTabControls" class="view-tab rounded-t-lg border-b-2 border-transparent px-4 py-2 text-xs font-bold uppercase text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300" data-tab="controls">Controls</button>
+            </div>
             <div id="viewWorkflowStepper" class="mb-6 flex flex-wrap items-center justify-between gap-1 rounded-2xl bg-slate-100 px-2 py-3 font-bold text-[10px] uppercase dark:bg-slate-800/50">
                 <span class="step" data-step="Draft">Draft</span>
                 <span class="text-slate-400">→</span>
@@ -398,6 +417,36 @@
                     </div>
                 </div>
             </div>
+            <div id="viewModalVersionsPanel" class="hidden space-y-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Version history</p>
+                <div id="viewVersionsTableWrap" class="max-h-80 overflow-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left text-sm">
+                        <thead class="sticky top-0 bg-slate-100 font-black uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            <tr><th class="p-2">#</th><th class="p-2">Date</th><th class="p-2">By</th><th class="p-2">Summary</th></tr>
+                        </thead>
+                        <tbody id="viewVersionsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+                <p id="viewVersionsEmpty" class="hidden text-sm text-slate-500">No version history yet.</p>
+                <p id="viewVersionsError" class="hidden text-sm text-rose-500"></p>
+            </div>
+            <div id="viewModalControlsPanel" class="hidden space-y-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Linked controls</p>
+                <div id="viewControlsTableWrap" class="max-h-80 overflow-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left text-sm">
+                        <thead class="sticky top-0 bg-slate-100 font-black uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            <tr><th class="p-2">Control</th><th class="p-2">Notes</th><th class="w-20 p-2"></th></tr>
+                        </thead>
+                        <tbody id="viewControlsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+                <p id="viewControlsEmpty" class="hidden text-sm text-slate-500">No linked controls.</p>
+                <div class="flex gap-2">
+                    <select id="viewControlsSelect" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"><option value="">Select control to link...</option></select>
+                    <button type="button" id="viewControlsLinkBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white">Link</button>
+                </div>
+                <p id="viewControlsError" class="hidden text-sm text-rose-500"></p>
+            </div>
             <div id="viewModalBottomBar" class="mt-4 flex hidden flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
                 <div id="viewModalActions" class="flex flex-wrap gap-3">
                     <form id="viewModalSubmitForm" action="@Url.Action("SubmitRisk", "Risks", new { area = "Client" })" method="post" class="hidden inline-flex">
@@ -412,6 +461,14 @@
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                         Assess
                     </a>
+                    <form id="viewModalMarkReviewedForm" action="@Url.Action("MarkReviewed", "Risks", new { area = "Client" })" method="post" class="hidden inline-flex">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" id="viewModalMarkReviewedRiskId" />
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-xs font-bold text-white uppercase shadow-md transition-all hover:bg-sky-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Mark Reviewed
+                        </button>
+                    </form>
                     <button type="button" id="viewModalRejectBtn" class="hidden inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white uppercase shadow-md transition-all hover:bg-rose-700">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         Reject
@@ -613,6 +670,10 @@
 
         document.getElementById('viewModalSubmitRiskId').value = risk.Id;
         document.getElementById('viewModalAssessLink').href = assessBaseUrl + '/' + risk.Id;
+        var markReviewedInput = document.getElementById('viewModalMarkReviewedRiskId');
+        if (markReviewedInput) markReviewedInput.value = risk.Id;
+        var markReviewedForm = document.getElementById('viewModalMarkReviewedForm');
+        if (markReviewedForm) markReviewedForm.classList.add('hidden');
 
         const status = risk.Status || 'Draft';
         const actionStatus = (status === 'Submitted' || status === 'Reviewed' || status === 'For review') ? 'For_Review' : status;
@@ -621,6 +682,7 @@
         const canEdit = !risk.DeletedAt && actionStatus === 'Draft' && (risk.ReportByUserId === currentUserId || isAdmin);
         const canAssess = !risk.DeletedAt && actionStatus === 'For_Review' && isRiskManager;
         const canReject = !risk.DeletedAt && actionStatus === 'For_Review' && isAdmin;
+        const canMarkReviewed = !risk.DeletedAt && isRiskManager && (actionStatus === 'Monitoring' || actionStatus === 'MitigationRequired' || status === 'Approved');
 
         const bottomBar = document.getElementById('viewModalBottomBar');
         const submitForm = document.getElementById('viewModalSubmitForm');
@@ -628,12 +690,13 @@
         const rejectBtn = document.getElementById('viewModalRejectBtn');
         const footer = document.getElementById('viewModalFooter');
 
-        if (canSubmitDraft || canEdit || canAssess || canReject) {
+        if (canSubmitDraft || canEdit || canAssess || canReject || canMarkReviewed) {
             bottomBar.classList.remove('hidden');
             submitForm.classList.toggle('hidden', !canSubmitDraft);
             assessLink.classList.toggle('hidden', !canAssess);
             rejectBtn.classList.toggle('hidden', !canReject);
             footer.classList.toggle('hidden', !canEdit);
+            if (markReviewedForm) markReviewedForm.classList.toggle('hidden', !canMarkReviewed);
         } else {
             bottomBar.classList.add('hidden');
         }
@@ -650,10 +713,141 @@
 
         document.getElementById('viewRiskContent').classList.remove('hidden');
         document.getElementById('viewModalEditPanel').classList.add('hidden');
+        document.getElementById('viewModalVersionsPanel').classList.add('hidden');
+        document.getElementById('viewModalControlsPanel').classList.add('hidden');
+        document.querySelectorAll('.view-tab').forEach(function(t){ t.classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]'); t.classList.add('border-transparent'); });
+        document.getElementById('viewTabDetails').classList.add('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+        document.getElementById('viewTabDetails').classList.remove('border-transparent');
 
         document.getElementById('viewRiskModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     };
+
+    (function initViewTabs() {
+        const tabDetails = document.getElementById('viewTabDetails');
+        const tabVersions = document.getElementById('viewTabVersions');
+        const contentDetails = document.getElementById('viewRiskContent');
+        const contentVersions = document.getElementById('viewModalVersionsPanel');
+        if (!tabDetails || !tabVersions) return;
+        tabDetails.addEventListener('click', function() {
+            contentDetails.classList.remove('hidden');
+            contentVersions.classList.add('hidden');
+            tabDetails.classList.add('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+            tabDetails.classList.remove('border-transparent');
+            tabVersions.classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+            tabVersions.classList.add('border-transparent');
+        });
+        tabVersions.addEventListener('click', function() {
+            contentDetails.classList.add('hidden');
+            contentVersions.classList.remove('hidden');
+            document.getElementById('viewModalControlsPanel').classList.add('hidden');
+            tabVersions.classList.add('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+            tabVersions.classList.remove('border-transparent');
+            tabDetails.classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+            tabDetails.classList.add('border-transparent');
+            document.getElementById('viewTabControls').classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+            document.getElementById('viewTabControls').classList.add('border-transparent');
+            var riskId = document.getElementById('viewEditRiskId') && document.getElementById('viewEditRiskId').value;
+            if (riskId) loadVersions(riskId);
+        });
+        var tabControls = document.getElementById('viewTabControls');
+        var contentControls = document.getElementById('viewModalControlsPanel');
+        if (tabControls && contentControls) {
+            tabControls.addEventListener('click', function() {
+                contentDetails.classList.add('hidden');
+                contentVersions.classList.add('hidden');
+                contentControls.classList.remove('hidden');
+                tabControls.classList.add('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+                tabControls.classList.remove('border-transparent');
+                tabDetails.classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+                tabDetails.classList.add('border-transparent');
+                tabVersions.classList.remove('border-[var(--brand-accent)]', 'text-[var(--brand-accent)]');
+                tabVersions.classList.add('border-transparent');
+                var riskId = document.getElementById('viewEditRiskId') && document.getElementById('viewEditRiskId').value;
+                if (riskId) loadControls(riskId);
+            });
+        }
+    })();
+
+    function loadControls(riskId) {
+        var tbody = document.getElementById('viewControlsTableBody');
+        var emptyEl = document.getElementById('viewControlsEmpty');
+        var errEl = document.getElementById('viewControlsError');
+        var selectEl = document.getElementById('viewControlsSelect');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+        function fetchOpts() { return { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }; }
+        Promise.all([
+            fetch('/api/risks/' + riskId + '/controls', fetchOpts()).then(function(r){ return r.ok ? r.json() : []; }),
+            fetch('/api/controls', fetchOpts()).then(function(r){ return r.ok ? r.json() : []; })
+        ]).then(function(arr) {
+            var linked = arr[0] || [];
+            var allControls = arr[1] || [];
+            var linkedIds = linked.map(function(l){ return l.controlId; });
+            if (linked.length === 0) { if (emptyEl) emptyEl.classList.remove('hidden'); } else {
+                linked.forEach(function(l) {
+                    var tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
+                    tr.innerHTML = '<td class="p-2 font-medium">' + (l.controlName || '') + '</td><td class="p-2 max-w-[200px] truncate">' + (l.notes || '—') + '</td><td class="p-2"><button type="button" class="unlink-control text-rose-500 text-xs hover:underline" data-risk-control-id="' + l.riskControlId + '">Unlink</button></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+            selectEl.innerHTML = '<option value="">Select control to link...</option>';
+            allControls.filter(function(c){ return linkedIds.indexOf(c.controlId) < 0; }).forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value = c.controlId;
+                opt.textContent = c.name || 'Control ' + c.controlId;
+                selectEl.appendChild(opt);
+            });
+            selectEl.onchange = null;
+            tbody.querySelectorAll('.unlink-control').forEach(function(btn) {
+                btn.onclick = function() {
+                    var rcId = btn.getAttribute('data-risk-control-id');
+                    if (!rcId) return;
+                    fetch('/api/risks/' + riskId + '/controls/' + rcId, { method: 'DELETE', credentials: 'same-origin' }).then(function(r) { if (r.ok) loadControls(riskId); });
+                };
+            });
+        }).catch(function(e) { if (errEl) { errEl.textContent = e.message || 'Error'; errEl.classList.remove('hidden'); } });
+        document.getElementById('viewControlsLinkBtn').onclick = function() {
+            var cid = selectEl.value;
+            if (!cid) return;
+            fetch('/api/risks/' + riskId + '/controls', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ controlId: parseInt(cid, 10), notes: null }) })
+                .then(function(r) { if (r.ok) { selectEl.value = ''; loadControls(riskId); } });
+        };
+    }
+
+    function loadVersions(riskId) {
+        var tbody = document.getElementById('viewVersionsTableBody');
+        var emptyEl = document.getElementById('viewVersionsEmpty');
+        var errEl = document.getElementById('viewVersionsError');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+        fetch('/api/risks/' + riskId + '/versions', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function(r) {
+                if (!r.ok) throw new Error(r.status === 404 ? 'Risk not found' : r.status === 403 ? 'Access denied' : 'Failed to load');
+                return r.json();
+            })
+            .then(function(list) {
+                if (list.length === 0) {
+                    if (emptyEl) { emptyEl.classList.remove('hidden'); }
+                    return;
+                }
+                list.forEach(function(v) {
+                    var tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
+                    var dateStr = v.changedAt ? new Date(v.changedAt).toLocaleString() : '—';
+                    tr.innerHTML = '<td class="p-2 font-bold">' + (v.versionNo || '') + '</td><td class="p-2 text-slate-600 dark:text-slate-400">' + dateStr + '</td><td class="p-2">' + (v.changedByDisplayName || v.changedByUserId || '—') + '</td><td class="p-2 max-w-[200px] truncate" title="' + (v.changeSummary || '').replace(/"/g, '&quot;') + '">' + (v.changeSummary || '—') + '</td>';
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(function(e) {
+                if (errEl) { errEl.textContent = e.message || 'Error loading versions'; errEl.classList.remove('hidden'); }
+            });
+    }
 
     window.switchViewModalToEdit = function() {
         document.getElementById('viewRiskContent').classList.add('hidden');
