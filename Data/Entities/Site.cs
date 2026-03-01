@@ -19,5 +19,7 @@ namespace WEB_Sentro.Data.Entities
 
         public ICollection<Risk> Risks { get; set; } = new List<Risk>();
         public ICollection<MonitoringSite> MonitoringSites { get; set; } = new List<MonitoringSite>();
+        public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+        public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
     }
 }

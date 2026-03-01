@@ -24,6 +24,10 @@ namespace WEB_Sentro.Data
         public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
         public DbSet<MonitoringSnapshot> MonitoringSnapshots { get; set; } = null!;
         public DbSet<MonitoringRule> MonitoringRules { get; set; } = null!;
+        public DbSet<Supplier> Suppliers { get; set; } = null!;
+        public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
+        public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
+        public DbSet<Expense> Expenses { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -177,6 +181,57 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Severity).HasMaxLength(20);
                 e.Property(x => x.Threshold).HasPrecision(10, 2);
                 e.HasIndex(x => x.OrgId);
+            });
+
+            builder.Entity<Supplier>(e =>
+            {
+                e.ToTable("Suppliers");
+                e.HasKey(x => x.SupplierId);
+                e.Property(x => x.Name).HasMaxLength(150);
+                e.Property(x => x.ContactPerson).HasMaxLength(100);
+                e.Property(x => x.Email).HasMaxLength(150);
+                e.Property(x => x.Phone).HasMaxLength(50);
+                e.Property(x => x.Category).HasMaxLength(50);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.Category);
+            });
+
+            builder.Entity<PurchaseOrder>(e =>
+            {
+                e.ToTable("PurchaseOrders");
+                e.HasKey(x => x.PurchaseOrderId);
+                e.Property(x => x.OrderNumber).HasMaxLength(50);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => new { x.SiteId, x.OrderNumber });
+                e.HasIndex(x => x.Status);
+                e.HasOne(x => x.Site).WithMany(s => s.PurchaseOrders).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Supplier).WithMany(s => s.PurchaseOrders).HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<PurchaseOrderLine>(e =>
+            {
+                e.ToTable("PurchaseOrderLines");
+                e.HasKey(x => x.PurchaseOrderLineId);
+                e.Property(x => x.Description).HasMaxLength(255);
+                e.Property(x => x.Quantity).HasPrecision(18, 4);
+                e.Property(x => x.UnitCost).HasPrecision(18, 2);
+                e.HasOne(x => x.PurchaseOrder).WithMany(p => p.LineItems).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<Expense>(e =>
+            {
+                e.ToTable("Expenses");
+                e.HasKey(x => x.ExpenseId);
+                e.Property(x => x.Amount).HasPrecision(18, 2);
+                e.Property(x => x.Category).HasMaxLength(50);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.SiteId);
+                e.HasIndex(x => x.Category);
+                e.HasIndex(x => x.Date);
+                e.HasOne(x => x.Site).WithMany(s => s.Expenses).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Risk).WithMany(r => r.Expenses).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne(x => x.PurchaseOrder).WithMany(p => p.Expenses).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

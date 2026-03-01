@@ -348,6 +348,186 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.ToTable("MonitoringRules", (string)null);
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Supplier", b =>
+                {
+                    b.Property<int>("SupplierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierId"));
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SupplierId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("OrgId");
+
+                    b.ToTable("Suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.PurchaseOrder", b =>
+                {
+                    b.Property<int>("PurchaseOrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PurchaseOrderId");
+
+                    b.HasIndex("OrgId");
+
+                    b.HasIndex("SiteId", "OrderNumber");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PurchaseOrders", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.PurchaseOrderLine", b =>
+                {
+                    b.Property<int>("PurchaseOrderLineId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderLineId"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PurchaseOrderLineId");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.ToTable("PurchaseOrderLines", (string)null);
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Expense", b =>
+                {
+                    b.Property<int>("ExpenseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ExpenseId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrgId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RiskId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ExpenseId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("OrgId");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("RiskId");
+
+                    b.HasIndex("SiteId");
+
+                    b.ToTable("Expenses", (string)null);
+                });
+
             modelBuilder.Entity("WEB_Sentro.Data.Entities.MonitoringSnapshot", b =>
                 {
                     b.Property<int>("SnapshotId")
@@ -642,6 +822,61 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     b.Navigation("Site");
                 });
 
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.PurchaseOrder", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.Site", "Site")
+                        .WithMany("PurchaseOrders")
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WEB_Sentro.Data.Entities.Supplier", "Supplier")
+                        .WithMany("PurchaseOrders")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Site");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("LineItems")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Expense", b =>
+                {
+                    b.HasOne("WEB_Sentro.Data.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Expenses")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WEB_Sentro.Data.Entities.Risk", "Risk")
+                        .WithMany("Expenses")
+                        .HasForeignKey("RiskId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WEB_Sentro.Data.Entities.Site", "Site")
+                        .WithMany("Expenses")
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("Risk");
+
+                    b.Navigation("Site");
+                });
+
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Risk", b =>
                 {
                     b.HasOne("WEB_Sentro.Data.Entities.Site", "Site")
@@ -674,14 +909,32 @@ namespace WEB_Sentro.Data.Migrations.Tenant
 
                     b.Navigation("Evaluations");
 
+                    b.Navigation("Expenses");
+
                     b.Navigation("MitigationPlan");
                 });
 
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Site", b =>
                 {
+                    b.Navigation("Expenses");
+
                     b.Navigation("MonitoringSites");
 
+                    b.Navigation("PurchaseOrders");
+
                     b.Navigation("Risks");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.Supplier", b =>
+                {
+                    b.Navigation("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("WEB_Sentro.Data.Entities.PurchaseOrder", b =>
+                {
+                    b.Navigation("Expenses");
+
+                    b.Navigation("LineItems");
                 });
 #pragma warning restore 612, 618
         }

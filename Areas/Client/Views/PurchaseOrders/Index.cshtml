@@ -1,0 +1,84 @@
+@model Web_Sentro.Areas.Client.Models.PagedResult<WEB_Sentro.Data.Entities.PurchaseOrder>
+@{
+    Layout = "_LayoutClient";
+    var siteFilterList = ViewBag.SiteFilterList as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var statuses = ViewBag.Statuses as string[] ?? new[] { "Draft", "Sent", "Received", "Cancelled" };
+}
+
+<div class="animate-in fade-in min-h-screen space-y-8 duration-700" data-page-title="@ViewData["Title"]">
+    @if (TempData["Message"] != null)
+    {
+        <div class="rounded-xl bg-emerald-100 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">@TempData["Message"]</div>
+    }
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                <span class="text-indigo-500 dark:text-indigo-400 italic">Purchase Orders</span>
+            </h1>
+            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">By site · track status</p>
+        </div>
+        <a href="@Url.Action("Create", "PurchaseOrders", new { area = "Client" })" class="rounded-xl border border-slate-200/70 bg-slate-900 px-6 py-3 text-xs font-bold text-white shadow-sm hover:bg-indigo-600 dark:border-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200">+ New PO</a>
+    </div>
+
+    <form method="get" action="@Url.Action("Index", "PurchaseOrders", new { area = "Client" })" class="rounded-xl border border-slate-200/70 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="flex flex-wrap items-center gap-3">
+            <select name="siteId" class="rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                @foreach (var s in siteFilterList) { <option value="@s.Value" selected="@s.Selected">@s.Text</option> }
+            </select>
+            <select name="status" class="rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                <option value="">All statuses</option>
+                @foreach (var st in statuses) { <option value="@st" selected="@(ViewBag.SelectedStatus as string == st)">@st</option> }
+            </select>
+            <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200">Filter</button>
+        </div>
+    </form>
+
+    <div class="rounded-xl border border-slate-200/70 bg-white/70 overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-200/70 font-black text-[10px] text-slate-500 uppercase tracking-wider dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-4">Order #</th>
+                        <th class="px-6 py-4">Site</th>
+                        <th class="px-6 py-4">Supplier</th>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200/70 dark:divide-slate-800">
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="6" class="px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">No purchase orders.</td></tr>
+                    }
+                    @foreach (var p in Model.Items)
+                    {
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
+                            <td class="px-6 py-4 font-mono text-sm font-bold text-slate-900 dark:text-white">@p.OrderNumber</td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">@(p.Site?.SiteName ?? "—")</td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">@(p.Supplier?.Name ?? "—")</td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">@p.OrderDate.ToString("d")</td>
+                            <td class="px-6 py-4">
+                                <span class="rounded-lg px-2 py-1 text-[10px] font-bold @(p.Status == "Received" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : p.Status == "Cancelled" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400")">@p.Status</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="@Url.Action("Details", "PurchaseOrders", new { area = "Client", id = p.PurchaseOrderId })" class="rounded-lg border border-slate-200/70 bg-white px-3 py-1.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-400 dark:hover:bg-slate-700">View</a>
+                                <a href="@Url.Action("Edit", "PurchaseOrders", new { area = "Client", id = p.PurchaseOrderId })" class="rounded-lg border border-slate-200/70 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.TotalPages > 1)
+        {
+            <div class="flex items-center justify-between border-t border-slate-200/70 px-6 py-3 dark:border-slate-800">
+                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">@Model.TotalCount PO(s)</p>
+                <div class="flex gap-2">
+                    @if (Model.HasPreviousPage) { <a href="@Url.Action("Index", "PurchaseOrders", new { area = "Client", page = Model.PageNumber - 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, status = ViewBag.SelectedStatus })" class="rounded-lg border border-slate-200/70 px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">Previous</a> }
+                    @if (Model.HasNextPage) { <a href="@Url.Action("Index", "PurchaseOrders", new { area = "Client", page = Model.PageNumber + 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, status = ViewBag.SelectedStatus })" class="rounded-lg border border-slate-200/70 px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">Next</a> }
+                </div>
+            </div>
+        }
+    </div>
+</div>

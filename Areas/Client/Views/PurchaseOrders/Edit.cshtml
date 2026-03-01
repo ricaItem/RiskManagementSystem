@@ -1,0 +1,56 @@
+@model WEB_Sentro.Data.Entities.PurchaseOrder
+@{
+    Layout = "_LayoutClient";
+    var sites = ViewBag.Sites as IEnumerable<WEB_Sentro.Data.Entities.Site> ?? new List<WEB_Sentro.Data.Entities.Site>();
+    var suppliers = ViewBag.Suppliers as IEnumerable<WEB_Sentro.Data.Entities.Supplier> ?? new List<WEB_Sentro.Data.Entities.Supplier>();
+}
+
+<div class="animate-in fade-in min-h-screen space-y-8 duration-700" data-page-title="@ViewData["Title"]">
+    <div>
+        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+            Edit <span class="text-indigo-500 dark:text-indigo-400 italic">@Model.OrderNumber</span>
+        </h1>
+    </div>
+
+    <div class="rounded-xl border border-slate-200/70 bg-white/70 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 max-w-2xl">
+        <form method="post" asp-action="Edit" asp-controller="PurchaseOrders" asp-area="Client">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+            <div class="space-y-4">
+                <div>
+                    <label for="SiteId" class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Site *</label>
+                    <select id="SiteId" name="SiteId" required class="w-full rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        @foreach (var s in sites) { <option value="@s.SiteId" selected="@(Model.SiteId == s.SiteId)">@s.SiteName (@s.SiteCode)</option> }
+                    </select>
+                </div>
+                <div>
+                    <label for="SupplierId" class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Supplier *</label>
+                    <select id="SupplierId" name="SupplierId" required class="w-full rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        @foreach (var s in suppliers) { <option value="@s.SupplierId" selected="@(Model.SupplierId == s.SupplierId)">@s.Name</option> }
+                    </select>
+                </div>
+                <div>
+                    <label for="OrderNumber" class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Order number *</label>
+                    <input type="text" id="OrderNumber" name="OrderNumber" value="@Model.OrderNumber" required class="w-full rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                    <label for="OrderDate" class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Order date</label>
+                    <input type="date" id="OrderDate" name="OrderDate" value="@Model.OrderDate.ToString("yyyy-MM-dd")" class="w-full rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                    <label for="Status" class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Status</label>
+                    <select id="Status" name="Status" class="w-full rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        <option value="Draft" selected="@(Model.Status == "Draft")">Draft</option>
+                        <option value="Sent" selected="@(Model.Status == "Sent")">Sent</option>
+                        <option value="Received" selected="@(Model.Status == "Received")">Received</option>
+                        <option value="Cancelled" selected="@(Model.Status == "Cancelled")">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200">Save</button>
+                <a href="@Url.Action("Details", "PurchaseOrders", new { area = "Client", id = Model.PurchaseOrderId })" class="rounded-xl border border-slate-200/70 bg-white px-6 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
