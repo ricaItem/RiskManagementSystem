@@ -1,0 +1,125 @@
+@using WEB_Sentro.Areas.Client.Models
+@model RiskAnalyticsViewModel
+@{
+    var insights = Model?.PredictiveInsights;
+}
+<section class="mb-8" aria-label="Predictive insights">
+    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h2 class="text-base font-black tracking-tight text-slate-900 dark:text-white">Predictive Insights</h2>
+            <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Forward-looking signals based on trends and monitoring data</p>
+        </div>
+        <a href="#" id="predictive-insights-info" class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:text-slate-400 dark:hover:text-slate-300 dark:focus:ring-offset-slate-900" aria-label="More information">ⓘ Info</a>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Risk Escalation Forecast</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Next 7 days</span>
+            </div>
+            <p class="mt-3 text-sm font-medium text-slate-700 dark:text-slate-300">High: @(insights?.EscalationHigh ?? 0)  Medium: @(insights?.EscalationMedium ?? 0)  Low: @(insights?.EscalationLow ?? 0)</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">@(insights?.EscalationHint ?? "Top candidates will appear here")</p>
+        </div>
+
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Flood Probability Index (Weather)</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Site-based</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900 dark:text-white">@(insights?.FloodProbabilityPercent.HasValue == true ? insights.FloodProbabilityPercent + "%" : "—%")</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+                <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span> Low</span>
+                <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-500 dark:bg-amber-400"></span> Moderate</span>
+                <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-orange-500 dark:bg-orange-400"></span> High</span>
+                <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-rose-500 dark:bg-rose-400"></span> Critical</span>
+            </div>
+        </div>
+
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Site Momentum Status</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Rolling trend</span>
+            </div>
+            <p class="mt-3 text-sm font-medium text-slate-700 dark:text-slate-300">@(insights?.MomentumStatus ?? "Stable")</p>
+            <div class="mt-3 flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-800" role="group" aria-label="Momentum status">
+                @{
+                    var momentum = (insights?.MomentumStatus ?? "Stable").ToLowerInvariant();
+                }
+                <span class="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium @(momentum == "stable" ? "bg-white text-slate-700 shadow-sm dark:bg-slate-700 dark:text-slate-200" : "text-slate-600 dark:text-slate-400")">Stable</span>
+                <span class="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium @(momentum == "watchlist" ? "bg-white text-slate-700 shadow-sm dark:bg-slate-700 dark:text-slate-200" : "text-slate-600 dark:text-slate-400")">Watchlist</span>
+                <span class="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium @(momentum == "escalating" ? "bg-white text-slate-700 shadow-sm dark:bg-slate-700 dark:text-slate-200" : "text-slate-600 dark:text-slate-400")">Escalating</span>
+            </div>
+        </div>
+
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Cost Forecast</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Next 30 days</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900 dark:text-white">@(insights?.CostForecastAmount.HasValue == true ? "₱ " + insights.CostForecastAmount.Value.ToString("N0") : "₱ —")</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Based on risk-linked expenses</p>
+        </div>
+
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Estimated Closure Dates</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">By severity</span>
+            </div>
+            <div class="mt-3 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <table class="w-full text-left text-xs">
+                    <thead class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/80">
+                        <tr>
+                            <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300" scope="col">Severity</th>
+                            <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300" scope="col">Avg Close Days</th>
+                            <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300" scope="col">ETA Window</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                        @foreach (var row in (insights?.ClosureBySeverity ?? new List<ClosureBySeverityRowViewModel> { new() { Severity = "Critical" }, new() { Severity = "High" }, new() { Severity = "Medium" } }))
+                        {
+                            <tr>
+                                <td class="px-3 py-2 text-slate-700 dark:text-slate-300">@row.Severity</td>
+                                <td class="px-3 py-2 text-slate-600 dark:text-slate-400">@(row.AvgCloseDays.HasValue ? row.AvgCloseDays.ToString() : "—")</td>
+                                <td class="px-3 py-2 text-slate-600 dark:text-slate-400">@(row.EtaWindow ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex min-h-[160px] flex-col rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Early Warning Signals</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Live</span>
+            </div>
+            <ul class="mt-3 space-y-2">
+                @{
+                    var warnings = insights?.EarlyWarnings ?? new List<EarlyWarningRowViewModel>
+                    {
+                        new() { Title = "Repeated alerts detected", StatusPill = null, IsWarning = false },
+                        new() { Title = "Score trend increasing", StatusPill = null, IsWarning = false },
+                        new() { Title = "Mitigation not started", StatusPill = null, IsWarning = false }
+                    };
+                }
+                @foreach (var w in warnings)
+                {
+                    <li class="flex items-center justify-between gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <span class="inline-flex items-center gap-2">
+                            @if (w.IsWarning)
+                            {
+                                <svg class="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            }
+                            else
+                            {
+                                <svg class="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8v8M3 21V3m0 18V3" /></svg>
+                            }
+                            @w.Title
+                        </span>
+                        <span class="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-medium @(w.StatusPill != null ? "bg-amber-50 text-amber-800 dark:border-slate-600 dark:bg-amber-900/30 dark:text-amber-300" : "bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400")">@(w.StatusPill ?? "—")</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</section>

@@ -139,7 +139,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!IsVendor())
             {
                 var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                { "Manager", "Employee", "ProcurementOfficer" };
+                { "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
                 if (!allowed.Contains(role))
                 {
@@ -209,7 +209,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (!IsVendor())
                 {
                     var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                    { "Admin", "Manager", "Employee", "ProcurementOfficer" };
+                    { "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
                     if (!allowed.Contains(role))
                     {

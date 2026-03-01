@@ -31,6 +31,10 @@
     {
         <div class="rounded-xl bg-rose-100 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">@TempData["RejectError"]</div>
     }
+    @if (TempData["ReviewError"] != null)
+    {
+        <div class="rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">@TempData["ReviewError"]</div>
+    }
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">

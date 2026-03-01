@@ -22,8 +22,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IOpenWeatherService _openWeather;
         private readonly IWebHostEnvironment _env;
         private readonly IConfiguration _config;
+        private readonly INotificationService _notificationService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -34,6 +35,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _openWeather = openWeather;
             _env = env;
             _config = config;
+            _notificationService = notificationService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -110,7 +112,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction("Identification");
 
             var status = string.Equals(submitType?.Trim(), "Submit", StringComparison.OrdinalIgnoreCase)
-              ? "For_Review"
+              ? "Submitted"
               : "Draft";
             var risk = await _riskService.CreateRiskAsync(
                 user.OrganizationId,
@@ -125,7 +127,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await using (var db = await _tenantDbFactory.CreateAsync(user.OrganizationId))
             {
-            var auditAction = status == "For_Review" ? "RiskCreatedForReview" : "RiskCreatedDraft";
+            var auditAction = status == "Submitted" ? "RiskCreatedSubmitted" : "RiskCreatedDraft";
                 _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", risk.RiskId, auditAction, $"Risk created: {model.Title}", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
@@ -180,6 +182,8 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (status == "MitigationRequired")
             {
                 await _riskService.EnsureMitigationPlanExistsAsync(model.RiskId, orgId, user.Id);
+                if (risk != null)
+                    await _notificationService.NotifyRiskEventAsync(orgId, "MitigationRequired", model.RiskId, "Mitigation required", $"Risk '{risk.Title}' (High/Critical) requires a mitigation plan.", risk.ReportByUserId, HttpContext.RequestAborted);
                 return RedirectToAction("Board", "Mitigation", new { area = "Client", riskId = model.RiskId });
             }
             return RedirectToAction("Identification");
@@ -201,6 +205,9 @@ namespace Web_Sentro.Areas.Client.Controllers
                 await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
                 _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", RiskId, "RiskSubmitted", "Risk submitted", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
+                var risk = await _riskService.GetByIdForOrgAsync(RiskId, orgId, IsSuperAdmin());
+                if (risk != null)
+                    await _notificationService.NotifyRiskEventAsync(orgId.Value, "Submitted", RiskId, "Risk submitted", $"Risk '{risk.Title}' has been submitted for review.", risk.ReportByUserId, HttpContext.RequestAborted);
             }
             return RedirectToAction("Identification");
         }
@@ -304,10 +311,19 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.ReviewRiskAsync(id, orgId, user.Id);
-            if (!ok) return NotFound();
+            if (!ok)
+            {
+                var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
+                if (risk != null && risk.ReportByUserId == user.Id)
+                {
+                    TempData["ReviewError"] = "You cannot review a risk you created.";
+                    return RedirectToAction("Identification");
+                }
+                return NotFound();
+            }
             if (orgId.HasValue)
             {
                 await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
@@ -323,10 +339,19 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.ApproveRiskAsync(id, orgId, user.Id);
-            if (!ok) return NotFound();
+            if (!ok)
+            {
+                var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
+                if (risk != null && risk.ReportByUserId == user.Id)
+                {
+                    TempData["ReviewError"] = "You cannot approve a risk you created.";
+                    return RedirectToAction("Identification");
+                }
+                return NotFound();
+            }
             if (orgId.HasValue)
             {
                 await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
@@ -342,7 +367,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
+            if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
             if (string.IsNullOrWhiteSpace(RejectRemarks)) { TempData["RejectError"] = "Remarks are required when rejecting."; return RedirectToAction("Identification"); }
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.RejectRiskAsync(id, orgId, user.Id, RejectRemarks.Trim());

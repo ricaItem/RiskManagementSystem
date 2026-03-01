@@ -146,7 +146,7 @@ namespace WEB_Sentro.Services
                 SourceType = sourceType,
                 ProjectSite = projectSite,
                 Description = description,
-                Status = status == "For_Review" ? "For_Review" : "Draft",
+                Status = (status == "For_Review" || status == "Submitted") ? status : "Draft",
                 Priority = "Unassessed",
                 SiteId = siteId,
                 CreatedAt = DateTime.UtcNow
@@ -168,7 +168,7 @@ namespace WEB_Sentro.Services
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Draft") return false;
             if (employeeOnly && risk.ReportByUserId != userId) return false;
-            risk.Status = "For_Review";
+            risk.Status = "Submitted";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
             return true;
@@ -446,6 +446,7 @@ namespace WEB_Sentro.Services
             q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Submitted") return false;
+            if (risk.ReportByUserId == userId) return false; // SoD: reviewer cannot be creator
             risk.Status = "Reviewed";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
@@ -463,6 +464,7 @@ namespace WEB_Sentro.Services
             q = q.Where(r => r.OrgId == orgId.Value);
             var risk = await q.FirstOrDefaultAsync(ct);
             if (risk == null || risk.Status != "Reviewed") return false;
+            if (risk.ReportByUserId == userId) return false; // SoD: approver cannot be creator
             risk.Status = "Approved";
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);

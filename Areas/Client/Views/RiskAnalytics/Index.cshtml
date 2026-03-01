@@ -7,6 +7,8 @@
     var lastUpdated = Model?.LastUpdatedHumanized ?? "Just now";
     var sites = Model?.Sites ?? new List<SelectListItem>();
     var categories = Model?.Categories ?? new List<SelectListItem>();
+    var qSource = Context.Request.Query["source"].FirstOrDefault() ?? "all";
+    var qStatus = Context.Request.Query["status"].FirstOrDefault() ?? "all";
 }
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900/50" id="risk-analytics-root">
@@ -23,17 +25,16 @@
 
             <div class="mt-4 flex flex-col gap-3">
                 <div class="flex flex-wrap items-center gap-2">
-                    <select id="filter-date-range" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400">
-                        <option value="7">Last 7 days</option>
-                        <option value="30" selected>Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                        <option value="custom">Custom</option>
+                    <select id="filter-date-range" name="dateRange" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400">
+                        <option value="7" @(Context.Request.Query["dateRange"] == "7" ? "selected" : "")>Last 7 days</option>
+                        <option value="30" @(Context.Request.Query["dateRange"] != "7" && Context.Request.Query["dateRange"] != "90" ? "selected" : "")>Last 30 days</option>
+                        <option value="90" @(Context.Request.Query["dateRange"] == "90" ? "selected" : "")>Last 90 days</option>
                     </select>
-                    <select id="filter-site" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    <select id="filter-site" name="siteId" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                         <option value="">All Sites</option>
-                        @foreach (var s in sites)
+                        @foreach (var s in sites.Where(x => !string.IsNullOrEmpty(x.Value)))
                         {
-                            <option value="@s.Value">@s.Text</option>
+                            <option value="@s.Value" @(Context.Request.Query["siteId"] == s.Value ? "selected" : "")>@s.Text</option>
                         }
                         @if (!sites.Any())
                         {
@@ -41,11 +42,11 @@
                             <option value="2">Site B</option>
                         }
                     </select>
-                    <select id="filter-category" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    <select id="filter-category" name="category" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                         <option value="">All categories</option>
-                        @foreach (var c in categories)
+                        @foreach (var c in categories.Where(x => !string.IsNullOrEmpty(x.Value)))
                         {
-                            <option value="@c.Value">@c.Text</option>
+                            <option value="@c.Value" @(Context.Request.Query["category"] == c.Value ? "selected" : "")>@c.Text</option>
                         }
                         @if (!categories.Any())
                         {
@@ -55,22 +56,22 @@
                         }
                     </select>
                     <div class="flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-800" role="group" aria-label="Risk source">
-                        <button type="button" class="segment-btn active rounded-lg bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-700 dark:focus:ring-offset-slate-900" data-segment="source" data-value="all">All</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900" data-segment="source" data-value="manual">Manual</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900" data-segment="source" data-value="weather">Weather</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "all" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="all">All</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "manual" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="manual">Manual</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "weather" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="weather">Weather</button>
                     </div>
                     <div class="flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-800" role="group" aria-label="Status">
-                        <button type="button" class="segment-btn active rounded-lg bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-700 dark:focus:ring-offset-slate-900" data-segment="status" data-value="all">All</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900" data-segment="status" data-value="open">Open</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900" data-segment="status" data-value="mitigated">Mitigated</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900" data-segment="status" data-value="closed">Closed</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "all" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="all">All</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "open" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="open">Open</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "mitigated" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="mitigated">Mitigated</button>
+                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "closed" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="closed">Closed</button>
                     </div>
-                    <select id="filter-severity" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    <select id="filter-severity" name="severity" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                         <option value="">All severity</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
+                        <option value="low" @(Context.Request.Query["severity"] == "low" ? "selected" : "")>Low</option>
+                        <option value="medium" @(Context.Request.Query["severity"] == "medium" ? "selected" : "")>Medium</option>
+                        <option value="high" @(Context.Request.Query["severity"] == "high" ? "selected" : "")>High</option>
+                        <option value="critical" @(Context.Request.Query["severity"] == "critical" ? "selected" : "")>Critical</option>
                     </select>
                     <input type="search" id="filter-search" placeholder="Search risk name / code…" class="min-w-[200px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500" />
                 </div>
@@ -98,23 +99,24 @@
             <section class="mb-8" aria-label="Key metrics">
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                     @{
-                        var kpis = new[]
-                        {
-                            new { Label = "Active Risks", Value = Model?.Kpis?.ActiveRisks ?? 42, Delta = "+5%", DeltaUp = true },
-                            new { Label = "Critical Risks", Value = Model?.Kpis?.CriticalRisks ?? 3, Delta = "-1", DeltaUp = false },
-                            new { Label = "Created in Period", Value = Model?.Kpis?.CreatedInPeriod ?? 18, Delta = "+12%", DeltaUp = true },
-                            new { Label = "Weather-triggered", Value = Model?.Kpis?.WeatherTriggered ?? 7, Delta = "+2", DeltaUp = true },
-                            new { Label = "Avg Time to Close (days)", Value = Model?.Kpis?.AvgTimeToCloseDays ?? 14, Delta = "-3", DeltaUp = false },
-                            new { Label = "Avg Risk Reduction (%)", Value = Model?.Kpis?.AvgRiskReductionPercent ?? 34, Delta = "+4%", DeltaUp = true }
-                        };
+                        var kpiList = Model?.Kpis?.KpiCards?.Any() == true
+                            ? Model.Kpis.KpiCards
+                            : new List<KpiCardViewModel>
+                            {
+                                new() { Label = "Active Risks", Value = Model?.Kpis?.ActiveRisks ?? 0, DeltaText = "—", DeltaUp = false },
+                                new() { Label = "Critical Risks", Value = Model?.Kpis?.CriticalRisks ?? 0, DeltaText = "—", DeltaUp = false },
+                                new() { Label = "Created in Period", Value = Model?.Kpis?.CreatedInPeriod ?? 0, DeltaText = "—", DeltaUp = false },
+                                new() { Label = "Weather-triggered", Value = Model?.Kpis?.WeatherTriggered ?? 0, DeltaText = "—", DeltaUp = false },
+                                new() { Label = "Avg Time to Close (days)", Value = Model?.Kpis?.AvgTimeToCloseDays ?? 0, DeltaText = "—", DeltaUp = false },
+                                new() { Label = "Avg Risk Reduction (%)", Value = Model?.Kpis?.AvgRiskReductionPercent ?? 0, DeltaText = "—", DeltaUp = false }
+                            };
                     }
-                    @foreach (var k in kpis)
+                    @foreach (var k in kpiList)
                     {
                         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800/80">
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">@k.Label</p>
                             <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">@k.Value</p>
-                            <p class="mt-0.5 text-xs @(k.DeltaUp ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400")">@k.Delta vs previous</p>
-                            <div class="mt-2 h-8 w-full rounded bg-slate-100 dark:bg-slate-700" aria-hidden="true" title="Sparkline placeholder"></div>
+                            <p class="mt-0.5 text-xs @(k.DeltaUp ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400")">@(string.IsNullOrEmpty(k.DeltaText) ? "—" : k.DeltaText)</p>
                         </div>
                     }
                 </div>
@@ -175,8 +177,14 @@
                         <p class="mt-1 text-xl font-bold text-slate-900 dark:text-white">@(Model?.Mitigation?.ReassessedPercent ?? 78)%</p>
                     </div>
                 </div>
-                <div class="mt-4 h-24 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50" aria-hidden="true" title="Pre vs post bar comparison placeholder"></div>
+                <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80" id="chart-mitigation-pre-post">
+                    <div class="h-48">
+                        <canvas id="canvas-mitigation-pre-post" class="h-full w-full" aria-label="Pre vs post mitigation score comparison"></canvas>
+                    </div>
+                </div>
             </section>
+
+            @await Html.PartialAsync("_PredictiveInsightsPanel")
 
             @* ---------- Site Risk Ranking Table ---------- *@
             <section class="mb-8" aria-label="Site risk ranking">
@@ -388,7 +396,6 @@
                         <p id="drawer-stat-score" class="text-lg font-bold text-slate-900 dark:text-white">—</p>
                     </div>
                 </div>
-                <div class="h-20 rounded-lg bg-slate-100 dark:bg-slate-700/50" aria-hidden="true" title="Mini trend placeholder"></div>
                 <div>
                     <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Recent monitoring alerts</h3>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Weather-related alerts appear here when applicable.</p>
@@ -451,6 +458,17 @@
 <script>
 (function () {
     'use strict';
+
+    var chartsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
+        risksOverTimeLabels = Model?.Charts?.RisksOverTimeLabels ?? new List<string>(),
+        risksOverTimeValues = Model?.Charts?.RisksOverTimeValues ?? new List<int>(),
+        risksByCategoryLabels = Model?.Charts?.RisksByCategoryLabels ?? new List<string>(),
+        risksByCategoryValues = Model?.Charts?.RisksByCategoryValues ?? new List<int>(),
+        openCount = Model?.Charts?.OpenCount ?? 0,
+        closedCount = Model?.Charts?.ClosedCount ?? 0,
+        mitigationAvgInitialScore = Model?.Mitigation?.AvgInitialScore ?? 0,
+        mitigationAvgResidualScore = Model?.Mitigation?.AvgResidualScore ?? 0
+    }));
 
     // Segment toggles (Source / Status)
     document.querySelectorAll('.segment-btn').forEach(function (btn) {
@@ -532,8 +550,24 @@
 
     var btnRefresh = document.getElementById('btn-refresh');
     if (btnRefresh) btnRefresh.addEventListener('click', function () {
-        showLoading();
-        setTimeout(showContent, 1500);
+        var dateRange = document.getElementById('filter-date-range');
+        var siteId = document.getElementById('filter-site');
+        var category = document.getElementById('filter-category');
+        var severity = document.getElementById('filter-severity');
+        var sourceBtn = document.querySelector('[data-segment="source"].active, [data-segment="source"].segment-btn.active');
+        var statusBtn = document.querySelector('[data-segment="status"].active, [data-segment="status"].segment-btn.active');
+        var params = new URLSearchParams();
+        if (dateRange && dateRange.value) params.set('dateRange', dateRange.value);
+        if (siteId && siteId.value) params.set('siteId', siteId.value);
+        if (category && category.value) params.set('category', category.value);
+        if (severity && severity.value) params.set('severity', severity.value);
+        var srcEl = document.querySelector('[data-segment="source"].active') || document.querySelector('[data-segment="source"]');
+        var src = srcEl ? srcEl.getAttribute('data-value') : 'all';
+        if (src && src !== 'all') params.set('source', src);
+        var stEl = document.querySelector('[data-segment="status"].active') || document.querySelector('[data-segment="status"]');
+        var st = stEl ? stEl.getAttribute('data-value') : 'all';
+        if (st && st !== 'all') params.set('status', st);
+        window.location = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
     });
     var btnRetry = document.getElementById('btn-retry');
     if (btnRetry) btnRetry.addEventListener('click', showContent);
@@ -543,30 +577,58 @@
         b.classList.add('bg-white', 'shadow-sm', 'dark:bg-slate-700');
     });
 
-    // Optional Chart.js stub (assumes Chart.js is already loaded by layout)
     if (typeof Chart !== 'undefined') {
         var lineCtx = document.getElementById('canvas-risks-over-time');
         if (lineCtx) {
+            var lineLabels = chartsData.risksOverTimeLabels && chartsData.risksOverTimeLabels.length ? chartsData.risksOverTimeLabels : ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+            var lineValues = chartsData.risksOverTimeValues && chartsData.risksOverTimeValues.length ? chartsData.risksOverTimeValues : [0, 0, 0, 0];
             new Chart(lineCtx.getContext('2d'), {
                 type: 'line',
-                data: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], datasets: [{ label: 'Risks', data: [8, 12, 10, 14], borderColor: '#059669', tension: 0.3, fill: true }] },
+                data: { labels: lineLabels, datasets: [{ label: 'Risks', data: lineValues, borderColor: '#059669', tension: 0.3, fill: true }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
         }
         var barCtx = document.getElementById('canvas-risks-by-category');
         if (barCtx) {
+            var barLabels = chartsData.risksByCategoryLabels && chartsData.risksByCategoryLabels.length ? chartsData.risksByCategoryLabels : ['Safety', 'Weather', 'Supply', 'Quality'];
+            var barValues = chartsData.risksByCategoryValues && chartsData.risksByCategoryValues.length ? chartsData.risksByCategoryValues : [0, 0, 0, 0];
             new Chart(barCtx.getContext('2d'), {
                 type: 'bar',
-                data: { labels: ['Safety', 'Weather', 'Supply', 'Quality'], datasets: [{ label: 'Count', data: [12, 7, 5, 4], backgroundColor: '#0f172a' }] },
+                data: { labels: barLabels, datasets: [{ label: 'Count', data: barValues, backgroundColor: '#0f172a' }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
         }
         var donutCtx = document.getElementById('canvas-open-closed');
         if (donutCtx) {
+            var openCount = chartsData.openCount != null ? chartsData.openCount : 0;
+            var closedCount = chartsData.closedCount != null ? chartsData.closedCount : 0;
             new Chart(donutCtx.getContext('2d'), {
                 type: 'doughnut',
-                data: { labels: ['Open', 'Closed'], datasets: [{ data: [42, 58], backgroundColor: ['#f59e0b', '#059669'] }] },
+                data: { labels: ['Open', 'Closed'], datasets: [{ data: [openCount, closedCount], backgroundColor: ['#f59e0b', '#059669'] }] },
                 options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+        var prePostCtx = document.getElementById('canvas-mitigation-pre-post');
+        if (prePostCtx) {
+            var avgInitial = chartsData.mitigationAvgInitialScore != null ? chartsData.mitigationAvgInitialScore : 0;
+            var avgResidual = chartsData.mitigationAvgResidualScore != null ? chartsData.mitigationAvgResidualScore : 0;
+            new Chart(prePostCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Initial (pre-mitigation)', 'Residual (post-mitigation)'],
+                    datasets: [
+                        { label: 'Score', data: [avgInitial, avgResidual], backgroundColor: ['#64748b', '#059669'] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: Math.max(10, Math.ceil(Math.max(avgInitial, avgResidual) * 1.2)) },
+                        x: { grid: { display: false } }
+                    }
+                }
             });
         }
     }

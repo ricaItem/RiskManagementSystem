@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using WEB_Sentro.Data;
+using WEB_Sentro.Services;
+using Web_Sentro.Areas.Client.Models;
 
 namespace Web_Sentro.Areas.Client.Controllers
 {
@@ -9,16 +11,64 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize]
     public class AuditController : Controller
     {
-        public IActionResult Index()
-        {
-            var logs = new List<dynamic> {
-                new { Id = 1001, User = "Admin_Mark", Action = "Approved Expense", Module = "Finance", Details = "Approved #EXP-2026-001 ($15,400.00)", Timestamp = DateTime.Now.AddMinutes(-15), IpAddress = "192.168.1.45", Status = "Success" },
-                new { Id = 1002, User = "Site_Eng_Jane", Action = "Updated Stock", Module = "Inventory", Details = "Reduced Portland Cement by 50 bags", Timestamp = DateTime.Now.AddHours(-2), IpAddress = "192.168.1.88", Status = "Success" },
-                new { Id = 1003, User = "Foreman_Mike", Action = "Deleted Record", Module = "Archive", Details = "Moved Diesel Fuel Invoice to Archive", Timestamp = DateTime.Now.AddHours(-5), IpAddress = "192.168.1.12", Status = "Warning" },
-                new { Id = 1004, User = "System", Action = "Failed Login", Module = "Auth", Details = "Unauthorized access attempt from unknown IP", Timestamp = DateTime.Now.AddDays(-1), IpAddress = "104.22.11.5", Status = "Critical" }
-            };
+        private readonly ITenantDbFactory _tenantDbFactory;
+        private readonly PlatformDbContext _platformDb;
 
-            return View(logs);
+        public AuditController(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb)
+        {
+            _tenantDbFactory = tenantDbFactory;
+            _platformDb = platformDb;
+        }
+
+        public async Task<IActionResult> Index(DateTime? from, DateTime? to, CancellationToken ct = default)
+        {
+            var user = await _platformDb.Users.AsNoTracking()
+                .Where(u => u.UserName == User.Identity!.Name)
+                .Select(u => new { u.OrganizationId })
+                .FirstOrDefaultAsync(ct);
+            if (user == null)
+                return Challenge();
+
+            var orgId = user.OrganizationId;
+            var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
+            var toDate = to ?? DateTime.UtcNow.AddDays(1);
+            if (orgId <= 0)
+            {
+                ViewBag.From = fromDate;
+                ViewBag.To = null;
+                return View(new List<AuditLogEntryViewModel>());
+            }
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var logs = await db.AuditLogs.AsNoTracking()
+                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(500)
+                .Select(a => new { a.AuditId, a.UserId, a.EntityType, a.EntityId, a.ActionType, a.Level, a.Message, a.IpAddress, a.CreatedAt })
+                .ToListAsync(ct);
+
+            var userIds = logs.Select(l => l.UserId).Distinct().ToList();
+            var users = await _platformDb.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FirstName, u.LastName })
+                .ToListAsync(ct);
+            var userDisplay = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
+
+            var model = logs.Select(a => new AuditLogEntryViewModel
+            {
+                Id = a.AuditId,
+                User = userDisplay.TryGetValue(a.UserId, out var name) ? name : a.UserId,
+                Action = a.ActionType,
+                Module = a.EntityType,
+                Details = a.Message ?? $"{a.EntityType} #{a.EntityId}",
+                Timestamp = a.CreatedAt,
+                IpAddress = a.IpAddress,
+                Status = string.IsNullOrEmpty(a.Level) ? "Success" : (a.Level == "Warning" ? "Warning" : a.Level == "Error" ? "Critical" : a.Level)
+            }).ToList();
+
+            ViewBag.From = fromDate;
+            ViewBag.To = toDate == DateTime.UtcNow.AddDays(1) ? (DateTime?)null : toDate;
+            return View(model);
         }
     }
 }

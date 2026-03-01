@@ -28,6 +28,7 @@ namespace WEB_Sentro.Data
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
         public DbSet<Expense> Expenses { get; set; } = null!;
+        public DbSet<Notification> Notifications { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -232,6 +233,19 @@ namespace WEB_Sentro.Data
                 e.HasOne(x => x.Site).WithMany(s => s.Expenses).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Risk).WithMany(r => r.Expenses).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(x => x.PurchaseOrder).WithMany(p => p.Expenses).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<Notification>(e =>
+            {
+                e.ToTable("Notifications");
+                e.HasKey(x => x.NotificationId);
+                e.Property(x => x.UserId).HasMaxLength(450);
+                e.Property(x => x.Title).HasMaxLength(200);
+                e.Property(x => x.Message).HasMaxLength(500);
+                e.Property(x => x.EntityType).HasMaxLength(50);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.UserId);
+                e.HasIndex(x => x.CreatedAt);
             });
         }
     }

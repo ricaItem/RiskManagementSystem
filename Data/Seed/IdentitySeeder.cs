@@ -11,7 +11,7 @@ namespace WEB_Sentro.Data.Seed
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
-            var roles = new[] { "SuperAdmin", "Admin", "Manager", "Employee", "ProcurementOfficer" };
+            var roles = new[] { "SuperAdmin", "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
             foreach (var role in roles)
             {

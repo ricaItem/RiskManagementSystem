@@ -75,11 +75,14 @@ builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
 
 // App services
 builder.Services.AddScoped<RiskService>();
+builder.Services.AddScoped<RiskAnalyticsService>();
 builder.Services.AddScoped<RiskAttachmentService>();
 builder.Services.AddScoped<RiskEvaluationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
 builder.Services.AddScoped<MonitoringHubService>();
+builder.Services.AddHostedService<MonitoringSyncHostedService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

@@ -515,11 +515,24 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <a href="#" class="flex items-center justify-center h-10 w-10 rounded-xl sentro-text-secondary hover:bg-[var(--nav-hover-bg)] dark:text-slate-400 dark:hover:bg-slate-800 focus:outline-none focus-ring rounded-xl transition-colors" title="Notifications" aria-label="Notifications">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                        </svg>
-                    </a>
+                    <div class="relative" id="notificationBellWrap">
+                        <button type="button" onclick="toggleNotificationDropdown()" id="notificationBellBtn" class="flex items-center justify-center h-10 w-10 rounded-xl sentro-text-secondary hover:bg-[var(--nav-hover-bg)] dark:text-slate-400 dark:hover:bg-slate-800 focus:outline-none focus-ring rounded-xl transition-colors relative" title="Notifications" aria-label="Notifications" aria-expanded="false">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            <span id="notificationBadge" class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white hidden" aria-hidden="true">0</span>
+                        </button>
+                        <div id="notificationDropdown" class="absolute right-0 mt-2 w-[360px] max-h-[80vh] overflow-hidden rounded-2xl sentro-card shadow-xl dark:border-slate-800 dark:bg-slate-900 hidden z-50 flex flex-col border border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Notifications</span>
+                                <a href="@Url.Action("Index", "Notifications", new { area = "Client" })" class="text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">View all</a>
+                            </div>
+                            <div id="notificationDropdownList" class="overflow-y-auto custom-scrollbar max-h-[320px] p-2">
+                                <div id="notificationDropdownLoading" class="flex items-center justify-center py-8 text-slate-400 text-sm">Loading…</div>
+                                <div id="notificationDropdownEmpty" class="hidden py-8 text-center text-sm text-slate-500 dark:text-slate-400">No notifications.</div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="relative">
                         <button onclick="toggleUserDropdown()" id="userDropdownBtn" class="flex items-center gap-4 hover:opacity-80 transition-opacity focus:outline-none group focus-ring rounded-xl p-1" type="button">
                             <div class="hidden sm:flex flex-col items-end mr-2">
@@ -658,7 +671,109 @@
 
         function toggleUserDropdown() {
             dropdown?.classList.toggle('hidden');
+            document.getElementById('notificationDropdown')?.classList.add('hidden');
+            document.getElementById('notificationBellBtn')?.setAttribute('aria-expanded', 'false');
         }
+
+        let notificationDropdownLoaded = false;
+        function toggleNotificationDropdown() {
+            const panel = document.getElementById('notificationDropdown');
+            const btn = document.getElementById('notificationBellBtn');
+            if (!panel || !btn) return;
+            const isOpen = !panel.classList.contains('hidden');
+            if (isOpen) {
+                panel.classList.add('hidden');
+                btn.setAttribute('aria-expanded', 'false');
+            } else {
+                document.getElementById('userDropdown')?.classList.add('hidden');
+                panel.classList.remove('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+                updateNotificationBadge(0);
+                loadNotificationDropdown();
+            }
+        }
+        function loadNotificationDropdown() {
+            const listEl = document.getElementById('notificationDropdownList');
+            const loadingEl = document.getElementById('notificationDropdownLoading');
+            const emptyEl = document.getElementById('notificationDropdownEmpty');
+            if (!listEl || !loadingEl || !emptyEl) return;
+            loadingEl.classList.remove('hidden');
+            emptyEl.classList.add('hidden');
+            listEl.querySelectorAll('.notification-item').forEach(n => n.remove());
+            fetch('/Client/Notifications/ApiDropdown', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    loadingEl.classList.add('hidden');
+                    const items = data.items || [];
+                    if (items.length === 0) {
+                        emptyEl.classList.remove('hidden');
+                        return;
+                    }
+                    items.forEach(item => {
+                        const unread = !item.readAt;
+                        const created = item.createdAt ? new Date(item.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
+                        const link = item.actionUrl ? item.actionUrl : '@Url.Action("Index", "Notifications", new { area = "Client" })';
+                        const div = document.createElement(item.actionUrl ? 'a' : 'div');
+                        div.className = 'notification-item block rounded-xl px-3 py-2.5 ' + (unread ? 'bg-indigo-50/80 dark:bg-indigo-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50') + ' transition-colors';
+                        if (item.actionUrl) {
+                            div.href = link;
+                            div.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                if (item.notificationId) markNotificationRead(item.notificationId);
+                                window.location.href = link;
+                            });
+                        }
+                        div.innerHTML = '<div class="font-semibold text-slate-900 dark:text-white text-xs">' + escapeHtml(item.title || '') + '</div><div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">' + escapeHtml(item.message || '') + '</div><div class="text-[10px] text-slate-400 mt-1">' + escapeHtml(created) + '</div>';
+                        listEl.appendChild(div);
+                    });
+                    notificationDropdownLoaded = true;
+                })
+                .catch(() => {
+                    loadingEl.classList.add('hidden');
+                    emptyEl.classList.remove('hidden');
+                    emptyEl.textContent = 'Could not load notifications.';
+                });
+        }
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notificationBadge');
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+                badge.setAttribute('aria-hidden', 'false');
+            } else {
+                badge.classList.add('hidden');
+                badge.setAttribute('aria-hidden', 'true');
+            }
+        }
+        function markNotificationRead(id) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (!token) return;
+            fetch('/Client/Notifications/ApiMarkRead', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(token)
+            }).catch(() => {});
+        }
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/Client/Notifications/ApiDropdown', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => { updateNotificationBadge(data.unreadCount || 0); })
+                .catch(() => {});
+            document.addEventListener('click', function(e) {
+                const wrap = document.getElementById('notificationBellWrap');
+                if (wrap && !wrap.contains(e.target)) {
+                    document.getElementById('notificationDropdown')?.classList.add('hidden');
+                    document.getElementById('notificationBellBtn')?.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
 
         function openLogoutModal() {
             dropdown?.classList.add('hidden');

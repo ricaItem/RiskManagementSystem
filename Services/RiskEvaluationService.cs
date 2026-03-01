@@ -9,11 +9,13 @@ namespace WEB_Sentro.Services
     {
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly RiskService _riskService;
+        private readonly INotificationService _notificationService;
 
-        public RiskEvaluationService(ITenantDbFactory tenantDbFactory, RiskService riskService)
+        public RiskEvaluationService(ITenantDbFactory tenantDbFactory, RiskService riskService, INotificationService notificationService)
         {
             _tenantDbFactory = tenantDbFactory;
             _riskService = riskService;
+            _notificationService = notificationService;
         }
 
         public static int ComputeRiskScore(int likelihood, int impact) => likelihood * impact;
@@ -104,6 +106,8 @@ namespace WEB_Sentro.Services
 
             _riskService.AddAuditLog(db, risk.OrgId, userId, "Risk", riskId, "RiskAssessmentSaved", $"Risk evaluated: {riskLevel} (score {riskScore})", ipAddress);
             await db.SaveChangesAsync(ct);
+            if (riskLevel == "High" || riskLevel == "Critical")
+                await _notificationService.NotifyRiskEventAsync(risk.OrgId, "HighCriticalAssessed", riskId, "High/Critical risk assessed", $"Risk '{risk.Title}' assessed as {riskLevel} (score {riskScore}).", risk.ReportByUserId, ct);
             return true;
         }
     }

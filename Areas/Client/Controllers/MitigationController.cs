@@ -18,13 +18,15 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly PlatformDbContext _platformDb;
         private readonly RiskService _riskService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificationService _notificationService;
 
-        public MitigationController(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb, RiskService riskService, UserManager<ApplicationUser> userManager)
+        public MitigationController(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb, RiskService riskService, UserManager<ApplicationUser> userManager, INotificationService notificationService)
         {
             _tenantDbFactory = tenantDbFactory;
             _platformDb = platformDb;
             _riskService = riskService;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -266,6 +268,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 risk.UpdatedAt = DateTime.UtcNow;
                 _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", risk.RiskId, "RiskClosedControlled", "All mitigation tasks completed", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await db.SaveChangesAsync();
+                await _notificationService.NotifyRiskEventAsync(risk.OrgId, "Closed", risk.RiskId, "Risk closed", $"Risk '{risk.Title}' closed (all mitigation tasks completed).", risk.ReportByUserId);
             }
 
             return Json(new { ok = true });
