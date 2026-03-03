@@ -81,6 +81,20 @@ namespace Web_Sentro.Areas.Client.Controllers
             return Json(new { ok = true });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApiMarkAllRead(CancellationToken ct = default)
+        {
+            var user = await GetCurrentUserInfoAsync(ct);
+            if (user == null || user.Value.OrganizationId <= 0) return NotFound();
+            var (userId, orgId) = user.Value;
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            await db.Notifications
+                .Where(n => n.UserId == userId && n.ReadAt == null)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(n => n.ReadAt, DateTime.UtcNow), ct);
+            return Json(new { ok = true });
+        }
+
         private async Task<(string Id, int OrganizationId)?> GetCurrentUserInfoAsync(CancellationToken ct)
         {
             var u = await _platformDb.Users.AsNoTracking()

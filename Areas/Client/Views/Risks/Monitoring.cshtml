@@ -6,8 +6,80 @@
     var p = Model.SiteRiskPosture;
 }
 
-<div class="animate-in fade-in min-h-screen space-y-8 duration-1000">
+<div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative">
+    <!-- Map + Site modal: true modal (backdrop covers sidebar), 2-col layout -->
+    <div id="monitoring-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+        <div id="monitoring-modal-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]" aria-hidden="true"></div>
+        <div class="relative z-[110] w-full max-w-7xl grid grid-cols-1 md:grid-cols-[1fr_320px] gap-4 items-stretch my-auto max-h-[90vh]">
+            <div id="monitoring-modal-map-slot" class="min-h-[60vh] rounded-xl overflow-hidden border border-slate-200/70 bg-white dark:border-slate-800 dark:bg-slate-900/40 shadow-xl relative">
+                <!-- Map is moved here by JS when modal opens -->
+            </div>
+            <div id="monitoring-site-panel" class="w-80 max-w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto flex flex-col">
+                <div class="p-6 flex-1">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 id="drawer-title" class="text-lg font-black text-slate-900 dark:text-white">Site Details</h2>
+                        <button type="button" id="monitoring-modal-close" onclick="closeDrawer()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus-ring-2 focus-ring-indigo-500 rounded p-1" aria-label="Close">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div id="drawer-loading" class="hidden animate-pulse space-y-4">
+                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                        <div class="h-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                    </div>
+                    <div id="drawer-content" class="space-y-6">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+                            <h4 class="text-xs font-black uppercase text-slate-500 dark:text-slate-400 mb-3">Current Conditions</h4>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span id="drawer-last-sync" class="text-[10px] text-slate-500 dark:text-slate-400">Last sync: --</span>
+                                <span id="drawer-api-health" class="flex items-center gap-1 text-[10px] font-bold hidden"><span class="drawer-health-dot w-2 h-2 rounded-full"></span><span class="drawer-health-label">--</span></span>
+                            </div>
+                            <div class="flex items-end justify-between">
+                                <div>
+                                    <div id="drawer-temp" class="text-3xl font-black text-slate-900 dark:text-white">--°C</div>
+                                    <div id="drawer-condition" class="text-sm font-medium text-slate-600 dark:text-slate-300">--</div>
+                                </div>
+                                <div class="text-right">
+                                    <div id="drawer-wind" class="text-sm font-bold text-slate-700 dark:text-slate-300">-- km/h</div>
+                                    <div class="text-[10px] text-slate-500 uppercase">Wind</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                <h5 class="text-[10px] font-bold uppercase text-slate-400 mb-2">6h Trend (wind / rain vs threshold)</h5>
+                                <svg id="drawer-trend-chart" viewBox="0 0 300 60" class="w-full h-16 stroke-2 fill-none" aria-hidden="true"></svg>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Thresholds: Wind 40 km/h, Rain 10 mm</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <h4 class="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Active Alerts</h4>
+                                <label class="flex items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                    <input type="checkbox" id="drawer-show-resolved" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600" />
+                                    <span>Show resolved</span>
+                                </label>
+                            </div>
+                            <div class="mb-3 inline-flex rounded-full bg-slate-100 p-1 text-[10px] font-black tracking-[0.16em] text-slate-500 dark:bg-slate-800/80 dark:text-slate-300">
+                                <button type="button" data-alert-filter="today" class="drawer-filter-tab rounded-full px-3 py-1 bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white">Today</button>
+                                <button type="button" data-alert-filter="7d" class="drawer-filter-tab rounded-full px-3 py-1 text-slate-500 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/60 dark:hover:text-white">7 days</button>
+                                <button type="button" data-alert-filter="all" class="drawer-filter-tab rounded-full px-3 py-1 text-slate-500 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/60 dark:hover:text-white">All</button>
+                            </div>
+                            <div id="drawer-alerts-list" class="space-y-2"></div>
+                        </div>
+                        <div class="pt-4 flex flex-col gap-2">
+                            <form id="drawer-sync-form" method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client" })">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="siteId" id="drawer-site-id" />
+                                <button type="submit" class="w-full rounded-xl bg-slate-900 py-3 text-xs font-black uppercase tracking-widest text-white shadow-sm hover:bg-indigo-600 dark:bg-white dark:text-slate-900">Sync Now</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+
         <div>
             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 Risk <span class="text-indigo-500 dark:text-indigo-400 italic">Monitoring Hub</span>
@@ -59,9 +131,14 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div class="lg:col-span-8 rounded-xl border border-slate-200/70 bg-white/70 overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40 h-[500px] relative">
-            <div id="monitoring-map" class="w-full h-full" data-lat="@Model.Latitude" data-lon="@Model.Longitude"></div>
+        <div id="monitoring-map-original-slot" class="lg:col-span-8 rounded-xl border border-slate-200/70 bg-white/70 overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40 h-[500px] relative">
+            <div id="monitoring-map" class="w-full h-full" data-lat="@Model.Latitude" data-lon="@Model.Longitude" data-selected-site-id="@Model.SelectedSiteId" data-sites="@(System.Text.Json.JsonSerializer.Serialize(Model.Sites.Select(s => new { siteId = s.SiteId, latitude = s.Latitude, longitude = s.Longitude })))"></div>
             <div class="absolute top-4 left-4 flex flex-col gap-2">
+                <div class="rounded-xl border border-slate-200/70 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 flex flex-wrap gap-3 items-center" id="layer-toggles" role="group" aria-label="Map layers">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-sites" checked class="rounded border-slate-300"> Sites</label>
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-geofence" checked class="rounded border-slate-300"> Geofence</label>
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-risks" class="rounded border-slate-300"> Risks</label>
+                </div>
                 <div class="rounded-xl border border-slate-200/70 bg-white/80 px-4 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
                     <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Coordinates</p>
                     <p class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">@Model.Latitude.ToString("F4"), @Model.Longitude.ToString("F4")</p>
@@ -106,6 +183,12 @@
                                             <input type="hidden" name="alertId" value="@a.AlertId" />
                                             <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
                                             <button type="submit" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Acknowledge</button>
+                                        </form>
+                                        <form method="post" action="@Url.Action("ResolveAlert", "Risks", new { area = "Client" })" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="alertId" value="@a.AlertId" />
+                                            <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
+                                            <button type="submit" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700">Resolve</button>
                                         </form>
                                     }
                                     <form method="post" action="@Url.Action("CreateMitigationPlanFromAlert", "Risks", new { area = "Client" })" class="inline">
@@ -232,6 +315,169 @@
     </div>
 </div>
 
+<style>
+    .monitoring-marker-pulse { animation: monitoring-pulse 1.5s ease-out; }
+    @@keyframes monitoring-pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.4); opacity: 0.9; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .monitoring-marker-pulse { animation: none; }
+    }
+
+    /* Leaflet monitoring site markers: bouncing pin + radio-wave pulse */
+    .monitoring-site-icon {
+        pointer-events: auto;
+    }
+    .site-marker {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center bottom;
+    }
+    .site-marker .pin {
+        position: relative;
+        z-index: 10;
+        width: 14px;
+        height: 14px;
+        border-radius: 9999px;
+        background: #10b981;
+        border: 2px solid #ffffff;
+        box-shadow: 0 6px 10px rgba(15, 23, 42, 0.45);
+    }
+    .site-marker .pulse {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        border: 2px solid currentColor;
+        transform: translate(-50%, -50%) scale(0.6);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .site-marker .pulse::before,
+    .site-marker .pulse::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: inherit;
+        transform: scale(0.6);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Severity colors */
+    .site-marker.severity-critical {
+        color: #ef4444;
+    }
+    .site-marker.severity-critical .pin {
+        background: #ef4444;
+        box-shadow: 0 8px 18px rgba(248, 113, 113, 0.65);
+    }
+    .site-marker.severity-high {
+        color: #f59e0b;
+    }
+    .site-marker.severity-high .pin {
+        background: #f59e0b;
+        box-shadow: 0 7px 14px rgba(245, 158, 11, 0.55);
+    }
+    .site-marker.severity-medium {
+        color: #22c55e;
+    }
+    .site-marker.severity-medium .pin {
+        background: #22c55e;
+    }
+    .site-marker.severity-normal {
+        color: #10b981;
+    }
+
+    /* Bounce animation */
+    @@keyframes site-marker-bounce-soft {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+    @@keyframes site-marker-bounce-strong {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    /* Pulse / radio-wave animation */
+    @@keyframes site-marker-pulse {
+        0% {
+            transform: translate(-50%, -50%) scale(0.6);
+            opacity: 0.55;
+        }
+        70% {
+            opacity: 0.08;
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(2.4);
+            opacity: 0;
+        }
+    }
+
+    /* Apply animations by severity + has-alerts */
+    .site-marker.has-alerts.severity-normal .pin {
+        animation: site-marker-bounce-soft 1.8s ease-in-out infinite;
+    }
+    .site-marker.has-alerts.severity-medium .pin {
+        animation: site-marker-bounce-soft 1.6s ease-in-out infinite;
+    }
+    .site-marker.has-alerts.severity-high .pin {
+        animation: site-marker-bounce-strong 1.4s ease-in-out infinite;
+    }
+    .site-marker.has-alerts.severity-critical .pin {
+        animation: site-marker-bounce-strong 1.1s ease-in-out infinite;
+    }
+
+    .site-marker.has-alerts.severity-medium .pulse,
+    .site-marker.has-alerts.severity-high .pulse {
+        animation: site-marker-pulse 2s ease-out infinite;
+    }
+    .site-marker.has-alerts.severity-medium .pulse::before,
+    .site-marker.has-alerts.severity-high .pulse::before {
+        animation: site-marker-pulse 2.4s ease-out infinite;
+        animation-delay: 0.4s;
+    }
+    .site-marker.has-alerts.severity-medium .pulse::after {
+        display: none;
+    }
+
+    .site-marker.has-alerts.severity-critical .pulse {
+        animation: site-marker-pulse 1.6s ease-out infinite;
+    }
+    .site-marker.has-alerts.severity-critical .pulse::before {
+        animation: site-marker-pulse 1.8s ease-out infinite;
+        animation-delay: 0.35s;
+    }
+    .site-marker.has-alerts.severity-critical .pulse::after {
+        animation: site-marker-pulse 2s ease-out infinite;
+        animation-delay: 0.7s;
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .site-marker.has-alerts .pin,
+        .site-marker.has-alerts .pulse,
+        .site-marker.has-alerts .pulse::before,
+        .site-marker.has-alerts .pulse::after {
+            animation: none !important;
+        }
+        .site-marker.severity-critical .pulse,
+        .site-marker.severity-critical .pulse::before,
+        .site-marker.severity-critical .pulse::after {
+            opacity: 0.35;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+    }
+</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="~/js/monitoring.js" asp-append-version="true"></script>

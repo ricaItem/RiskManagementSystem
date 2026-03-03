@@ -53,8 +53,14 @@ namespace Web_Sentro.Areas.Client.Controllers
         private bool IsRiskManager() => User.IsInRole("RiskManager");
         private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
 
-        public async Task<IActionResult> Identification(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10)
+        public IActionResult Identification(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10)
         {
+            return View();
+        }
+
+        public async Task<IActionResult> IdentificationContent(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10)
+        {
+            // Removed simulated delay for optimization
             ViewData["Title"] = "Risk Identification";
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -66,6 +72,11 @@ namespace Web_Sentro.Areas.Client.Controllers
             var employeeOnly = EmployeeOnly();
             var includeDeleted = showDeleted && (IsAdmin() || IsSuperAdmin());
             var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, siteId, includeDeleted);
+
+            ViewBag.KpiTotalRisks = list.Count;
+            ViewBag.KpiForReview = list.Count(r => r.Status == "For_Review" || r.Status == "Submitted" || r.Status == "Reviewed");
+            ViewBag.KpiCritical = list.Count(r => r.Priority == "Critical");
+            ViewBag.KpiSitePins = list.Count(r => r.SiteId.HasValue || !string.IsNullOrWhiteSpace(r.ProjectSite));
 
             if (orgId.HasValue)
             {
@@ -100,7 +111,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.IsAdmin = IsAdmin() || IsSuperAdmin();
             ViewBag.IsRiskManager = IsRiskManager() || IsAdmin() || IsSuperAdmin();
             ViewBag.ShowDeleted = includeDeleted;
-            return View(model);
+            return PartialView("_IdentificationContent", model);
         }
 
         [HttpPost]
@@ -141,6 +152,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (!attachResult.Ok && !string.IsNullOrEmpty(attachResult.Error))
                     TempData["AttachmentError"] = attachResult.Error;
             }
+            TempData["SuccessMessage"] = status == "Submitted" ? "Risk submitted successfully." : "Risk draft saved.";
             return RedirectToAction("Identification");
         }
 
@@ -248,6 +260,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return Forbid();
 
             await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, IsSuperAdmin(), changedByUserId: user.Id);
+            TempData["SuccessMessage"] = "Risk updated successfully.";
             return RedirectToAction("Identification");
         }
 
@@ -269,6 +282,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", id, "RiskSoftDeleted", "Risk moved to trash", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
+            TempData["SuccessMessage"] = "Risk moved to trash.";
             return RedirectToAction("Identification");
         }
 
@@ -287,6 +301,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskRestored", "Risk restored from trash", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
+            TempData["SuccessMessage"] = "Risk restored successfully.";
             return RedirectToAction("Identification");
         }
 
@@ -310,6 +325,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, orgId, user.Id, "Risk", id, "RiskHardDeleted", "Risk permanently deleted", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
+            TempData["SuccessMessage"] = "Risk permanently deleted.";
             return RedirectToAction("Identification");
         }
 
@@ -475,6 +491,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 }
             }
 
+
             var posture = new SiteRiskPostureViewModel
             {
                 ActiveAlertsCount = systemAlerts.Count(a => a.Status == "Active"),
@@ -566,6 +583,19 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResolveAlert(int alertId, int? siteId = null)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
+            var ok = await _monitoringHub.ResolveAlertAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
+            if (!ok) return NotFound();
+            return RedirectToAction(nameof(Monitoring), new { siteId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateMitigationPlanFromAlert(int alertId)
         {
             var user = await GetCurrentUserAsync();
@@ -589,5 +619,58 @@ namespace Web_Sentro.Areas.Client.Controllers
             await _riskService.EnsureMitigationPlanExistsAsync(riskId, orgId.Value, user.Id, alert.Severity, HttpContext.RequestAborted);
             return RedirectToAction("Board", "Mitigation", new { area = "Client", riskId });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> OpenRiskFromAlert(int alertId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
+
+            var alert = await _monitoringHub.GetAlertAsync(orgId.Value, alertId, HttpContext.RequestAborted);
+            if (alert == null) return NotFound();
+
+            int riskId;
+            if (alert.RiskId.HasValue)
+            {
+                riskId = alert.RiskId.Value;
+            }
+            else
+            {
+                var created = await _monitoringHub.CreateRiskFromAlertAndLinkAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
+                if (!created.HasValue) return NotFound();
+                riskId = created.Value;
+            }
+
+            return RedirectToAction(nameof(Assess), new { id = riskId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMapData(CancellationToken ct)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return Ok(new List<object>());
+            
+            var data = await _monitoringHub.GetMapDataAsync(orgId.Value, ct);
+            return Ok(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSiteDetails(int id, CancellationToken ct)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return NotFound();
+            
+            var details = await _monitoringHub.GetSiteDetailsAsync(orgId.Value, id, ct);
+            if (details == null) return NotFound();
+            return Ok(details);
+        }
     }
 }
+

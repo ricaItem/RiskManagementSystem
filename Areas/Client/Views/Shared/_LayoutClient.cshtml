@@ -209,11 +209,6 @@
             : "sentro-nav-inactive border-transparent dark:border-transparent";
         }
 
-        string IsGroupActive(params string[] prefixes)
-        {
-            var p = Context.Request.Path.ToString();
-            return prefixes.Any(x => p.StartsWith(x, StringComparison.OrdinalIgnoreCase)) ? "true" : "false";
-        }
     }
 
     <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden md:hidden"></div>
@@ -520,7 +515,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                             </svg>
-                            <span id="notificationBadge" class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white hidden" aria-hidden="true">0</span>
+                            <span id="notificationBadge" class="absolute -top-0.5 -right-0.5 h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white hidden" aria-hidden="true">0</span>
                         </button>
                         <div id="notificationDropdown" class="absolute right-0 mt-2 w-[360px] max-h-[80vh] overflow-hidden rounded-2xl sentro-card shadow-xl dark:border-slate-800 dark:bg-slate-900 hidden z-50 flex flex-col border border-slate-200 dark:border-slate-700">
                             <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
@@ -676,6 +671,16 @@
         }
 
         let notificationDropdownLoaded = false;
+        function markAllNotificationsRead() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (!token) return;
+            fetch('/Client/Notifications/ApiMarkAllRead', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                body: '__RequestVerificationToken=' + encodeURIComponent(token)
+            }).catch(() => {});
+        }
         function toggleNotificationDropdown() {
             const panel = document.getElementById('notificationDropdown');
             const btn = document.getElementById('notificationBellBtn');
@@ -689,6 +694,7 @@
                 panel.classList.remove('hidden');
                 btn.setAttribute('aria-expanded', 'true');
                 updateNotificationBadge(0);
+                markAllNotificationsRead();
                 loadNotificationDropdown();
             }
         }
@@ -740,9 +746,11 @@
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count;
                 badge.classList.remove('hidden');
+                badge.classList.add('flex');
                 badge.setAttribute('aria-hidden', 'false');
             } else {
                 badge.classList.add('hidden');
+                badge.classList.remove('flex');
                 badge.setAttribute('aria-hidden', 'true');
             }
         }

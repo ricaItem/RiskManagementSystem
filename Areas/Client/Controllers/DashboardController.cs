@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace WEB_Sentro.Areas.Client.Controllers
 {
@@ -10,6 +11,13 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public IActionResult Index()
         {
             return View();
+        }
+
+        public async Task<IActionResult> DashboardContent()
+        {
+            // Simulate delay for skeleton demonstration
+            await Task.Delay(1500);
+            return PartialView("_DashboardContent");
         }
     }
 }

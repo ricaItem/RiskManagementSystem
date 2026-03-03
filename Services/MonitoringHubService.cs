@@ -340,6 +340,7 @@ namespace WEB_Sentro.Services
             if (alert == null) return false;
             alert.AcknowledgedAtUtc = DateTime.UtcNow;
             alert.AcknowledgedByUserId = userId;
+            _riskService.AddAuditLog(db, orgId, userId, "MonitoringAlert", alertId, "AlertAcknowledged", $"Alert {alert.RuleName} acknowledged", null);
             await db.SaveChangesAsync(ct);
             return true;
         }
@@ -364,5 +365,141 @@ namespace WEB_Sentro.Services
             await db.SaveChangesAsync(ct);
             return risk.RiskId;
         }
+
+        public async Task<List<MonitoringMapItem>> GetMapDataAsync(int orgId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            
+            // Get all monitoring sites
+            var sites = await db.MonitoringSites.AsNoTracking()
+                .Where(s => s.OrgId == orgId)
+                .Select(s => new { s.MonitoringSiteId, s.Name, s.Latitude, s.Longitude })
+                .ToListAsync(ct);
+                
+            // Get active alerts grouped by site
+            var activeAlerts = await db.MonitoringAlerts.AsNoTracking()
+                .Where(a => a.OrgId == orgId && a.Status == "Active")
+                .Select(a => new { a.MonitoringSiteId, a.Severity })
+                .ToListAsync(ct);
+
+            var siteIds = sites.Select(s => s.MonitoringSiteId).ToList();
+            var riskCountBySite = siteIds.Count == 0 ? new Dictionary<int, int>() : await db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId && r.LocationId != null && siteIds.Contains(r.LocationId.Value) && r.DeletedAt == null
+                    && r.Status != "Closed_Invalid" && r.Status != "Rejected")
+                .GroupBy(r => r.LocationId!.Value)
+                .Select(g => new { SiteId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.SiteId, x => x.Count, ct);
+
+            // Get latest snapshot for each site for current weather
+            // Using a group by approach to get the latest snapshot per site is inefficient in EF Core 3.x/5.x sometimes, 
+            // so we'll fetch recent snapshots and process in memory or use a window function if raw SQL. 
+            // For simplicity and safety across providers, we'll fetch the last snapshot for each site.
+            // Optimized: Get max ID per site (assuming ID increases with time) or Max CapturedAt
+            var latestSnapshots = await db.MonitoringSnapshots.AsNoTracking()
+                .Where(s => s.OrgId == orgId)
+                .GroupBy(s => s.MonitoringSiteId)
+                .Select(g => g.OrderByDescending(s => s.CapturedAtUtc).FirstOrDefault())
+                .ToListAsync(ct);
+                
+            var mapItems = new List<MonitoringMapItem>();
+            
+            foreach (var site in sites)
+            {
+                var siteAlerts = activeAlerts.Where(a => a.MonitoringSiteId == site.MonitoringSiteId).ToList();
+                var maxSeverity = siteAlerts.Any(a => a.Severity == "Critical") ? "Critical" 
+                                : siteAlerts.Any(a => a.Severity == "High") ? "High" 
+                                : siteAlerts.Any() ? "Medium" : "None";
+                                
+                var snap = latestSnapshots.FirstOrDefault(s => s?.MonitoringSiteId == site.MonitoringSiteId);
+                
+                mapItems.Add(new MonitoringMapItem
+                {
+                    SiteId = site.MonitoringSiteId,
+                    Name = site.Name,
+                    Latitude = site.Latitude,
+                    Longitude = site.Longitude,
+                    ActiveAlertCount = siteAlerts.Count,
+                    ActiveRiskCount = riskCountBySite.GetValueOrDefault(site.MonitoringSiteId, 0),
+                    MaxSeverity = maxSeverity,
+                    TempC = snap?.Temperature,
+                    Condition = snap?.Condition,
+                    LastSyncUtc = snap?.CapturedAtUtc
+                });
+            }
+            
+            return mapItems;
+        }
+        
+        public async Task<MonitoringSiteDetailsDto?> GetSiteDetailsAsync(int orgId, int siteId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var site = await db.MonitoringSites.AsNoTracking().FirstOrDefaultAsync(s => s.MonitoringSiteId == siteId && s.OrgId == orgId, ct);
+            if (site == null) return null;
+            
+            var alerts = await GetRecentAlertsAsync(orgId, siteId, 20, ct);
+            var snapshots = await db.MonitoringSnapshots.AsNoTracking()
+                .Where(s => s.OrgId == orgId && s.MonitoringSiteId == siteId && s.CapturedAtUtc >= DateTime.UtcNow.AddHours(-6))
+                .OrderBy(s => s.CapturedAtUtc)
+                .Select(s => new MonitoringSnapshotDto { CapturedAtUtc = s.CapturedAtUtc, TempC = s.Temperature, WindKmh = s.WindSpeed, RainMm = s.RainMm })
+                .ToListAsync(ct);
+
+            var lastSync = await GetLastSyncUtcAsync(orgId, siteId, ct);
+            var apiHealthOk = lastSync.HasValue && (DateTime.UtcNow - lastSync.Value).TotalMinutes <= 30;
+
+            return new MonitoringSiteDetailsDto
+            {
+                SiteId = site.MonitoringSiteId,
+                Name = site.Name,
+                Alerts = alerts,
+                History = snapshots,
+                LastSyncUtc = lastSync,
+                ApiHealthOk = apiHealthOk
+            };
+        }
+
+        public async Task<bool> ResolveAlertAsync(int orgId, int alertId, string userId, CancellationToken ct = default)
+        {
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            var alert = await db.MonitoringAlerts.FirstOrDefaultAsync(a => a.AlertId == alertId && a.OrgId == orgId && a.Status == "Active", ct);
+            if (alert == null) return false;
+            alert.Status = "Resolved";
+            alert.ResolvedAtUtc = DateTime.UtcNow;
+            _riskService.AddAuditLog(db, orgId, userId, "MonitoringAlert", alertId, "AlertResolved", $"Alert {alert.RuleName} resolved manually", null);
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+    }
+    
+    public class MonitoringMapItem
+    {
+        public int SiteId { get; set; }
+        public string Name { get; set; } = "";
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public int ActiveAlertCount { get; set; }
+        public int ActiveRiskCount { get; set; }
+        public string MaxSeverity { get; set; } = "None";
+        public decimal? TempC { get; set; }
+        public string? Condition { get; set; }
+        public DateTime? LastSyncUtc { get; set; }
+    }
+    
+    public class MonitoringSiteDetailsDto
+    {
+        public int SiteId { get; set; }
+        public string Name { get; set; } = "";
+        public List<MonitoringAlertViewModel> Alerts { get; set; } = new();
+        public List<MonitoringSnapshotDto> History { get; set; } = new();
+        public DateTime? LastSyncUtc { get; set; }
+        public bool ApiHealthOk { get; set; }
+    }
+    
+    public class MonitoringSnapshotDto
+    {
+        public DateTime CapturedAtUtc { get; set; }
+        public decimal? TempC { get; set; }
+        public decimal? WindKmh { get; set; }
+        public decimal? RainMm { get; set; }
     }
 }
+
