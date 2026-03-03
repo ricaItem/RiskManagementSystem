@@ -11,627 +11,483 @@
     var qStatus = Context.Request.Query["status"].FirstOrDefault() ?? "all";
 }
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900/50" id="risk-analytics-root">
-    @* ---------- Sticky Header + Filters ---------- *@
-    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/95" id="analytics-header">
-        <div class="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">Risk Analytics</h1>
-                    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Multi-site risk performance and mitigation effectiveness</p>
-                </div>
-                <p class="text-xs text-slate-500 dark:text-slate-400 lg:order-3">Last updated: @lastUpdated</p>
-            </div>
-
-            <div class="mt-4 flex flex-col gap-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <select id="filter-date-range" name="dateRange" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400">
-                        <option value="7" @(Context.Request.Query["dateRange"] == "7" ? "selected" : "")>Last 7 days</option>
-                        <option value="30" @(Context.Request.Query["dateRange"] != "7" && Context.Request.Query["dateRange"] != "90" ? "selected" : "")>Last 30 days</option>
-                        <option value="90" @(Context.Request.Query["dateRange"] == "90" ? "selected" : "")>Last 90 days</option>
-                    </select>
-                    <select id="filter-site" name="siteId" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                        <option value="">All Sites</option>
-                        @foreach (var s in sites.Where(x => !string.IsNullOrEmpty(x.Value)))
-                        {
-                            <option value="@s.Value" @(Context.Request.Query["siteId"] == s.Value ? "selected" : "")>@s.Text</option>
-                        }
-                        @if (!sites.Any())
-                        {
-                            <option value="1">Site A</option>
-                            <option value="2">Site B</option>
-                        }
-                    </select>
-                    <select id="filter-category" name="category" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                        <option value="">All categories</option>
-                        @foreach (var c in categories.Where(x => !string.IsNullOrEmpty(x.Value)))
-                        {
-                            <option value="@c.Value" @(Context.Request.Query["category"] == c.Value ? "selected" : "")>@c.Text</option>
-                        }
-                        @if (!categories.Any())
-                        {
-                            <option>Safety</option>
-                            <option>Weather</option>
-                            <option>Supply</option>
-                        }
-                    </select>
-                    <div class="flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-800" role="group" aria-label="Risk source">
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "all" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="all">All</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "manual" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="manual">Manual</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qSource == "weather" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="source" data-value="weather">Weather</button>
-                    </div>
-                    <div class="flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-800" role="group" aria-label="Status">
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "all" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="all">All</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "open" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="open">Open</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "mitigated" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="mitigated">Mitigated</button>
-                        <button type="button" class="segment-btn rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 @(qStatus == "closed" ? "active bg-white shadow-sm dark:bg-slate-700" : "")" data-segment="status" data-value="closed">Closed</button>
-                    </div>
-                    <select id="filter-severity" name="severity" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                        <option value="">All severity</option>
-                        <option value="low" @(Context.Request.Query["severity"] == "low" ? "selected" : "")>Low</option>
-                        <option value="medium" @(Context.Request.Query["severity"] == "medium" ? "selected" : "")>Medium</option>
-                        <option value="high" @(Context.Request.Query["severity"] == "high" ? "selected" : "")>High</option>
-                        <option value="critical" @(Context.Request.Query["severity"] == "critical" ? "selected" : "")>Critical</option>
-                    </select>
-                    <input type="search" id="filter-search" placeholder="Search risk name / code…" class="min-w-[200px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500" />
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="btn-refresh" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus:ring-offset-slate-900" aria-label="Refresh data">
-                        <span aria-hidden="true">↻</span> Refresh
-                    </button>
-                    <div class="relative" id="export-dropdown">
-                        <button type="button" id="btn-export" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" aria-expanded="false" aria-haspopup="true">Export ▾</button>
-                        <div id="export-menu" class="absolute right-0 top-full z-10 mt-1 hidden w-40 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800" role="menu">
-                            <button type="button" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700" role="menuitem">CSV</button>
-                            <button type="button" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700" role="menuitem">PDF</button>
-                        </div>
-                    </div>
-                    <button type="button" id="btn-print" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Print</button>
-                </div>
-            </div>
+<div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative" id="risk-analytics-root">
+    
+    @* ---------- Header ---------- *@
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Risk Analytics
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Multi-site risk performance, mitigation effectiveness, and trends.</p>
         </div>
-    </header>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400 dark:text-slate-500">Last updated: @lastUpdated</span>
+            <button type="button" id="btn-print" class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700/80 transition-all">
+                Print Report
+            </button>
+            <button type="button" id="btn-export" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all">
+                Export Data
+            </button>
+        </div>
+    </div>
 
-    <main class="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-        @* ---------- Content (default visible) ---------- *@
-        <div id="content-main">
-            @* ---------- KPI Cards ---------- *@
-            <section class="mb-8" aria-label="Key metrics">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                    @{
-                        var kpiList = Model?.Kpis?.KpiCards?.Any() == true
-                            ? Model.Kpis.KpiCards
-                            : new List<KpiCardViewModel>
-                            {
-                                new() { Label = "Active Risks", Value = Model?.Kpis?.ActiveRisks ?? 0, DeltaText = "—", DeltaUp = false },
-                                new() { Label = "Critical Risks", Value = Model?.Kpis?.CriticalRisks ?? 0, DeltaText = "—", DeltaUp = false },
-                                new() { Label = "Created in Period", Value = Model?.Kpis?.CreatedInPeriod ?? 0, DeltaText = "—", DeltaUp = false },
-                                new() { Label = "Weather-triggered", Value = Model?.Kpis?.WeatherTriggered ?? 0, DeltaText = "—", DeltaUp = false },
-                                new() { Label = "Avg Time to Close (days)", Value = Model?.Kpis?.AvgTimeToCloseDays ?? 0, DeltaText = "—", DeltaUp = false },
-                                new() { Label = "Avg Risk Reduction (%)", Value = Model?.Kpis?.AvgRiskReductionPercent ?? 0, DeltaText = "—", DeltaUp = false }
-                            };
-                    }
-                    @foreach (var k in kpiList)
+    @* ---------- Filters Card ---------- *@
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden">
+        <div class="flex flex-wrap items-end gap-6">
+            <div class="space-y-1.5">
+                <label for="filter-date-range" class="text-xs font-medium text-slate-500 dark:text-slate-400">Time Period</label>
+                <select id="filter-date-range" name="dateRange" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[140px]">
+                    <option value="7" @(Context.Request.Query["dateRange"] == "7" ? "selected" : "")>Last 7 days</option>
+                    <option value="30" @(Context.Request.Query["dateRange"] != "7" && Context.Request.Query["dateRange"] != "90" ? "selected" : "")>Last 30 days</option>
+                    <option value="90" @(Context.Request.Query["dateRange"] == "90" ? "selected" : "")>Last 90 days</option>
+                </select>
+            </div>
+            
+            <div class="space-y-1.5">
+                <label for="filter-site" class="text-xs font-medium text-slate-500 dark:text-slate-400">Site</label>
+                <select id="filter-site" name="siteId" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[160px]">
+                    <option value="">All Sites</option>
+                    @foreach (var s in sites.Where(x => !string.IsNullOrEmpty(x.Value)))
                     {
-                        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800/80">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">@k.Label</p>
-                            <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">@k.Value</p>
-                            <p class="mt-0.5 text-xs @(k.DeltaUp ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400")">@(string.IsNullOrEmpty(k.DeltaText) ? "—" : k.DeltaText)</p>
-                        </div>
+                        <option value="@s.Value" @(Context.Request.Query["siteId"] == s.Value ? "selected" : "")>@s.Text</option>
                     }
-                </div>
-            </section>
+                </select>
+            </div>
 
-            @* ---------- Charts ---------- *@
-            <section class="mb-8" aria-label="Charts">
-                <div class="grid gap-6 lg:grid-cols-12">
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 lg:col-span-8">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-sm font-semibold text-slate-900 dark:text-white">Risks Over Time</h2>
-                            <span class="text-slate-400 dark:text-slate-500" title="Count of risks by date">ⓘ</span>
-                        </div>
-                        <div class="mt-3 h-64 rounded-lg bg-slate-100 dark:bg-slate-700/50" id="chart-risks-over-time">
-                            <canvas id="canvas-risks-over-time" class="h-full w-full" aria-label="Line chart placeholder"></canvas>
-                        </div>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 lg:col-span-4">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-sm font-semibold text-slate-900 dark:text-white">Risks by Category</h2>
-                            <span class="text-slate-400 dark:text-slate-500" title="Distribution by category">ⓘ</span>
-                        </div>
-                        <div class="mt-3 h-64 rounded-lg bg-slate-100 dark:bg-slate-700/50" id="chart-risks-by-category">
-                            <canvas id="canvas-risks-by-category" class="h-full w-full" aria-label="Bar chart placeholder"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 lg:max-w-sm">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">Open vs Closed</h2>
-                        <span class="text-slate-400 dark:text-slate-500" title="Open and closed counts">ⓘ</span>
-                    </div>
-                    <div class="mt-3 h-48 rounded-lg bg-slate-100 dark:bg-slate-700/50" id="chart-open-closed">
-                        <canvas id="canvas-open-closed" class="h-full w-full" aria-label="Donut chart placeholder"></canvas>
-                    </div>
-                </div>
-            </section>
+            <div class="space-y-1.5">
+                <label for="filter-category" class="text-xs font-medium text-slate-500 dark:text-slate-400">Risk Category</label>
+                <select id="filter-category" name="category" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[160px]">
+                    <option value="">All Categories</option>
+                    @foreach (var c in categories.Where(x => !string.IsNullOrEmpty(x.Value)))
+                    {
+                        <option value="@c.Value" @(Context.Request.Query["category"] == c.Value ? "selected" : "")>@c.Text</option>
+                    }
+                </select>
+            </div>
 
-            @* ---------- Mitigation Effectiveness ---------- *@
-            <section class="mb-8" aria-label="Mitigation effectiveness">
-                <h2 class="mb-4 text-base font-semibold text-slate-900 dark:text-white">Mitigation Effectiveness (Pre vs Post)</h2>
-                <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">Initial score is the risk score before mitigation; residual score is after mitigation. Lower residual indicates effective mitigation.</p>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg Initial Score</p>
-                        <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">@(Model?.Mitigation?.AvgInitialScore ?? 6.2)</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg Residual Score</p>
-                        <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">@(Model?.Mitigation?.AvgResidualScore ?? 2.1)</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg reduction %</p>
-                        <p class="mt-1 text-xl font-bold text-slate-900 dark:text-white">@(Model?.Mitigation?.AvgReductionPercent ?? 34)%</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">% reassessed after mitigation</p>
-                        <p class="mt-1 text-xl font-bold text-slate-900 dark:text-white">@(Model?.Mitigation?.ReassessedPercent ?? 78)%</p>
-                    </div>
+            <div class="space-y-1.5 hidden sm:block">
+                 <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Source</label>
+                 <div class="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800" role="group">
+                    <button type="button" class="segment-btn rounded-md px-3 py-1.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 @(qSource == "all" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200")" data-segment="source" data-value="all">All</button>
+                    <button type="button" class="segment-btn rounded-md px-3 py-1.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 @(qSource == "manual" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200")" data-segment="source" data-value="manual">Manual</button>
+                    <button type="button" class="segment-btn rounded-md px-3 py-1.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 @(qSource == "weather" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200")" data-segment="source" data-value="weather">Weather</button>
                 </div>
-                <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80" id="chart-mitigation-pre-post">
-                    <div class="h-48">
-                        <canvas id="canvas-mitigation-pre-post" class="h-full w-full" aria-label="Pre vs post mitigation score comparison"></canvas>
-                    </div>
-                </div>
-            </section>
+            </div>
 
-            @await Html.PartialAsync("_PredictiveInsightsPanel")
-
-            @* ---------- Site Risk Ranking Table ---------- *@
-            <section class="mb-8" aria-label="Site risk ranking">
-                <h2 class="mb-4 text-base font-semibold text-slate-900 dark:text-white">Site Risk Ranking</h2>
-                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[800px] text-left text-sm" role="grid">
-                            <thead class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                                <tr>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Site</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Active Risks</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Critical</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Avg Score</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Trend</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Avg Close Time</th>
-                                    <th class="cursor-pointer px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">On-time Mitigation %</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Total Risk Cost <span class="font-normal text-slate-500">(if expenses enabled)</span></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @{
-                                    var sitesData = Model?.SiteRankings ?? new List<SiteRankingRowViewModel>();
-                                }
-                                @if (sitesData.Any())
-                                {
-                                    @foreach (var row in sitesData)
-                                    {
-                                        <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 focus-within:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50 dark:focus-within:bg-slate-700/50" tabindex="0" role="button" data-drawer-type="site" data-id="@row.SiteId" data-name="@row.SiteName">
-                                            <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">@row.SiteName</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@row.ActiveRisks</td>
-                                            <td class="px-4 py-3"><span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">@row.CriticalCount</span></td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@row.AvgScore.ToString("F1")</td>
-                                            <td class="px-4 py-3">@(row.TrendUp ? "↑" : "↓")</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@row.AvgCloseTimeDays d</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@row.OnTimeMitigationPercent%</td>
-                                            <td class="px-4 py-3 text-slate-600 dark:text-slate-400">@(row.TotalRiskCost?.ToString("N0") ?? "—")</td>
-                                        </tr>
-                                    }
-                                }
-                                else
-                                {
-                                    <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50" tabindex="0" role="button" data-drawer-type="site" data-id="1" data-name="North Site">
-                                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">North Site</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">12</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">1</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">4.2</td>
-                                        <td class="px-4 py-3">↓</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">11 d</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">85%</td>
-                                        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">—</td>
-                                    </tr>
-                                    <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50" tabindex="0" role="button" data-drawer-type="site" data-id="2" data-name="South Site">
-                                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">South Site</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">8</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">0</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">3.1</td>
-                                        <td class="px-4 py-3">↑</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">9 d</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">92%</td>
-                                        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">—</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            @* ---------- Top High-Priority Risks Table ---------- *@
-            <section class="mb-8" aria-label="Top high-priority risks">
-                <h2 class="mb-4 text-base font-semibold text-slate-900 dark:text-white">Top High-Priority Risks</h2>
-                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[900px] text-left text-sm" role="grid">
-                            <thead class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                                <tr>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Risk Code / Name</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Site</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Category</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Source</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Severity</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Score</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Status</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Owner</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Created</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Days Open</th>
-                                    <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300" scope="col">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @{
-                                    var risks = Model?.TopRisks ?? new List<TopRiskRowViewModel>();
-                                }
-                                @if (risks.Any())
-                                {
-                                    @foreach (var r in risks)
-                                    {
-                                        var isCritical = (r.Severity ?? "").Equals("Critical", StringComparison.OrdinalIgnoreCase);
-                                        var isOverdue = r.DaysOpen > 30;
-                                        <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 focus-within:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50 @(isCritical ? "bg-rose-50/50 dark:bg-rose-900/10" : "") @(isOverdue ? "border-l-4 border-l-amber-400" : "")" tabindex="0" role="button" data-drawer-type="risk" data-id="@r.RiskId" data-name="@r.RiskName">
-                                            <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">@r.RiskCode / @r.RiskName</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@r.SiteName</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@r.Category</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@(r.Source ?? "Manual")</td>
-                                            <td class="px-4 py-3">
-                                                <span class="severity-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium @GetSeverityBadgeClass(r.Severity)">@(r.Severity ?? "—")</span>
-                                            </td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@(r.CurrentScore?.ToString("F1") ?? "—")</td>
-                                            <td class="px-4 py-3"><span class="status-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium @GetStatusBadgeClass(r.Status)">@(r.Status ?? "Open")</span></td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@(r.Owner ?? "—")</td>
-                                            <td class="px-4 py-3 text-slate-600 dark:text-slate-400">@(r.CreatedDate?.ToString("MMM d, yyyy") ?? "—")</td>
-                                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">@(r.DaysOpen?.ToString() ?? "—")</td>
-                                            <td class="px-4 py-3"><button type="button" class="view-risk-btn rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20" data-id="@r.RiskId">View</button></td>
-                                        </tr>
-                                    }
-                                }
-                                else
-                                {
-                                    <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50" tabindex="0" role="button" data-drawer-type="risk" data-id="101" data-name="Flood exposure">
-                                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">R-101 / Flood exposure</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">North Site</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">Weather</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">Weather</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">Critical</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">8.2</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Open</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">J. Smith</td>
-                                        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">Feb 15, 2025</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">13</td>
-                                        <td class="px-4 py-3"><button type="button" class="view-risk-btn rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20" data-id="101">View</button></td>
-                                    </tr>
-                                    <tr class="drawer-row border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50 border-l-4 border-l-amber-400" tabindex="0" role="button" data-drawer-type="risk" data-id="102" data-name="Crane safety">
-                                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">R-102 / Crane safety</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">South Site</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">Safety</td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">Manual</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">High</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">6.5</td>
-                                        <td class="px-4 py-3"><span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Open</span></td>
-                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">M. Lee</td>
-                                        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">Jan 10, 2025</td>
-                                        <td class="px-4 py-3 font-medium text-amber-600 dark:text-amber-400">49</td>
-                                        <td class="px-4 py-3"><button type="button" class="view-risk-btn rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20" data-id="102">View</button></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
+            <div class="ml-auto">
+                <button type="button" id="btn-refresh" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-all">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Apply Filters
+                </button>
+            </div>
         </div>
+    </div>
 
-        @* ---------- Loading skeleton ---------- *@
-        <div id="state-loading" class="hidden space-y-6" aria-live="polite" aria-busy="true">
+    @* ---------- Content ---------- *@
+    <main id="content-main" class="space-y-8">
+        
+        @* ---------- KPI Cards ---------- *@
+        <section aria-label="Key metrics">
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                @for (var i = 0; i < 6; i++)
+                @{
+                    var kpiList = Model?.Kpis?.KpiCards ?? new List<KpiCardViewModel>();
+                }
+                @foreach (var k in kpiList)
                 {
-                    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/80">
-                        <div class="h-3 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-600"></div>
-                        <div class="mt-2 h-8 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-600"></div>
-                        <div class="mt-2 h-4 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-600"></div>
-                        <div class="mt-2 h-8 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-600"></div>
+                    <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40">
+                        <dt class="truncate text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">@k.Label</dt>
+                        <dd class="mt-2 flex items-baseline gap-2">
+                            <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@k.Value</span>
+                            <span class="text-xs font-medium @(k.DeltaUp ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")">
+                                @(string.IsNullOrEmpty(k.DeltaText) ? "—" : k.DeltaText)
+                            </span>
+                        </dd>
                     </div>
                 }
             </div>
-            <div class="grid gap-6 lg:grid-cols-12">
-                <div class="h-64 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700 lg:col-span-8"></div>
-                <div class="h-64 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700 lg:col-span-4"></div>
+        </section>
+
+        @* ---------- Charts Section ---------- *@
+        <section aria-label="Charts" class="grid gap-6 lg:grid-cols-12">
+            @* Risks Over Time *@
+            <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Risk Trends</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">New risks identified over time</p>
+                    </div>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="canvas-risks-over-time" aria-label="Line chart of risks over time"></canvas>
+                </div>
             </div>
-            <div class="h-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
-        </div>
 
-        @* ---------- Empty state ---------- *@
-        <div id="state-empty" class="hidden flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white py-16 dark:border-slate-700 dark:bg-slate-800/80" aria-live="polite">
-            <p class="text-5xl opacity-50" aria-hidden="true">📊</p>
-            <h3 class="mt-4 text-lg font-semibold text-slate-900 dark:text-white">No data for selected filters</h3>
-            <p class="mt-2 max-w-sm text-center text-sm text-slate-500 dark:text-slate-400">Try adjusting the date range, site, or category to see risk analytics.</p>
-        </div>
+            @* Category Distribution *@
+            <div class="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Risk Categories</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Distribution by type</p>
+                    </div>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="canvas-risks-by-category" aria-label="Bar chart of risks by category"></canvas>
+                </div>
+            </div>
+        </section>
 
-        @* ---------- Error state ---------- *@
-        <div id="state-error" class="hidden flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white py-16 dark:border-slate-700 dark:bg-slate-800/80" aria-live="assertive">
-            <p class="text-5xl opacity-50" aria-hidden="true">⚠️</p>
-            <h3 class="mt-4 text-lg font-semibold text-slate-900 dark:text-white">Something went wrong</h3>
-            <p class="mt-2 max-w-sm text-center text-sm text-slate-500 dark:text-slate-400">We couldn't load the analytics. Please try again.</p>
-            <button type="button" id="btn-retry" class="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Retry</button>
-        </div>
+        @* ---------- Mitigation Effectiveness ---------- *@
+        <section aria-label="Mitigation effectiveness" class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+            <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20">
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white">Mitigation Effectiveness</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Impact of control measures on risk scores</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Initial Score</p>
+                            <p class="mt-1 text-3xl font-bold text-slate-900 dark:text-white">@(Model?.Mitigation?.AvgInitialScore ?? 0)</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Residual Score</p>
+                            <p class="mt-1 text-3xl font-bold text-emerald-600 dark:text-emerald-400">@(Model?.Mitigation?.AvgResidualScore ?? 0)</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-medium mb-1">
+                                <span class="text-slate-600 dark:text-slate-300">Reduction</span>
+                                <span class="text-emerald-600 dark:text-emerald-400">@(Model?.Mitigation?.AvgReductionPercent ?? 0)%</span>
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div class="h-2 rounded-full bg-emerald-500" style="width: @(Model?.Mitigation?.AvgReductionPercent ?? 0)%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-medium mb-1">
+                                <span class="text-slate-600 dark:text-slate-300">Reassessed</span>
+                                <span class="text-indigo-600 dark:text-indigo-400">@(Model?.Mitigation?.ReassessedPercent ?? 0)%</span>
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div class="h-2 rounded-full bg-indigo-500" style="width: @(Model?.Mitigation?.ReassessedPercent ?? 0)%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-span-2 p-6">
+                     <div class="h-48 w-full">
+                        <canvas id="canvas-mitigation-pre-post" aria-label="Pre vs post mitigation chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        @await Html.PartialAsync("_PredictiveInsightsPanel")
+
+        @* ---------- Site Ranking Table ---------- *@
+        <section aria-label="Site rankings">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Site Risk Performance</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Comparative analysis across locations</p>
+                    </div>
+                    <div class="hidden sm:block">
+                        <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20">Ranked by Criticality</span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50 text-xs uppercase font-semibold text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Site Name</th>
+                                <th scope="col" class="px-6 py-3 text-center">Active Risks</th>
+                                <th scope="col" class="px-6 py-3 text-center">Critical</th>
+                                <th scope="col" class="px-6 py-3 text-right">Avg Score</th>
+                                <th scope="col" class="px-6 py-3 text-center">Trend</th>
+                                <th scope="col" class="px-6 py-3 text-right">Avg Close Time</th>
+                                <th scope="col" class="px-6 py-3 text-right">On-time %</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-transparent">
+                            @foreach (var row in Model?.SiteRankings ?? new List<SiteRankingRowViewModel>())
+                            {
+                                <tr class="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">@row.SiteName</td>
+                                    <td class="px-6 py-4 text-center text-slate-600 dark:text-slate-300">@row.ActiveRisks</td>
+                                    <td class="px-6 py-4 text-center">
+                                        @if(row.CriticalCount > 0) {
+                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20">@row.CriticalCount</span>
+                                        } else {
+                                            <span class="text-slate-400">-</span>
+                                        }
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-medium text-slate-700 dark:text-slate-300">@row.AvgScore.ToString("F1")</td>
+                                    <td class="px-6 py-4 text-center">
+                                        @if(row.TrendUp) {
+                                            <span class="text-rose-500" title="Risk increasing">↑</span>
+                                        } else {
+                                            <span class="text-emerald-500" title="Risk decreasing">↓</span>
+                                        }
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-slate-600 dark:text-slate-400">@row.AvgCloseTimeDays d</td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <span class="text-slate-700 dark:text-slate-300">@row.OnTimeMitigationPercent%</span>
+                                            <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
+                                                <div class="h-full @(row.OnTimeMitigationPercent > 80 ? "bg-emerald-500" : row.OnTimeMitigationPercent > 50 ? "bg-amber-500" : "bg-rose-500")" style="width: @row.OnTimeMitigationPercent%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            @if (!(Model?.SiteRankings?.Any() ?? false))
+                            {
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">No site data available for the selected period.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        @* ---------- Top Risks Table ---------- *@
+        <section aria-label="Top risks">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20">
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">High Priority Risks</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Items requiring immediate attention</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50 text-xs uppercase font-semibold text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Risk Details</th>
+                                <th scope="col" class="px-6 py-3">Category</th>
+                                <th scope="col" class="px-6 py-3">Severity</th>
+                                <th scope="col" class="px-6 py-3">Score</th>
+                                <th scope="col" class="px-6 py-3">Status</th>
+                                <th scope="col" class="px-6 py-3">Owner</th>
+                                <th scope="col" class="px-6 py-3">Age</th>
+                                <th scope="col" class="px-6 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-transparent">
+                            @foreach (var r in Model?.TopRisks ?? new List<TopRiskRowViewModel>())
+                            {
+                                <tr class="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="font-medium text-slate-900 dark:text-white">@r.RiskName</span>
+                                            <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                                                <span class="font-mono">@r.RiskCode</span>
+                                                <span>·</span>
+                                                <span>@r.SiteName</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">@r.Category</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium @GetSeverityBadgeClass(r.Severity)">@r.Severity</span>
+                                    </td>
+                                    <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">@(r.CurrentScore?.ToString("F1") ?? "-")</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <span class="h-1.5 w-1.5 rounded-full @(r.Status == "Open" ? "bg-amber-500" : "bg-emerald-500")"></span>
+                                            <span class="text-slate-600 dark:text-slate-300">@r.Status</span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600 dark:text-slate-400">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                @((r.Owner ?? "U").Substring(0, 1))
+                                            </div>
+                                            <span>@(r.Owner ?? "Unassigned")</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600 dark:text-slate-400">@r.DaysOpen days</td>
+                                    <td class="px-6 py-4 text-right">
+                                        <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = r.RiskId })" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs dark:text-indigo-400 dark:hover:text-indigo-300">View</a>
+                                    </td>
+                                </tr>
+                            }
+                             @if (!(Model?.TopRisks?.Any() ?? false))
+                            {
+                                <tr>
+                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">No high priority risks found.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
-
-    @* ---------- Drill-down Drawer ---------- *@
-    <div id="drawer-overlay" class="fixed inset-0 z-40 bg-slate-900/40 opacity-0 transition-opacity duration-300 pointer-events-none" aria-hidden="true"></div>
-    <aside id="drawer-panel" class="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out dark:border-slate-700 dark:bg-slate-900 translate-x-full" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
-        <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-            <h2 id="drawer-title" class="text-lg font-semibold text-slate-900 dark:text-white">Drill-down</h2>
-            <button type="button" id="drawer-close" class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:hover:bg-slate-700 dark:hover:text-slate-200" aria-label="Close panel">✕</button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div class="space-y-4">
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-2 text-center dark:border-slate-700 dark:bg-slate-800">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Active</p>
-                        <p id="drawer-stat-active" class="text-lg font-bold text-slate-900 dark:text-white">—</p>
-                    </div>
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-2 text-center dark:border-slate-700 dark:bg-slate-800">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Critical</p>
-                        <p id="drawer-stat-critical" class="text-lg font-bold text-slate-900 dark:text-white">—</p>
-                    </div>
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-2 text-center dark:border-slate-700 dark:bg-slate-800">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Avg Score</p>
-                        <p id="drawer-stat-score" class="text-lg font-bold text-slate-900 dark:text-white">—</p>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Recent monitoring alerts</h3>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Weather-related alerts appear here when applicable.</p>
-                    <ul id="drawer-alerts" class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300"></ul>
-                </div>
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Mitigation status</h3>
-                    <div class="mt-2 flex gap-2">
-                        <span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-600">To Do: 0</span>
-                        <span class="rounded-full bg-amber-200 px-2 py-0.5 text-xs dark:bg-amber-900/30">In Progress: 0</span>
-                        <span class="rounded-full bg-emerald-200 px-2 py-0.5 text-xs dark:bg-emerald-900/30">Done: 0</span>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Assessment history</h3>
-                    <ul id="drawer-history" class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                        <li>—</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="border-t border-slate-200 p-4 dark:border-slate-700">
-            <div class="flex flex-wrap gap-2">
-                <a id="drawer-btn-risk" href="#" class="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-700 dark:hover:bg-slate-600">Go to Risk</a>
-                <a id="drawer-btn-kanban" href="#" class="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Go to Kanban</a>
-                <button type="button" id="drawer-btn-report" class="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Download Site Report</button>
-            </div>
-        </div>
-    </aside>
 </div>
 
-@* Helper: severity badge class (inline in view; no C# file) *@
 @functions {
     public static string GetSeverityBadgeClass(string? severity)
     {
-        if (string.IsNullOrEmpty(severity)) return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300";
+        if (string.IsNullOrEmpty(severity)) return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400";
         switch (severity.ToLowerInvariant())
         {
-            case "critical": return "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300";
-            case "high": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
-            case "medium": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-            case "low": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-            default: return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300";
-        }
-    }
-    public static string GetStatusBadgeClass(string? status)
-    {
-        if (string.IsNullOrEmpty(status)) return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300";
-        switch (status.ToLowerInvariant())
-        {
-            case "open": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-            case "mitigated": return "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300";
-            case "closed": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-            default: return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300";
+            case "critical": return "bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400";
+            case "high": return "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400";
+            case "medium": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
+            case "low": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400";
+            default: return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400";
         }
     }
 }
 
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(function () {
-    'use strict';
+    document.addEventListener('DOMContentLoaded', function() {
+        const isDark = document.documentElement.classList.contains('dark');
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const gridColor = isDark ? '#334155' : '#e2e8f0';
 
-    var chartsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
-        risksOverTimeLabels = Model?.Charts?.RisksOverTimeLabels ?? new List<string>(),
-        risksOverTimeValues = Model?.Charts?.RisksOverTimeValues ?? new List<int>(),
-        risksByCategoryLabels = Model?.Charts?.RisksByCategoryLabels ?? new List<string>(),
-        risksByCategoryValues = Model?.Charts?.RisksByCategoryValues ?? new List<int>(),
-        openCount = Model?.Charts?.OpenCount ?? 0,
-        closedCount = Model?.Charts?.ClosedCount ?? 0,
-        mitigationAvgInitialScore = Model?.Mitigation?.AvgInitialScore ?? 0,
-        mitigationAvgResidualScore = Model?.Mitigation?.AvgResidualScore ?? 0
-    }));
-
-    // Segment toggles (Source / Status)
-    document.querySelectorAll('.segment-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var segment = this.getAttribute('data-segment');
-            var value = this.getAttribute('data-value');
-            var group = this.closest('[role="group"]');
-            if (!group) return;
-            group.querySelectorAll('.segment-btn').forEach(function (b) { b.classList.remove('active', 'bg-white', 'shadow-sm', 'dark:bg-slate-700'); });
-            this.classList.add('active', 'bg-white', 'shadow-sm', 'dark:bg-slate-700');
-        });
-    });
-
-    // Drawer open/close
-    var overlay = document.getElementById('drawer-overlay');
-    var panel = document.getElementById('drawer-panel');
-    var drawerTitle = document.getElementById('drawer-title');
-    var drawerClose = document.getElementById('drawer-close');
-    var openDrawer = function (type, id, name) {
-        drawerTitle.textContent = name || (type === 'site' ? 'Site' : 'Risk');
-        document.getElementById('drawer-stat-active').textContent = '—';
-        document.getElementById('drawer-stat-critical').textContent = '—';
-        document.getElementById('drawer-stat-score').textContent = '—';
-        document.getElementById('drawer-btn-risk').href = '#';
-        document.getElementById('drawer-btn-kanban').href = '#';
-        panel.setAttribute('aria-hidden', 'false');
-        overlay.setAttribute('aria-hidden', 'false');
-        overlay.classList.remove('pointer-events-none');
-        overlay.classList.add('pointer-events-auto', 'opacity-100');
-        panel.classList.remove('translate-x-full');
-    };
-    var closeDrawer = function () {
-        panel.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('aria-hidden', 'true');
-        overlay.classList.add('pointer-events-none');
-        overlay.classList.remove('pointer-events-auto', 'opacity-100');
-        panel.classList.add('translate-x-full');
-    };
-    document.querySelectorAll('.drawer-row').forEach(function (el) {
-        el.addEventListener('click', function (e) {
-            if (e.target.closest('.view-risk-btn')) return;
-            openDrawer(el.getAttribute('data-drawer-type'), el.getAttribute('data-id'), el.getAttribute('data-name'));
-        });
-    });
-    document.querySelectorAll('.view-risk-btn').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var row = btn.closest('tr');
-            if (row) openDrawer(row.getAttribute('data-drawer-type'), row.getAttribute('data-id'), row.getAttribute('data-name'));
-        });
-    });
-    drawerClose.addEventListener('click', closeDrawer);
-    overlay.addEventListener('click', closeDrawer);
-    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
-
-    // Export dropdown
-    var exportBtn = document.getElementById('btn-export');
-    var exportMenu = document.getElementById('export-menu');
-    if (exportBtn && exportMenu) {
-        exportBtn.addEventListener('click', function () {
-            exportMenu.classList.toggle('hidden');
-            exportBtn.setAttribute('aria-expanded', exportMenu.classList.contains('hidden') ? 'false' : 'true');
-        });
-        document.addEventListener('click', function (e) {
-            if (!exportBtn.contains(e.target) && !exportMenu.contains(e.target)) { exportMenu.classList.add('hidden'); exportBtn.setAttribute('aria-expanded', 'false'); }
-        });
-    }
-
-    // State toggles (for demo: Refresh = loading then content; Retry = error -> content)
-    var contentMain = document.getElementById('content-main');
-    var stateLoading = document.getElementById('state-loading');
-    var stateEmpty = document.getElementById('state-empty');
-    var stateError = document.getElementById('state-error');
-    function showContent() { contentMain.classList.remove('hidden'); stateLoading.classList.add('hidden'); stateEmpty.classList.add('hidden'); stateError.classList.add('hidden'); }
-    function showLoading() { contentMain.classList.add('hidden'); stateEmpty.classList.add('hidden'); stateError.classList.add('hidden'); stateLoading.classList.remove('hidden'); }
-    function showEmpty() { contentMain.classList.add('hidden'); stateLoading.classList.add('hidden'); stateError.classList.add('hidden'); stateEmpty.classList.remove('hidden'); }
-    function showError() { contentMain.classList.add('hidden'); stateLoading.classList.add('hidden'); stateEmpty.classList.add('hidden'); stateError.classList.remove('hidden'); }
-
-    var btnRefresh = document.getElementById('btn-refresh');
-    if (btnRefresh) btnRefresh.addEventListener('click', function () {
-        var dateRange = document.getElementById('filter-date-range');
-        var siteId = document.getElementById('filter-site');
-        var category = document.getElementById('filter-category');
-        var severity = document.getElementById('filter-severity');
-        var sourceBtn = document.querySelector('[data-segment="source"].active, [data-segment="source"].segment-btn.active');
-        var statusBtn = document.querySelector('[data-segment="status"].active, [data-segment="status"].segment-btn.active');
-        var params = new URLSearchParams();
-        if (dateRange && dateRange.value) params.set('dateRange', dateRange.value);
-        if (siteId && siteId.value) params.set('siteId', siteId.value);
-        if (category && category.value) params.set('category', category.value);
-        if (severity && severity.value) params.set('severity', severity.value);
-        var srcEl = document.querySelector('[data-segment="source"].active') || document.querySelector('[data-segment="source"]');
-        var src = srcEl ? srcEl.getAttribute('data-value') : 'all';
-        if (src && src !== 'all') params.set('source', src);
-        var stEl = document.querySelector('[data-segment="status"].active') || document.querySelector('[data-segment="status"]');
-        var st = stEl ? stEl.getAttribute('data-value') : 'all';
-        if (st && st !== 'all') params.set('status', st);
-        window.location = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    });
-    var btnRetry = document.getElementById('btn-retry');
-    if (btnRetry) btnRetry.addEventListener('click', showContent);
-
-    // Segment active style (ensure visible state)
-    document.querySelectorAll('.segment-btn.active').forEach(function (b) {
-        b.classList.add('bg-white', 'shadow-sm', 'dark:bg-slate-700');
-    });
-
-    if (typeof Chart !== 'undefined') {
-        var lineCtx = document.getElementById('canvas-risks-over-time');
-        if (lineCtx) {
-            var lineLabels = chartsData.risksOverTimeLabels && chartsData.risksOverTimeLabels.length ? chartsData.risksOverTimeLabels : ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-            var lineValues = chartsData.risksOverTimeValues && chartsData.risksOverTimeValues.length ? chartsData.risksOverTimeValues : [0, 0, 0, 0];
-            new Chart(lineCtx.getContext('2d'), {
-                type: 'line',
-                data: { labels: lineLabels, datasets: [{ label: 'Risks', data: lineValues, borderColor: '#059669', tension: 0.3, fill: true }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-            });
-        }
-        var barCtx = document.getElementById('canvas-risks-by-category');
-        if (barCtx) {
-            var barLabels = chartsData.risksByCategoryLabels && chartsData.risksByCategoryLabels.length ? chartsData.risksByCategoryLabels : ['Safety', 'Weather', 'Supply', 'Quality'];
-            var barValues = chartsData.risksByCategoryValues && chartsData.risksByCategoryValues.length ? chartsData.risksByCategoryValues : [0, 0, 0, 0];
-            new Chart(barCtx.getContext('2d'), {
-                type: 'bar',
-                data: { labels: barLabels, datasets: [{ label: 'Count', data: barValues, backgroundColor: '#0f172a' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-            });
-        }
-        var donutCtx = document.getElementById('canvas-open-closed');
-        if (donutCtx) {
-            var openCount = chartsData.openCount != null ? chartsData.openCount : 0;
-            var closedCount = chartsData.closedCount != null ? chartsData.closedCount : 0;
-            new Chart(donutCtx.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels: ['Open', 'Closed'], datasets: [{ data: [openCount, closedCount], backgroundColor: ['#f59e0b', '#059669'] }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-        var prePostCtx = document.getElementById('canvas-mitigation-pre-post');
-        if (prePostCtx) {
-            var avgInitial = chartsData.mitigationAvgInitialScore != null ? chartsData.mitigationAvgInitialScore : 0;
-            var avgResidual = chartsData.mitigationAvgResidualScore != null ? chartsData.mitigationAvgResidualScore : 0;
-            new Chart(prePostCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Initial (pre-mitigation)', 'Residual (post-mitigation)'],
-                    datasets: [
-                        { label: 'Score', data: [avgInitial, avgResidual], backgroundColor: ['#64748b', '#059669'] }
-                    ]
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                    titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                    bodyColor: isDark ? '#cbd5e1' : '#334155',
+                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, font: { size: 10 } }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, max: Math.max(10, Math.ceil(Math.max(avgInitial, avgResidual) * 1.2)) },
-                        x: { grid: { display: false } }
-                    }
+                y: {
+                    grid: { color: gridColor, borderDash: [4, 4] },
+                    ticks: { color: textColor, font: { size: 10 } },
+                    beginAtZero: true
+                }
+            }
+        };
+
+        // Risks Over Time
+        new Chart(document.getElementById('canvas-risks-over-time'), {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Charts?.RisksOverTimeLabels ?? new List<string>())),
+                datasets: [{
+                    label: 'New Risks',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Charts?.RisksOverTimeValues ?? new List<int>())),
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Risks by Category
+        new Chart(document.getElementById('canvas-risks-by-category'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Charts?.RisksByCategoryLabels ?? new List<string>())),
+                datasets: [{
+                    label: 'Risks',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Charts?.RisksByCategoryValues ?? new List<int>())),
+                    backgroundColor: [
+                        '#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#64748b'
+                    ],
+                    borderRadius: 4,
+                    barThickness: 20
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Mitigation Pre/Post
+        new Chart(document.getElementById('canvas-mitigation-pre-post'), {
+            type: 'bar',
+            data: {
+                labels: ['Avg Initial', 'Avg Residual'],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [@(Model?.Mitigation?.AvgInitialScore ?? 0), @(Model?.Mitigation?.AvgResidualScore ?? 0)],
+                    backgroundColor: ['#f43f5e', '#10b981'],
+                    borderRadius: 6,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                ...chartConfig,
+                indexAxis: 'y',
+                scales: {
+                    x: { ...chartConfig.scales.x, max: 25 },
+                    y: { ...chartConfig.scales.y, grid: { display: false } }
+                }
+            }
+        });
+
+        // Filter Logic
+        document.getElementById('btn-refresh').addEventListener('click', function() {
+            const form = document.createElement('form');
+            form.method = 'GET';
+            
+            ['filter-date-range', 'filter-site', 'filter-category'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = el.name;
+                    input.value = el.value;
+                    form.appendChild(input);
                 }
             });
-        }
-    }
-})();
+
+            const sourceBtn = document.querySelector('.segment-btn[data-segment="source"][class*="bg-white"]');
+            if (sourceBtn) {
+                 const input = document.createElement('input');
+                 input.type = 'hidden';
+                 input.name = 'source';
+                 input.value = sourceBtn.getAttribute('data-value');
+                 form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+
+        // Segment Buttons
+        document.querySelectorAll('.segment-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const group = this.closest('[role="group"]');
+                group.querySelectorAll('.segment-btn').forEach(b => {
+                    b.classList.remove('bg-white', 'text-slate-900', 'shadow-sm', 'dark:bg-slate-700', 'dark:text-white');
+                    b.classList.add('text-slate-500', 'hover:text-slate-900', 'dark:text-slate-400', 'dark:hover:text-slate-200');
+                });
+                this.classList.remove('text-slate-500', 'hover:text-slate-900', 'dark:text-slate-400', 'dark:hover:text-slate-200');
+                this.classList.add('bg-white', 'text-slate-900', 'shadow-sm', 'dark:bg-slate-700', 'dark:text-white');
+            });
+        });
+    });
 </script>
 }

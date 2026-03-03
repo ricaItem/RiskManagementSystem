@@ -92,7 +92,6 @@ namespace WEB_Sentro.Services
             var closedRisks = risks.Where(IsClosedForChart).ToList();
             var openRisks = risks.Where(r => !IsClosedForChart(r)).ToList();
 
-            static bool IsOpenByStatus(Risk r) => r.Status != "Closed_Invalid" && r.Status != "Rejected";
             var currentPeriodRisks = risks.Where(r => r.CreatedAt >= periodStart).ToList();
             var previousPeriodRisks = risks.Where(r => r.CreatedAt >= previousPeriodStart && r.CreatedAt < periodStart).ToList();
 
@@ -101,11 +100,16 @@ namespace WEB_Sentro.Services
             var createdInPeriod = currentPeriodRisks.Count;
             var weatherTriggered = risks.Count(r => r.SourceType != null && r.SourceType.Contains("Weather", StringComparison.OrdinalIgnoreCase));
             var previousCreated = previousPeriodRisks.Count;
-            var previousOpen = previousPeriodRisks.Count(IsOpenByStatus);
-            var createdDelta = previousCreated > 0 ? (int)Math.Round((createdInPeriod - previousCreated) / (double)previousCreated * 100) : 0;
-            var activeDelta = previousOpen > 0 ? activeRisks - previousOpen : 0;
 
             var closedWithDate = risks.Where(r => (r.Status == "Closed_Invalid" || r.Status == "Closed_Controlled") && r.UpdatedAt.HasValue).ToList();
+            
+            // Fix: Active Delta should be Net Change (New - Closed) in period, as we lack historical snapshots
+            var closedInPeriod = closedWithDate.Count(r => r.UpdatedAt >= periodStart);
+            var activeDelta = createdInPeriod - closedInPeriod;
+            var activeDeltaText = activeDelta > 0 ? $"+{activeDelta} net flow" : $"{activeDelta} net flow";
+            
+            var createdDelta = previousCreated > 0 ? (int)Math.Round((createdInPeriod - previousCreated) / (double)previousCreated * 100) : 0;
+
             var avgTimeToCloseDays = 0;
             if (closedWithDate.Any())
             {
@@ -234,15 +238,13 @@ namespace WEB_Sentro.Services
             var risksByCategoryLabels = categoryGroups.Select(g => g.Key ?? "").ToList();
             var risksByCategoryValues = categoryGroups.Select(g => g.Count()).ToList();
 
-            var activeDeltaText = previousOpen != 0 ? (activeRisks - previousOpen) >= 0 ? $"+{activeRisks - previousOpen} vs previous" : $"{activeRisks - previousOpen} vs previous" : "—";
-            var createdDeltaText = previousCreated != 0 ? (createdDelta >= 0 ? $"+{createdDelta}%" : $"{createdDelta}%") + " vs previous" : "—";
             var kpiCards = new List<KpiCardViewModel>
             {
-                new() { Label = "Active Risks", Value = activeRisks, DeltaText = activeDeltaText, DeltaUp = activeRisks >= previousOpen },
+                new() { Label = "Active Risks", Value = activeRisks, DeltaText = activeDeltaText, DeltaUp = activeDelta <= 0 },
                 new() { Label = "Critical Risks", Value = criticalRisks, DeltaText = "— vs previous", DeltaUp = false },
-                new() { Label = "Created in Period", Value = createdInPeriod, DeltaText = createdDeltaText, DeltaUp = createdDelta >= 0 },
+                new() { Label = "Created in Period", Value = createdInPeriod, DeltaText = (createdDelta >= 0 ? "+" : "") + createdDelta + "% vs previous", DeltaUp = createdDelta <= 0 }, // Less new is better generally
                 new() { Label = "Weather-triggered", Value = weatherTriggered, DeltaText = "+2 vs previous", DeltaUp = true },
-                new() { Label = "Avg Time to Close (days)", Value = avgTimeToCloseDays, DeltaText = "-3 vs previous", DeltaUp = false },
+                new() { Label = "Avg Time to Close (days)", Value = avgTimeToCloseDays, DeltaText = "-3 vs previous", DeltaUp = true }, // Less time is better
                 new() { Label = "Avg Risk Reduction (%)", Value = avgReductionPercent, DeltaText = "+4% vs previous", DeltaUp = true }
             };
 
