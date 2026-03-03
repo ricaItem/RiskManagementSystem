@@ -65,7 +65,12 @@ namespace Web_Sentro.Areas.Client.Controllers
             return orgId != null && target.OrganizationId == orgId.Value;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public async Task<IActionResult> ArchiveContent()
         {
             var q = await TenantUsersQueryAsync();
 
@@ -92,7 +97,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 });
             }
 
-            return View(data);
+            return PartialView("_ArchiveContent", data);
         }
 
         [HttpPost]
