@@ -24,8 +24,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IConfiguration _config;
         private readonly INotificationService _notificationService;
         private readonly RiskExportService _exportService;
+        private readonly IRiskVersionService _versionService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -38,6 +39,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _config = config;
             _notificationService = notificationService;
             _exportService = exportService;
+            _versionService = versionService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -671,6 +673,46 @@ namespace Web_Sentro.Areas.Client.Controllers
             var details = await _monitoringHub.GetSiteDetailsAsync(orgId.Value, id, ct);
             if (details == null) return NotFound();
             return Ok(details);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRiskVersions(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return BadRequest();
+
+            var versions = await _versionService.GetVersionsAsync(id, orgId.Value);
+            return Json(versions);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRiskControls(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return BadRequest();
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+
+            // Fetch linked mitigation tasks as controls
+            var tasks = await db.MitigationTasks.AsNoTracking()
+                .Where(t => t.Plan != null && t.Plan.RiskId == id && t.Plan.Risk.OrgId == orgId.Value)
+                .OrderBy(t => t.Status == "Done" ? 1 : 0)
+                .ThenBy(t => t.DueDate)
+                .Select(t => new
+                {
+                    t.TaskId,
+                    t.Title,
+                    t.Status,
+                    t.DueDate,
+                    t.ProgressPercent
+                })
+                .ToListAsync();
+
+            return Json(tasks);
         }
     }
 }

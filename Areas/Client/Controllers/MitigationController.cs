@@ -188,6 +188,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.RiskId = riskId;
             ViewBag.PlanId = plan.PlanId;
             ViewBag.RiskStatus = risk.Status;
+            ViewBag.RiskTitle = risk.Title;
             ViewBag.OrgUsers = orgUsers;
             ViewBag.IsAdmin = IsAdmin();
             return View(model);
