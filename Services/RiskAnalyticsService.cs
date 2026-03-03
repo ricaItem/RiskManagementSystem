@@ -119,8 +119,18 @@ namespace WEB_Sentro.Services
             int avgReductionPercent = 0, reassessedPercent = 0;
             if (withTwoEvals.Any())
             {
-                var initialScores = withTwoEvals.Select(r => r.Evaluations.OrderBy(e => e.EvaluatedAt).First().RiskScore).ToList();
-                var residualScores = withTwoEvals.Select(r => r.Evaluations.OrderByDescending(e => e.EvaluatedAt).First().RiskScore).ToList();
+                var initialScores = withTwoEvals.Select(r =>
+                {
+                    var evals = r.Evaluations.OrderBy(e => e.EvaluatedAt).ToList();
+                    var inherent = evals.FirstOrDefault(e => e.IsInherent);
+                    return (inherent ?? evals.First()).RiskScore;
+                }).ToList();
+                var residualScores = withTwoEvals.Select(r =>
+                {
+                    var evals = r.Evaluations.OrderBy(e => e.EvaluatedAt).ToList();
+                    var residual = evals.LastOrDefault(e => !e.IsInherent);
+                    return (residual ?? evals.Last()).RiskScore;
+                }).ToList();
                 avgInitial = initialScores.Average();
                 avgResidual = residualScores.Average();
                 var reductions = initialScores.Zip(residualScores, (i, res) => i > 0 ? (int)Math.Round((1 - (double)res / i) * 100) : 0).ToList();
@@ -129,9 +139,14 @@ namespace WEB_Sentro.Services
             }
             else if (risksWithEvals.Any())
             {
-                var first = risksWithEvals.Select(r => r.Evaluations.OrderByDescending(e => e.EvaluatedAt).First()).ToList();
-                avgResidual = first.Average(e => e.RiskScore);
-                avgInitial = avgResidual;
+                var evals = risksWithEvals.Select(r =>
+                {
+                    var ordered = r.Evaluations.OrderBy(e => e.EvaluatedAt).ToList();
+                    var inherent = ordered.FirstOrDefault(e => e.IsInherent);
+                    return inherent ?? ordered.Last();
+                }).ToList();
+                avgInitial = evals.Average(e => e.RiskScore);
+                avgResidual = avgInitial;
             }
 
             var siteGroups = risks

@@ -33,13 +33,15 @@ namespace WEB_Sentro.Services
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly IOpenWeatherService _openWeather;
         private readonly RiskService _riskService;
+        private readonly INotificationService _notificationService;
         private const int AutoRiskDedupeHours = 12;
 
-        public MonitoringHubService(ITenantDbFactory tenantDbFactory, IOpenWeatherService openWeather, RiskService riskService)
+        public MonitoringHubService(ITenantDbFactory tenantDbFactory, IOpenWeatherService openWeather, RiskService riskService, INotificationService notificationService)
         {
             _tenantDbFactory = tenantDbFactory;
             _openWeather = openWeather;
             _riskService = riskService;
+            _notificationService = notificationService;
         }
 
         public async Task<List<MonitoringHubSiteItem>> GetSitesForHubAsync(int orgId, CancellationToken ct = default)
@@ -317,6 +319,16 @@ namespace WEB_Sentro.Services
                     }
                     db.MonitoringAlerts.Add(alert);
                     activeAlertsForSite.Add(alert);
+
+                    // New alert instance – notify admins/risk managers once.
+                    try
+                    {
+                        await _notificationService.NotifyMonitoringAlertAsync(orgId, siteId, ruleName, t.Severity, t.MeasuredValues, alert.RiskId, ct);
+                    }
+                    catch
+                    {
+                        // Swallow notification errors so monitoring sync is not blocked.
+                    }
                 }
             }
 

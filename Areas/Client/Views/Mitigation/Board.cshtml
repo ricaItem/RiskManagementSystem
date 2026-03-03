@@ -11,6 +11,7 @@
     var totalTasks = Model.Count();
     var doneTasks = Model.Count(t => t.Status == "Done");
     var progressVal = totalTasks > 0 ? (int)((double)doneTasks / totalTasks * 100) : 0;
+    var mitigationComplete = totalTasks > 0 && doneTasks == totalTasks;
 
     string Accent(string s) => s switch
     {
@@ -94,6 +95,13 @@
                                 @riskStatus.Replace("_", " ")
                             </span>
                         </span>
+                        @if (mitigationComplete)
+                        {
+                            <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                Mitigation complete – ready for residual assessment
+                            </span>
+                        }
                     </div>
                 </div>
 
@@ -134,6 +142,13 @@
                         class="rounded-2xl bg-slate-900 px-8 py-4 font-black tracking-[0.2em] text-[10px] text-white uppercase shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-600 active:scale-[0.98] dark:bg-white dark:text-slate-900">
                     + New Task
                 </button>
+                @if (mitigationComplete)
+                {
+                    <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = riskId })"
+                       class="rounded-2xl border border-emerald-500 px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-50 dark:border-emerald-400 dark:text-emerald-300 dark:hover:bg-emerald-900/30">
+                        Assess Residual Risk
+                    </a>
+                }
             </div>
         </div>
 

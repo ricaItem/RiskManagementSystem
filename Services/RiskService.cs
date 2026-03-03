@@ -101,11 +101,30 @@ namespace WEB_Sentro.Services
             var userNames = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
 
             var riskIdsForScore = list.Select(x => x.RiskId).ToList();
-            var latestScores = await db.RiskEvaluations.AsNoTracking()
+            var evalGroups = await db.RiskEvaluations.AsNoTracking()
                 .Where(e => riskIdsForScore.Contains(e.RiskId))
                 .GroupBy(e => e.RiskId)
-                .Select(g => new { RiskId = g.Key, RiskScore = g.OrderByDescending(e => e.EvaluatedAt).Select(e => e.RiskScore).FirstOrDefault() })
-                .ToDictionaryAsync(x => x.RiskId, x => (int?)x.RiskScore, ct);
+                .ToListAsync(ct);
+
+            var evalSummary = evalGroups.ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var ordered = g.OrderBy(e => e.EvaluatedAt).ToList();
+                    var inherent = ordered.FirstOrDefault(e => e.IsInherent);
+                    var residual = ordered.LastOrDefault(e => !e.IsInherent);
+                    inherent ??= ordered.FirstOrDefault();
+                    residual ??= ordered.LastOrDefault();
+                    return new
+                    {
+                        InherentScore = inherent?.RiskScore,
+                        InherentLevel = inherent?.RiskLevel,
+                        ResidualScore = residual?.RiskScore,
+                        ResidualLevel = residual?.RiskLevel
+                    };
+                });
+
+            var latestScores = evalSummary.ToDictionary(k => k.Key, v => v.Value.ResidualScore);
 
             return list.Select(r => new RiskIdentificationViewModel
             {
@@ -134,7 +153,11 @@ namespace WEB_Sentro.Services
                 AccountableId = r.AccountableId,
                 RiskOwnerName = r.RiskOwnerId != null && userNames.TryGetValue(r.RiskOwnerId, out var ro) ? ro : null,
                 AccountableName = r.AccountableId != null && userNames.TryGetValue(r.AccountableId, out var ac) ? ac : null,
-                RiskScore = latestScores.TryGetValue(r.RiskId, out var sc) ? sc : null
+                RiskScore = latestScores.TryGetValue(r.RiskId, out var sc) ? sc : null,
+                InherentScore = evalSummary.TryGetValue(r.RiskId, out var es) ? es.InherentScore : null,
+                InherentLevel = evalSummary.TryGetValue(r.RiskId, out var es2) ? es2.InherentLevel : null,
+                ResidualScore = evalSummary.TryGetValue(r.RiskId, out var es3) ? es3.ResidualScore : null,
+                ResidualLevel = evalSummary.TryGetValue(r.RiskId, out var es4) ? es4.ResidualLevel : null
             }).ToList();
         }
 

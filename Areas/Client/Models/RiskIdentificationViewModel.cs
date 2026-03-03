@@ -32,5 +32,9 @@ namespace Web_Sentro.Areas.Client.Models
         public bool OverdueFlag { get; set; }
         public int? RiskScore { get; set; }
         public string? AppetiteBandName { get; set; }
+        public int? InherentScore { get; set; }
+        public string? InherentLevel { get; set; }
+        public int? ResidualScore { get; set; }
+        public string? ResidualLevel { get; set; }
     }
 }

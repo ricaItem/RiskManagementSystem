@@ -186,6 +186,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 user.Id,
                 model.Likelihood,
                 model.Impact,
+                model.IsInherent,
                 null,
                 model.TreatmentDecision,
                 model.TreatmentJustification,

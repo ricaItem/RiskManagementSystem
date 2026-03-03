@@ -49,7 +49,7 @@ namespace WEB_Sentro.Services
             var latest = await db.RiskEvaluations.AsNoTracking()
                 .Where(e => e.RiskId == riskId)
                 .OrderByDescending(e => e.EvaluatedAt)
-                .Select(e => new { e.LikelihoodScore, e.ImpactScore })
+                .Select(e => new { e.LikelihoodScore, e.ImpactScore, e.IsInherent })
                 .FirstOrDefaultAsync(ct);
 
             return new RiskAssessmentViewModel
@@ -57,11 +57,12 @@ namespace WEB_Sentro.Services
                 RiskId = risk.RiskId,
                 RiskTitle = risk.Title ?? "",
                 Likelihood = latest?.LikelihoodScore ?? 1,
-                Impact = latest?.ImpactScore ?? 1
+                Impact = latest?.ImpactScore ?? 1,
+                IsInherent = latest?.IsInherent ?? !await db.RiskEvaluations.AnyAsync(e => e.RiskId == riskId, ct)
             };
         }
 
-        public async Task<(bool Ok, string? Error)> SaveAssessmentAsync(int riskId, int orgId, string userId, int likelihood, int impact, string? remarks, string? treatmentDecision, string? treatmentJustification, string? ipAddress, bool superAdmin, CancellationToken ct = default)
+        public async Task<(bool Ok, string? Error)> SaveAssessmentAsync(int riskId, int orgId, string userId, int likelihood, int impact, bool isInherent, string? remarks, string? treatmentDecision, string? treatmentJustification, string? ipAddress, bool superAdmin, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -87,7 +88,7 @@ namespace WEB_Sentro.Services
             }
 
             var latest = await db.RiskEvaluations
-                .Where(e => e.RiskId == riskId)
+                .Where(e => e.RiskId == riskId && e.IsInherent == isInherent)
                 .OrderByDescending(e => e.EvaluatedAt)
                 .FirstOrDefaultAsync(ct);
 
@@ -107,6 +108,7 @@ namespace WEB_Sentro.Services
                 {
                     RiskId = riskId,
                     EvaluatedByUserId = userId,
+                    IsInherent = isInherent,
                     LikelihoodScore = likelihood,
                     ImpactScore = impact,
                     RiskScore = riskScore,

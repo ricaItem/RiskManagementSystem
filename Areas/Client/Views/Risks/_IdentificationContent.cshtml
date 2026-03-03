@@ -159,6 +159,9 @@
                         var reportedBy = risk.ReportedBy ?? risk.DetectedBy ?? "";
                         var isDeleted = risk.DeletedAt.HasValue;
                         var priorityVal = risk.Priority ?? "Unassessed";
+                        var inherentText = risk.InherentScore.HasValue ? $"{(risk.InherentLevel ?? "—")} ({risk.InherentScore})" : "—";
+                        var residualText = risk.ResidualScore.HasValue ? $"{(risk.ResidualLevel ?? "—")} ({risk.ResidualScore})" : "—";
+                        var priorityTitle = $"Inherent: {inherentText} | Residual: {residualText}";
                         var riskIdDisplay = risk.Id > 0 ? "R-" + risk.Id.ToString("D6") : "R-000000";
                         var riskJson = System.Text.Json.JsonSerializer.Serialize(new {
                             risk.Id,
@@ -190,7 +193,7 @@
                                     @if (risk.AttachmentsCount > 0) { <span class="text-xs text-slate-400">@risk.AttachmentsCount file(s)</span> }
                                 </div>
                             </td>
-                            <td class="w-[140px] py-3 pr-4 text-center">
+                            <td class="w-[140px] py-3 pr-4 text-center" title="@priorityTitle">
                                 @{ var priorityColor = priorityVal == "Critical" ? "bg-rose-500" : priorityVal == "High" ? "bg-orange-500" : priorityVal == "Medium" ? "bg-amber-500" : priorityVal == "Low" ? "bg-emerald-500" : "bg-slate-300"; }
                                 <div class="flex items-center justify-center gap-2">
                                     <div class="h-1.5 w-1.5 rounded-full @priorityColor"></div>
@@ -673,6 +676,9 @@
     var isRiskManager = @(isRiskManager.ToString().ToLower());
     var currentUserId = '@ViewBag.CurrentUserId';
     var assessBaseUrl = '@Url.Action("Assess", "Risks", new { area = "Client" })';
+    // Base URLs for risk-related APIs
+    var risksApiBaseUrl = '@Url.Content("~/api/risks")';
+    var controlsApiBaseUrl = '@Url.Content("~/api/controls")';
     
     // New Risk Modal Logic
     window.toggleNewRiskModal = function() {
@@ -779,6 +785,15 @@
             
             var editReportedByField = document.getElementById('viewEditReportedBy');
             if (editReportedByField) editReportedByField.value = risk.ReportedBy || '';
+
+            // Load Versions & Controls for this risk
+            try {
+                loadRiskVersions(risk.Id);
+                loadRiskControls(risk.Id);
+                loadAvailableControls();
+            } catch (e) {
+                console.warn('Failed to load versions/controls for risk', e);
+            }
             
             // Render Attachments
             var attachDiv = document.getElementById('viewAttachmentsPreview');
@@ -847,22 +862,20 @@
                     showFooter = true;
                 }
                 
-                // For Review / Submitted -> Assess or Reject (Admin/Risk Manager)
-                if ((rawStatus === 'For_Review' || rawStatus === 'Submitted') && (isAdmin || isRiskManager)) {
-                     // Assess Link
-                     if (assessLink) {
-                         assessLink.href = assessBaseUrl + '?id=' + risk.Id;
-                         assessLink.classList.remove('hidden');
-                     }
-                     
-                     // Reject
-                     if (rejectBtn) {
-                         rejectBtn.onclick = function() {
-                             openRejectModal(risk.Id);
-                         };
-                         rejectBtn.classList.remove('hidden');
-                     }
-                     showFooter = true;
+                // Non-draft -> Assess always available (Admin/Risk Manager)
+                if (rawStatus !== 'Draft' && (isAdmin || isRiskManager)) {
+                    if (assessLink) {
+                        assessLink.href = assessBaseUrl + '?id=' + risk.Id;
+                        assessLink.classList.remove('hidden');
+                    }
+                    // Reject stays limited to review statuses
+                    if ((rawStatus === 'For_Review' || rawStatus === 'Submitted') && rejectBtn) {
+                        rejectBtn.onclick = function() {
+                            openRejectModal(risk.Id);
+                        };
+                        rejectBtn.classList.remove('hidden');
+                    }
+                    showFooter = true;
                 }
             }
             
@@ -935,6 +948,247 @@
             if(tabName === 'controls') document.getElementById('viewModalControlsPanel').classList.remove('hidden');
         });
     });
+
+    // --- Versions panel logic ---
+    async function loadRiskVersions(riskId) {
+        var tbody = document.getElementById('viewVersionsTableBody');
+        var emptyMsg = document.getElementById('viewVersionsEmpty');
+        var errMsg = document.getElementById('viewVersionsError');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (emptyMsg) emptyMsg.classList.add('hidden');
+        if (errMsg) { errMsg.classList.add('hidden'); errMsg.textContent = ''; }
+        try {
+            var resp = await fetch(risksApiBaseUrl + '/' + riskId + '/versions', { credentials: 'same-origin' });
+            if (!resp.ok) {
+                if (resp.status === 404 && emptyMsg) {
+                    emptyMsg.classList.remove('hidden');
+                } else if (errMsg) {
+                    errMsg.textContent = 'Failed to load version history.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            var data = await resp.json();
+            if (!data || data.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            }
+            data.forEach(function(v, idx) {
+                var tr = document.createElement('tr');
+                tr.className = 'border-t border-slate-100 dark:border-slate-800';
+                var no = document.createElement('td');
+                no.className = 'p-2 text-xs text-slate-500';
+                no.textContent = v.versionNo || (idx + 1);
+                var date = document.createElement('td');
+                date.className = 'p-2 text-xs text-slate-500';
+                var d = v.changedAt ? new Date(v.changedAt) : null;
+                date.textContent = d ? d.toLocaleString() : '—';
+                var by = document.createElement('td');
+                by.className = 'p-2 text-xs text-slate-500';
+                by.textContent = v.changedByDisplayName || v.changedByUserId || '—';
+                var summary = document.createElement('td');
+                summary.className = 'p-2 text-xs text-slate-600 dark:text-slate-300';
+                summary.textContent = v.changeSummary || '';
+                tr.appendChild(no);
+                tr.appendChild(date);
+                tr.appendChild(by);
+                tr.appendChild(summary);
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Error loading versions', e);
+            if (errMsg) {
+                errMsg.textContent = 'Failed to load version history.';
+                errMsg.classList.remove('hidden');
+            }
+        }
+    }
+
+    // --- Controls panel logic ---
+    var cachedControls = null;
+
+    async function loadAvailableControls() {
+        if (cachedControls !== null) {
+            populateControlsDropdown(cachedControls);
+            return;
+        }
+        var select = document.getElementById('viewControlsSelect');
+        var errMsg = document.getElementById('viewControlsError');
+        if (!select) return;
+        if (errMsg) { errMsg.classList.add('hidden'); errMsg.textContent = ''; }
+        try {
+            var resp = await fetch(controlsApiBaseUrl, { credentials: 'same-origin' });
+            if (!resp.ok) {
+                if (errMsg) {
+                    errMsg.textContent = 'Failed to load available controls.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            var data = await resp.json();
+            cachedControls = data || [];
+            populateControlsDropdown(cachedControls);
+        } catch (e) {
+            console.error('Error loading controls', e);
+            if (errMsg) {
+                errMsg.textContent = 'Failed to load available controls.';
+                errMsg.classList.remove('hidden');
+            }
+        }
+    }
+
+    function populateControlsDropdown(list) {
+        var select = document.getElementById('viewControlsSelect');
+        if (!select) return;
+        select.innerHTML = '';
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select control to link...';
+        select.appendChild(placeholder);
+        if (!list || list.length === 0) return;
+        list.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.controlId;
+            opt.textContent = c.name;
+            select.appendChild(opt);
+        });
+    }
+
+    async function loadRiskControls(riskId) {
+        var tbody = document.getElementById('viewControlsTableBody');
+        var emptyMsg = document.getElementById('viewControlsEmpty');
+        var errMsg = document.getElementById('viewControlsError');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (emptyMsg) emptyMsg.classList.add('hidden');
+        if (errMsg) { errMsg.classList.add('hidden'); errMsg.textContent = ''; }
+        try {
+            var resp = await fetch(risksApiBaseUrl + '/' + riskId + '/controls', { credentials: 'same-origin' });
+            if (!resp.ok) {
+                if (errMsg) {
+                    errMsg.textContent = 'Failed to load linked controls.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            var data = await resp.json();
+            if (!data || data.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            }
+            data.forEach(function(rc) {
+                var tr = document.createElement('tr');
+                tr.className = 'border-t border-slate-100 dark:border-slate-800';
+                var nameTd = document.createElement('td');
+                nameTd.className = 'p-2 text-xs text-slate-600 dark:text-slate-200';
+                nameTd.textContent = rc.controlName || '';
+                var notesTd = document.createElement('td');
+                notesTd.className = 'p-2 text-xs text-slate-500';
+                notesTd.textContent = rc.notes || '—';
+                var actionsTd = document.createElement('td');
+                actionsTd.className = 'p-2 text-right';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'text-xs text-rose-500 hover:underline';
+                btn.textContent = 'Unlink';
+                btn.addEventListener('click', function() {
+                    unlinkControlFromRisk(riskId, rc.riskControlId);
+                });
+                actionsTd.appendChild(btn);
+                tr.appendChild(nameTd);
+                tr.appendChild(notesTd);
+                tr.appendChild(actionsTd);
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Error loading risk controls', e);
+            if (errMsg) {
+                errMsg.textContent = 'Failed to load linked controls.';
+                errMsg.classList.remove('hidden');
+            }
+        }
+    }
+
+    async function unlinkControlFromRisk(riskId, riskControlId) {
+        var errMsg = document.getElementById('viewControlsError');
+        if (errMsg) { errMsg.classList.add('hidden'); errMsg.textContent = ''; }
+        try {
+            var resp = await fetch(risksApiBaseUrl + '/' + riskId + '/controls/' + riskControlId, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            if (!resp.ok) {
+                if (errMsg) {
+                    errMsg.textContent = 'Failed to unlink control.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            await loadRiskControls(riskId);
+        } catch (e) {
+            console.error('Error unlinking control', e);
+            if (errMsg) {
+                errMsg.textContent = 'Failed to unlink control.';
+                errMsg.classList.remove('hidden');
+            }
+        }
+    }
+
+    (function wireControlsLinkButton() {
+        var btn = document.getElementById('viewControlsLinkBtn');
+        if (!btn) return;
+        btn.addEventListener('click', async function() {
+            var select = document.getElementById('viewControlsSelect');
+            var errMsg = document.getElementById('viewControlsError');
+            var editIdField = document.getElementById('viewEditRiskId');
+            if (errMsg) { errMsg.classList.add('hidden'); errMsg.textContent = ''; }
+            if (!select || !editIdField) return;
+            var controlId = select.value;
+            var riskId = editIdField.value;
+            if (!riskId) {
+                if (errMsg) {
+                    errMsg.textContent = 'Risk not loaded.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            if (!controlId) {
+                if (errMsg) {
+                    errMsg.textContent = 'Please select a control to link.';
+                    errMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            try {
+                var resp = await fetch(risksApiBaseUrl + '/' + riskId + '/controls', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ controlId: parseInt(controlId, 10), notes: null })
+                });
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        if (errMsg) {
+                            errMsg.textContent = 'Risk or control not found.';
+                            errMsg.classList.remove('hidden');
+                        }
+                    } else if (errMsg) {
+                        errMsg.textContent = 'Failed to link control.';
+                        errMsg.classList.remove('hidden');
+                    }
+                    return;
+                }
+                await loadRiskControls(parseInt(riskId, 10));
+            } catch (e) {
+                console.error('Error linking control', e);
+                if (errMsg) {
+                    errMsg.textContent = 'Failed to link control.';
+                    errMsg.classList.remove('hidden');
+                }
+            }
+        });
+    })();
 
     // Reject Modal
     window.openRejectModal = function(riskId) {

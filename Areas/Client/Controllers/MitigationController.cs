@@ -264,11 +264,15 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (allDone)
             {
                 var risk = task.Plan.Risk;
-                risk.Status = "Closed_Controlled";
-                risk.UpdatedAt = DateTime.UtcNow;
-                _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", risk.RiskId, "RiskClosedControlled", "All mitigation tasks completed", HttpContext.Connection.RemoteIpAddress?.ToString());
-                await db.SaveChangesAsync();
-                await _notificationService.NotifyRiskEventAsync(risk.OrgId, "Closed", risk.RiskId, "Risk closed", $"Risk '{risk.Title}' closed (all mitigation tasks completed).", risk.ReportByUserId);
+                // All tasks done = ready for residual review, not auto-close
+                if (risk.Status == "MitigationRequired")
+                {
+                    risk.Status = "Monitoring";
+                    risk.UpdatedAt = DateTime.UtcNow;
+                    _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", risk.RiskId, "RiskReadyForResidualAssessment", "All mitigation tasks completed. Ready for residual assessment.", HttpContext.Connection.RemoteIpAddress?.ToString());
+                    await db.SaveChangesAsync();
+                    await _notificationService.NotifyRiskEventAsync(risk.OrgId, "MitigationCompleted", risk.RiskId, "Mitigation completed", $"Risk '{risk.Title}' mitigation tasks are complete. Please perform residual assessment.", risk.ReportByUserId);
+                }
             }
 
             return Json(new { ok = true });

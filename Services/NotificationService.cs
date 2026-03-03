@@ -49,6 +49,29 @@ namespace WEB_Sentro.Services
             await db.SaveChangesAsync(ct);
         }
 
+        public async Task NotifyMonitoringAlertAsync(int orgId, int monitoringSiteId, string ruleName, string severity, string measuredValues, int? riskId, CancellationToken ct = default)
+        {
+            // Reuse the existing risk-event notification pipeline so dropdown/badge behavior is consistent.
+            // We treat monitoring alerts as a "MonitoringAlert" event type linked to the associated risk (if any).
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            var site = await db.MonitoringSites.AsNoTracking()
+                .Where(s => s.OrgId == orgId && s.MonitoringSiteId == monitoringSiteId)
+                .Select(s => new { s.MonitoringSiteId, s.Name })
+                .FirstOrDefaultAsync(ct);
+
+            var siteName = site?.Name ?? "Monitoring site";
+            var title = $"{ruleName} – {severity} alert at {siteName}";
+            var message = string.IsNullOrWhiteSpace(measuredValues)
+                ? $"Monitoring rule '{ruleName}' triggered with severity {severity} at {siteName}."
+                : measuredValues;
+
+            // Delegate to NotifyRiskEventAsync so that notifications are created exactly
+            // like other risk events (same recipients, badge logic, and ActionUrl behavior).
+            await NotifyRiskEventAsync(orgId, "MonitoringAlert", riskId, title, message, reportByUserId: null, ct);
+        }
+
         private async Task<List<string>> GetRecipientIdsAsync(int orgId, string? reportByUserId, CancellationToken ct)
         {
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
