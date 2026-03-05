@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
+using WEB_Sentro.Services;
 using WEB_Sentro.Models.Identity;
 
 namespace Web_Sentro.Areas.Client.Controllers
@@ -13,11 +14,13 @@ namespace Web_Sentro.Areas.Client.Controllers
     {
         private readonly PlatformDbContext _platformDb;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _auditService;
 
-        public EmployeesController(PlatformDbContext platformDb, UserManager<ApplicationUser> userManager)
+        public EmployeesController(PlatformDbContext platformDb, UserManager<ApplicationUser> userManager, IAuditService auditService)
         {
             _platformDb = platformDb;
             _userManager = userManager;
+            _auditService = auditService;
         }
 
         private bool IsVendor() => User.IsInRole("SuperAdmin");
@@ -152,6 +155,17 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await _userManager.AddToRoleAsync(user, role);
 
+            await _auditService.LogAsync(
+                user.OrganizationId,
+                me.Id,
+                "Employee",
+                0, // No int ID for users
+                "EmployeeCreated",
+                $"Created employee {user.Email} with role {role}",
+                "Info",
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
             TempData["Alert"] = $"Created employee account for {displayName}. Temporary password: {tempPassword}";
             TempData["AlertType"] = "success";
@@ -237,6 +251,21 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var me = await GetMeAsync();
+            if (me != null)
+            {
+                await _auditService.LogAsync(
+                    target.OrganizationId,
+                    me.Id,
+                    "Employee",
+                    0,
+                    "EmployeeUpdated",
+                    $"Updated employee {target.Email}",
+                    "Info",
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+
             TempData["Alert"] = "Employee updated successfully.";
             TempData["AlertType"] = "success";
             return RedirectToAction(nameof(Index));
@@ -275,6 +304,21 @@ namespace Web_Sentro.Areas.Client.Controllers
                 TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 TempData["AlertType"] = "error";
                 return RedirectToAction(nameof(Index));
+            }
+
+            var me = await GetMeAsync();
+            if (me != null)
+            {
+                await _auditService.LogAsync(
+                    target.OrganizationId,
+                    me.Id,
+                    "Employee",
+                    0,
+                    "EmployeeStatusChanged",
+                    $"Status changed to {target.IsActive} for {target.Email}",
+                    "Info",
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
             }
 
             TempData["Alert"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";

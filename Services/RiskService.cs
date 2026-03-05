@@ -175,7 +175,7 @@ namespace WEB_Sentro.Services
                 .FirstOrDefaultAsync(r => r.RiskId == riskId, ct);
         }
 
-        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", int? siteId = null, CancellationToken ct = default)
+        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", int? siteId = null, int? supplierId = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -191,6 +191,7 @@ namespace WEB_Sentro.Services
                 Status = (status == "For_Review" || status == "Submitted") ? status : "Draft",
                 Priority = "Unassessed",
                 SiteId = siteId,
+                SupplierId = supplierId,
                 CreatedAt = DateTime.UtcNow
             };
             db.Risks.Add(risk);

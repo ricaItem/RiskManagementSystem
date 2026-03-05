@@ -36,6 +36,7 @@ namespace WEB_Sentro.Data
         public DbSet<RiskTreatmentTrigger> RiskTreatmentTriggers { get; set; } = null!;
         public DbSet<Control> Controls { get; set; } = null!;
         public DbSet<RiskControl> RiskControls { get; set; } = null!;
+        public DbSet<ProcurementAlert> ProcurementAlerts { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -81,12 +82,14 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.TreatmentSelectedByUserId).HasMaxLength(450);
                 e.HasIndex(x => x.OrgId);
                 e.HasIndex(x => x.SiteId);
+                e.HasIndex(x => x.SupplierId);
                 e.HasIndex(x => x.Status);
                 e.HasIndex(x => x.CreatedAt);
                 e.HasIndex(x => new { x.OrgId, x.NextReviewDate });
                 e.HasIndex(x => new { x.OrgId, x.OverdueFlag });
                 e.HasQueryFilter(x => x.DeletedAt == null);
                 e.HasOne(x => x.Site).WithMany(s => s.Risks).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<RiskEvaluation>(e =>
@@ -207,6 +210,9 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.Email).HasMaxLength(150);
                 e.Property(x => x.Phone).HasMaxLength(50);
                 e.Property(x => x.Category).HasMaxLength(50);
+                e.Property(x => x.FinancialStatus).HasMaxLength(20);
+                e.Property(x => x.DeliveryTrend).HasMaxLength(20);
+                e.Property(x => x.ContractValue).HasPrecision(18, 2);
                 e.HasIndex(x => x.OrgId);
                 e.HasIndex(x => x.Category);
             });
@@ -218,6 +224,7 @@ namespace WEB_Sentro.Data
                 e.Property(x => x.OrderNumber).HasMaxLength(50);
                 e.Property(x => x.Status).HasMaxLength(20);
                 e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.ExpectedDeliveryDate);
                 e.HasIndex(x => new { x.SiteId, x.OrderNumber });
                 e.HasIndex(x => x.Status);
                 e.HasOne(x => x.Site).WithMany(s => s.PurchaseOrders).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
@@ -247,6 +254,21 @@ namespace WEB_Sentro.Data
                 e.HasOne(x => x.Site).WithMany(s => s.Expenses).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Risk).WithMany(r => r.Expenses).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(x => x.PurchaseOrder).WithMany(p => p.Expenses).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<ProcurementAlert>(e =>
+            {
+                e.ToTable("ProcurementAlerts");
+                e.HasKey(x => x.AlertId);
+                e.Property(x => x.AlertCode).HasMaxLength(50);
+                e.Property(x => x.Message).HasMaxLength(500);
+                e.Property(x => x.Severity).HasMaxLength(20);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.TriggeredAt);
+                e.HasOne(x => x.PurchaseOrder).WithMany().HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Risk).WithMany().HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.SetNull);
             });
 
             builder.Entity<Notification>(e =>

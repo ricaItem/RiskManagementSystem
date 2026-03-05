@@ -3,103 +3,125 @@
     Layout = "_LayoutClient";
 }
 
-<div class="max-w-6xl mx-auto lg:mx-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+<div class="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div class="text-left">
-            <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">
-                <a href="/Client/Supplier" class="hover:text-emerald-500 transition-colors">Registry</a>
-                <span class="opacity-30">/</span>
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
+                <a href="/Client/Supplier" class="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">Registry</a>
+                <span>/</span>
                 <span class="text-slate-900 dark:text-white">Performance Log</span>
             </div>
-            <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
-                @ViewBag.SupplierName <span class="text-emerald-500 italic">Audit</span>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                @ViewBag.SupplierName <span class="text-slate-400 font-normal">Audit</span>
             </h1>
-            <p class="text-xs font-bold text-slate-500 mt-2">Historical risk impact and reliability tracking</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Historical risk impact and reliability tracking</p>
         </div>
 
-        <a href="/Client/Supplier" class="flex items-center gap-3 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/10">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-width="3" /></svg>
+        <a href="/Client/Supplier" class="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 transition-all">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
             Return to Registry
         </a>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Audits</p>
-            <p class="text-2xl font-black text-slate-900 dark:text-white">@ViewBag.TotalAudits</p>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <!-- Total Audits -->
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Audits</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.TotalAudits</p>
         </div>
-        <div class="bg-emerald-500/5 border border-emerald-500/20 p-5 rounded-3xl">
-            <p class="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Positive Growth</p>
-            <p class="text-2xl font-black text-emerald-600">@ViewBag.PositiveEvents</p>
-        </div>
-        <div class="bg-rose-500/5 border border-rose-500/20 p-5 rounded-3xl">
-            <p class="text-[9px] font-black text-rose-600/60 uppercase tracking-widest mb-1">Critical Faults</p>
-            <p class="text-2xl font-black text-rose-600">@ViewBag.CriticalIssues</p>
-        </div>
-        <div class="bg-slate-900 p-5 rounded-3xl shadow-xl shadow-slate-900/10">
-            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 text-white/50">Avg Net Impact</p>
-            <p class="text-2xl font-black text-white">@ViewBag.AverageImpact</p>
-        </div>
-    </div>
 
-    <hr class="border-slate-200 dark:border-slate-800" />
-
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div class="lg:col-span-3 space-y-6">
-            <div class="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
-                <h4 class="text-[10px] font-black uppercase text-slate-500 mb-4 tracking-widest">Audit Policy</h4>
-                <p class="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Reliability scores are recalibrated every 30 days based on these logged events.
-                    <span class="text-emerald-500 underline block mt-2 cursor-pointer">Request Manual Audit →</span>
-                </p>
+        <!-- Positive Growth -->
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                     <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Positive Growth</p>
+                     <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.PositiveEvents</p>
+                </div>
+                 <div class="rounded-full bg-emerald-50 p-2 dark:bg-emerald-900/20">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                </div>
             </div>
         </div>
 
-        <div class="lg:col-span-9 relative border-l-2 border-slate-100 dark:border-slate-800 pl-10 ml-4 lg:ml-0">
-            <div class="space-y-12">
+        <!-- Critical Faults -->
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+             <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Critical Faults</p>
+                    <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.CriticalIssues</p>
+                </div>
+                <div class="rounded-full bg-rose-50 p-2 dark:bg-rose-900/20">
+                    <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avg Net Impact -->
+        <div class="rounded-xl border border-slate-200 bg-slate-900 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950">
+            <p class="text-xs font-medium text-slate-400">Avg Net Impact</p>
+            <p class="mt-2 text-3xl font-bold text-white">@ViewBag.AverageImpact</p>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-200 dark:border-slate-800"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <!-- Sidebar / Policy -->
+        <div class="lg:col-span-3 space-y-6">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/30">
+                <h4 class="text-sm font-semibold text-slate-900 dark:text-white mb-2">Audit Policy</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Reliability scores are recalibrated every 30 days based on these logged events.
+                </p>
+                 <button class="mt-4 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
+                    Request Manual Audit
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="lg:col-span-9">
+            <div class="relative border-l border-slate-200 dark:border-slate-800 ml-3 space-y-8">
                 @foreach (var log in Model)
                 {
                     bool isLoss = log.Impact < 0;
-                    <div class="relative">
-                        <div class="absolute -left-[53px] top-0 h-10 w-10 rounded-xl border-4 border-slate-50 dark:border-slate-950 flex items-center justify-center shadow-md @(isLoss ? "bg-rose-500" : "bg-emerald-500")">
-                            @if (isLoss)
-                            {
-                                <span class="text-white text-xs font-black">!</span>
-                            }
-                            else
-                            {
+                    <div class="relative pl-8">
+                        <!-- Dot -->
+                        <div class="absolute -left-[5px] top-5 h-2.5 w-2.5 rounded-full ring-4 ring-white dark:ring-slate-950 @(isLoss ? "bg-rose-500" : "bg-emerald-500")"></div>
 
-                                <span class="text-white text-xs font-black">✓</span>
-                            }
-                        </div>
-
-                        <div class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:border-emerald-500/30 transition-all duration-500">
-                            <div class="flex justify-between items-start mb-6">
+                        <!-- Card -->
+                        <div class="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/30 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+                            
+                            <div class="flex justify-between items-start mb-4">
                                 <div>
-                                    <div class="flex items-center gap-3 mb-1">
-                                        <h3 class="text-lg font-medium text-slate-900 dark:text-white uppercase tracking-tight">@log.Event</h3>
-                                        <span class="text-[9px] font-medium bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-400">@log.Date.ToString("yyyy")</span>
+                                    <div class="flex items-center gap-3">
+                                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">@log.Event</h3>
+                                        <span class="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">@log.Date.ToString("yyyy")</span>
                                     </div>
-                                    <p class="text-[10px] font-medium text-slate-400 uppercase tracking-widest">@log.Date.ToString("MMMM dd") at @log.Date.ToString("HH:mm")</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">@log.Date.ToString("MMMM dd") at @log.Date.ToString("HH:mm")</p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-2xl font-semibold @(isLoss ? "text-rose-500" : "text-emerald-500")">
-                                        @(isLoss ? "" : "+")@log.Impact
-                                    </p>
-                                    <p class="text-[9px] font-medium text-slate-400 uppercase">Impact Score</p>
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset @(isLoss ? "bg-rose-50 text-rose-700 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" : "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/20")">
+                                        @(isLoss ? "" : "+")@log.Impact Impact
+                                    </span>
                                 </div>
                             </div>
 
-                            <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl italic text-sm text-slate-600 dark:text-slate-300 border-l-4 @(isLoss ? "border-rose-500" : "border-emerald-500")">
+                            <p class="text-sm text-slate-600 dark:text-slate-300 italic mb-4">
                                 "@log.Note"
-                            </div>
+                            </p>
 
-                            <div class="mt-6 flex items-center gap-4">
-                                <div class="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white">@log.Auditor.Substring(0, 1)</div>
-                                <div>
-                                    <p class="text-[10px] font-medium text-slate-900 dark:text-white uppercase">@log.Auditor</p>
-                                    <p class="text-[9px] font-medium text-slate-400 uppercase">Authorized Auditor</p>
+                            <div class="flex items-center gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                <div class="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                    @log.Auditor.Substring(0, 1)
+                                </div>
+                                <div class="flex flex-col">
+                                     <span class="text-xs font-medium text-slate-900 dark:text-white">@log.Auditor</span>
+                                     <span class="text-[10px] text-slate-500">Authorized Auditor</span>
                                 </div>
                             </div>
                         </div>

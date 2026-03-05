@@ -35,10 +35,10 @@
                 {
                     <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                         <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-slate-900 dark:text-white">
+                            <div class="text-sm font-medium text-slate-900 dark:text-white local-time" data-utc="@log.Timestamp.ToString("O")">
                                 @log.Timestamp.ToString("hh:mm tt")
                             </div>
-                            <div class="text-xs text-slate-500">
+                            <div class="text-xs text-slate-500 local-date" data-utc="@log.Timestamp.ToString("O")">
                                 @log.Timestamp.ToString("dd MMM yyyy")
                             </div>
                         </td>

@@ -1,77 +1,482 @@
 @model Web_Sentro.Areas.Client.Models.PagedResult<WEB_Sentro.Data.Entities.Expense>
 @{
     Layout = "_LayoutClient";
+    ViewData["Title"] = "Expenses";
     var siteFilterList = ViewBag.SiteFilterList as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
-    var categories = ViewBag.Categories as string[] ?? new[] { "Labor", "Materials", "Equipment", "Mitigation" };
+    var categories = ViewBag.Categories as string[] ?? new[] { "Labor", "Materials", "Equipment", "Mitigation", "Other" };
+    
+    // For Modal Dropdowns
+    var sites = ViewBag.Sites as IEnumerable<WEB_Sentro.Data.Entities.Site> ?? new List<WEB_Sentro.Data.Entities.Site>();
+    var purchaseOrders = ViewBag.PurchaseOrders as IEnumerable<dynamic> ?? new List<dynamic>();
+    var risks = ViewBag.Risks as IEnumerable<dynamic> ?? new List<dynamic>();
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+        PropertyNamingPolicy = null
+    };
 }
 
-<div class="animate-in fade-in min-h-screen space-y-8 duration-700" data-page-title="@ViewData["Title"]">
-    @if (TempData["Message"] != null)
-    {
-        <div class="rounded-xl bg-emerald-100 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">@TempData["Message"]</div>
-    }
-    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-        <div>
-            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                <span class="text-indigo-500 dark:text-indigo-400 italic">Expenses</span>
-            </h1>
-            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">By site & category · optional link to Risk or PO</p>
+@if (TempData["Message"] != null)
+{
+    <div id="toastAlert" class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500" role="alert">
+        <div class="bg-emerald-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="text-sm font-medium">@TempData["Message"]</span>
         </div>
-        <a href="@Url.Action("Create", "Expenses", new { area = "Client" })" class="rounded-xl border border-slate-200/70 bg-slate-900 px-6 py-3 text-xs font-bold text-white shadow-sm hover:bg-indigo-600 dark:border-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200">+ New Expense</a>
+    </div>
+}
+
+<div class="animate-in fade-in min-h-screen space-y-6 duration-700">
+    
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Project Expenses
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track and manage project costs and receipts</p>
+        </div>
+        <div>
+            <button onclick="openCreateModal()" class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                Log Expense
+            </button>
+        </div>
     </div>
 
-    <form method="get" action="@Url.Action("Index", "Expenses", new { area = "Client" })" class="rounded-xl border border-slate-200/70 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-        <div class="flex flex-wrap items-center gap-3">
-            <select name="siteId" class="rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+    <!-- Summary Cards (Client Dashboard Theme) -->
+    <div class="grid gap-6 md:grid-cols-3">
+        <!-- Card 1: Total Spend -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Spend</p>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@(((decimal)ViewBag.TotalSpend).ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH")))</h3>
+                </div>
+                <div class="rounded-full bg-emerald-50 p-2 dark:bg-emerald-900/20">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-xs text-slate-400">Based on current filters</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Top Category -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Top Category</p>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.TopCategory</h3>
+                </div>
+                <div class="rounded-full bg-indigo-50 p-2 dark:bg-indigo-900/20">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                    @(((decimal)ViewBag.TopCategoryAmount).ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH")))
+                </span>
+            </div>
+        </div>
+
+        <!-- Card 3: Records -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Records</p>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@Model.TotalCount</h3>
+                </div>
+                <div class="rounded-full bg-amber-50 p-2 dark:bg-amber-900/20">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-xs text-slate-400">Transactions logged</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" action="@Url.Action("Index", "Expenses", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <span class="text-xs font-medium text-slate-500">Site</span>
+            <select name="siteId" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
+                <option value="">All Sites</option>
                 @foreach (var s in siteFilterList) { <option value="@s.Value" selected="@s.Selected">@s.Text</option> }
             </select>
-            <select name="category" class="rounded-xl border border-slate-200/70 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                <option value="">All categories</option>
+        </div>
+
+        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <span class="text-xs font-medium text-slate-500">Category</span>
+            <select name="category" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                <option value="">All Categories</option>
                 @foreach (var c in categories) { <option value="@c" selected="@(ViewBag.SelectedCategory as string == c)">@c</option> }
             </select>
-            <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200">Filter</button>
         </div>
+        
+        <a href="@Url.Action("Index", "Expenses", new { area = "Client" })" class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-500" title="Reset Filters">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
     </form>
 
-    <div class="rounded-xl border border-slate-200/70 bg-white/70 overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+    <!-- Table Card -->
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
                 <thead>
-                    <tr class="border-b border-slate-200/70 font-black text-[10px] text-slate-500 uppercase tracking-wider dark:border-slate-800 dark:text-slate-400">
-                        <th class="px-6 py-4">Date</th>
-                        <th class="px-6 py-4">Site</th>
-                        <th class="px-6 py-4">Category</th>
-                        <th class="px-6 py-4">Amount</th>
-                        <th class="px-6 py-4">Linked PO / Risk</th>
+                    <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3 font-medium">Date</th>
+                        <th class="px-6 py-3 font-medium">Site</th>
+                        <th class="px-6 py-3 font-medium">Category</th>
+                        <th class="px-6 py-3 font-medium">Amount</th>
+                        <th class="px-6 py-3 font-medium">Receipt</th>
+                        <th class="px-6 py-3 font-medium text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200/70 dark:divide-slate-800">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @if (!Model.Items.Any())
                     {
-                        <tr><td colspan="5" class="px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">No expenses. Add one to get started.</td></tr>
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-3 dark:bg-slate-800">
+                                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">No expenses found</p>
+                                    <button onclick="openCreateModal()" class="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">Record Expense &rarr;</button>
+                                </div>
+                            </td>
+                        </tr>
                     }
                     @foreach (var e in Model.Items)
                     {
-                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">@e.Date.ToString("d")</td>
-                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">@(e.Site?.SiteName ?? "—")</td>
-                            <td class="px-6 py-4"><span class="rounded-lg bg-indigo-500/10 px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">@(e.Category ?? "—")</span></td>
-                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">@e.Amount.ToString("N2")</td>
-                            <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">@(e.PurchaseOrder != null ? "PO: " + e.PurchaseOrder.OrderNumber : e.Risk != null ? "Risk: " + e.Risk.Title : "—")</td>
+                        var expJson = System.Text.Json.JsonSerializer.Serialize(e, jsonOptions);
+                        <tr onclick='openSidePanel(@Html.Raw(expJson))' class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-slate-900 dark:text-slate-200">@e.Date.ToString("MMM d, yyyy")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-slate-600 dark:text-slate-400">@(e.Site?.SiteName ?? "—")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/20">
+                                    @(e.Category ?? "Other")
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-bold text-slate-900 dark:text-white">@e.Amount.ToString("N2")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if (!string.IsNullOrEmpty(e.AttachmentPath))
+                                {
+                                    <a href="@e.AttachmentPath" target="_blank" onclick="event.stopPropagation()" class="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                        Receipt
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-slate-400">—</span>
+                                }
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="event.stopPropagation(); openEditModal(@Html.Raw(expJson))" class="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Edit</button>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        
         @if (Model.TotalPages > 1)
         {
-            <div class="flex items-center justify-between border-t border-slate-200/70 px-6 py-3 dark:border-slate-800">
-                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">@Model.TotalCount expense(s)</p>
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Page @Model.PageNumber of @Model.TotalPages</p>
                 <div class="flex gap-2">
-                    @if (Model.HasPreviousPage) { <a href="@Url.Action("Index", "Expenses", new { area = "Client", page = Model.PageNumber - 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, category = ViewBag.SelectedCategory })" class="rounded-lg border border-slate-200/70 px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">Previous</a> }
-                    @if (Model.HasNextPage) { <a href="@Url.Action("Index", "Expenses", new { area = "Client", page = Model.PageNumber + 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, category = ViewBag.SelectedCategory })" class="rounded-lg border border-slate-200/70 px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">Next</a> }
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a href="@Url.Action("Index", "Expenses", new { area = "Client", page = Model.PageNumber - 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, category = ViewBag.SelectedCategory })" class="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">Previous</a>
+                    }
+                    else 
+                    {
+                        <span class="px-3 py-1 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-md cursor-not-allowed dark:bg-slate-800/50 dark:border-slate-700/50">Previous</span>
+                    }
+                    
+                    @if (Model.HasNextPage)
+                    {
+                        <a href="@Url.Action("Index", "Expenses", new { area = "Client", page = Model.PageNumber + 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, category = ViewBag.SelectedCategory })" class="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">Next</a>
+                    }
+                    else
+                    {
+                         <span class="px-3 py-1 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-md cursor-not-allowed dark:bg-slate-800/50 dark:border-slate-700/50">Next</span>
+                    }
                 </div>
             </div>
         }
     </div>
 </div>
+
+<!-- Side Panel Overlay -->
+<div id="sidePanelOverlay" onclick="closeSidePanel()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300"></div>
+
+<!-- Side Panel -->
+<div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
+    <div class="h-full flex flex-col p-6">
+        
+        <!-- Panel Header -->
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Expense Details</h2>
+                <div id="panelCategoryBadge" class="mt-2 inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10"></div>
+            </div>
+            <button onclick="closeSidePanel()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors dark:hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" /></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+            
+            <div class="text-center py-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Amount</p>
+                <p id="panelAmount" class="text-4xl font-bold text-slate-900 dark:text-white"></p>
+            </div>
+
+            <!-- Details -->
+            <div class="space-y-4">
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Date</span>
+                    <span id="panelDate" class="text-sm font-medium text-slate-900 dark:text-white"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Site</span>
+                    <span id="panelSite" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Purchase Order</span>
+                    <span id="panelPO" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Risk</span>
+                    <span id="panelRisk" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
+            </div>
+
+            <!-- Receipt Section -->
+            <div id="panelReceiptSection" class="hidden">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Attachment</h3>
+                <a id="panelReceiptLink" href="#" target="_blank" class="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors dark:bg-indigo-900/20 dark:border-indigo-800 dark:hover:bg-indigo-900/30">
+                    <div class="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center dark:bg-indigo-900 dark:text-indigo-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100">View Receipt</p>
+                        <p class="text-xs text-indigo-700 dark:text-indigo-300">Click to open file</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Panel Footer -->
+        <div class="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
+            <button id="panelEditBtn" class="w-full block bg-slate-900 text-white py-3 rounded-lg text-sm font-semibold shadow hover:bg-slate-800 transition-colors text-center dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                Edit Expense
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Form Modal -->
+<div id="formModal" class="fixed inset-0 z-[80] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-2xl scale-100 transform rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-bold text-slate-900 dark:text-white">Record Expense</h2>
+                    <p class="text-xs text-slate-500 mt-1">Enter expense details</p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+
+            <form id="expenseForm" method="post" enctype="multipart/form-data" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="ExpenseId" name="ExpenseId" />
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="SiteId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
+                        <select id="SiteId" name="SiteId" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="">Select site...</option>
+                            @foreach (var s in sites) { <option value="@s.SiteId">@s.SiteName (@s.SiteCode)</option> }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Amount" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Amount <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                            <input type="number" id="Amount" name="Amount" step="0.01" min="0.01" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono" placeholder="0.00" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="Category" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Category <span class="text-rose-500">*</span></label>
+                        <select id="Category" name="Category" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            @foreach (var c in new[] { "Materials", "Labor", "Equipment", "Mitigation", "Other" })
+                            {
+                                <option value="@c">@c</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Date" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Date Incurred</label>
+                        <input type="date" id="Date" name="Date" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" />
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 space-y-3">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Optional Linking</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="PurchaseOrderId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Purchase Order</label>
+                            <select id="PurchaseOrderId" name="PurchaseOrderId" class="w-full bg-white dark:bg-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                                <option value="">None</option>
+                                @foreach (var p in purchaseOrders) { <option value="@p.PurchaseOrderId">@p.OrderNumber ($@p.Total.ToString("N2"))</option> }
+                            </select>
+                        </div>
+                        <div>
+                            <label for="RiskId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Risk</label>
+                            <select id="RiskId" name="RiskId" class="w-full bg-white dark:bg-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                                <option value="">None</option>
+                                @foreach (var r in risks) { <option value="@r.RiskId">@r.Title</option> }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="attachment" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Receipt / Invoice</label>
+                    <input id="attachment" name="attachment" type="file" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/20 dark:file:text-indigo-400" />
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-lg text-sm font-semibold shadow hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toast = document.getElementById('toastAlert');
+        if (toast) {
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+    });
+
+    function openSidePanel(expense) {
+        document.getElementById('panelAmount').innerText = expense.Amount.toLocaleString('en-US', { style: 'currency', currency: 'PHP' }); 
+        
+        const date = new Date(expense.Date);
+        document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        
+        document.getElementById('panelSite').innerText = expense.Site ? expense.Site.SiteName : "—";
+        document.getElementById('panelPO').innerText = expense.PurchaseOrder ? expense.PurchaseOrder.OrderNumber : "—";
+        document.getElementById('panelRisk').innerText = expense.Risk ? expense.Risk.Title : "—";
+
+        const badge = document.getElementById('panelCategoryBadge');
+        badge.innerText = expense.Category || "Other";
+
+        const receiptSection = document.getElementById('panelReceiptSection');
+        const receiptLink = document.getElementById('panelReceiptLink');
+        if (expense.AttachmentPath) {
+            receiptSection.classList.remove('hidden');
+            receiptLink.href = expense.AttachmentPath;
+        } else {
+            receiptSection.classList.add('hidden');
+        }
+
+        // Setup Edit Button in Panel
+        const editBtn = document.getElementById('panelEditBtn');
+        editBtn.onclick = function() {
+            closeSidePanel();
+            openEditModal(expense);
+        };
+
+        const panel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('sidePanelOverlay');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+        panel.classList.remove('translate-x-full');
+    }
+
+    function closeSidePanel() {
+        const panel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('sidePanelOverlay');
+        panel.classList.add('translate-x-full');
+        overlay.classList.replace('opacity-100', 'opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+    }
+
+    // Modal Logic
+    function openCreateModal() {
+        const form = document.getElementById('expenseForm');
+        form.reset();
+        form.action = '@Url.Action("Create", "Expenses", new { area = "Client" })';
+        document.getElementById('modalTitle').innerText = 'Record Expense';
+        document.getElementById('Date').valueAsDate = new Date();
+        
+        const modal = document.getElementById('formModal');
+        modal.classList.remove('hidden');
+    }
+
+    function openEditModal(expense) {
+        const form = document.getElementById('expenseForm');
+        form.reset();
+        form.action = '@Url.Action("Edit", "Expenses", new { area = "Client" })/' + expense.ExpenseId;
+        document.getElementById('modalTitle').innerText = 'Edit Expense';
+
+        // Populate fields
+        document.getElementById('ExpenseId').value = expense.ExpenseId;
+        document.getElementById('SiteId').value = expense.SiteId;
+        document.getElementById('Amount').value = expense.Amount;
+        document.getElementById('Category').value = expense.Category;
+        document.getElementById('Date').value = expense.Date.split('T')[0]; // Format for date input
+        
+        if (expense.PurchaseOrderId) document.getElementById('PurchaseOrderId').value = expense.PurchaseOrderId;
+        if (expense.RiskId) document.getElementById('RiskId').value = expense.RiskId;
+
+        const modal = document.getElementById('formModal');
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('formModal').classList.add('hidden');
+    }
+
+    // Auto-open modal if pre-fill data exists (e.g. from PO)
+    @if (ViewBag.PreFillPOId != null)
+    {
+        <text>
+        document.addEventListener("DOMContentLoaded", function() {
+            openCreateModal();
+            // Pre-fill values
+            document.getElementById('PurchaseOrderId').value = '@ViewBag.PreFillPOId';
+            document.getElementById('SiteId').value = '@ViewBag.PreFillSiteId';
+            document.getElementById('Amount').value = '@ViewBag.PreFillAmount';
+            if ('@ViewBag.PreFillDate') {
+                document.getElementById('Date').value = '@ViewBag.PreFillDate';
+            }
+        });
+        </text>
+    }
+</script>

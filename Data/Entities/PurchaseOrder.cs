@@ -10,6 +10,7 @@ namespace WEB_Sentro.Data.Entities
         public DateTime OrderDate { get; set; }
         /// <summary>e.g. Draft, Sent, Received, Cancelled</summary>
         public string Status { get; set; } = "Draft";
+        public DateTime? ExpectedDeliveryDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

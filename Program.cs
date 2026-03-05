@@ -86,6 +86,9 @@ builder.Services.AddScoped<RiskExportService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
 builder.Services.AddScoped<MonitoringHubService>();
+builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService>();
+builder.Services.AddScoped<SupplierRiskService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddHostedService<MonitoringSyncHostedService>();
 builder.Services.AddHostedService<RiskReviewReminderHostedService>();
 

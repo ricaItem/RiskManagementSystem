@@ -16,6 +16,7 @@ namespace WEB_Sentro.Data.Entities
         public string? Description { get; set; }
         public string? Category { get; set; }
         public string? SourceType { get; set; }
+        public int? SupplierId { get; set; }
         public string? MonitoringRuleCode { get; set; }
         public string Status { get; set; } = "Draft";
         public string? Priority { get; set; }
@@ -36,6 +37,7 @@ namespace WEB_Sentro.Data.Entities
         public DateTime? DeletedAt { get; set; }
 
         public Site? Site { get; set; }
+        public Supplier? Supplier { get; set; }
         public ICollection<RiskEvaluation> Evaluations { get; set; } = new List<RiskEvaluation>();
         public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
         public MitigationPlan? MitigationPlan { get; set; }

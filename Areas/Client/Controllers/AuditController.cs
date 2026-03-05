@@ -48,7 +48,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             
             var query = db.AuditLogs.AsNoTracking()
-                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate);
+                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate && a.ActionType != "BackgroundSync" && a.ActionType != "BackgroundSyncFailed");
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -97,7 +97,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Action = a.ActionType,
                 Module = a.EntityType,
                 Details = a.Message ?? $"{a.EntityType} #{a.EntityId}",
-                Timestamp = a.CreatedAt,
+                Timestamp = DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc),
                 IpAddress = a.IpAddress,
                 Status = string.IsNullOrEmpty(a.Level) ? "Success" : (a.Level == "Warning" ? "Warning" : a.Level == "Error" ? "Critical" : a.Level)
             }).ToList();

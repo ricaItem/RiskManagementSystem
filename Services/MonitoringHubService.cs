@@ -244,7 +244,7 @@ namespace WEB_Sentro.Services
                 .ToListAsync(ct);
             var rainAccumulation3h = snapshots3h.Sum(s => s.RainMm ?? 0);
             var rainSnapshotCount = snapshots3h.Count(s => (s.RainMm ?? 0) > 0);
-            if (rainAccumulation3h >= 30 || rainSnapshotCount >= 3)
+            if (rainAccumulation3h >= 30)
             {
                 var floodMeasured = $"RainAccumulationLast3Hours={rainAccumulation3h:F1}mm (threshold 30mm); rainy snapshots={rainSnapshotCount}";
                 if (!triggeredByRule.Any(t => t.RuleCode == "Flood_risk_likely"))

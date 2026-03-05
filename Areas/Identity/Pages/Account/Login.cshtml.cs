@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using WEB_Sentro.Models.Identity;
+using WEB_Sentro.Services;
 
 namespace WEB_Sentro.Areas.Identity.Pages.Account
 {
@@ -20,15 +21,18 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly IAuditService _auditService;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            ILogger<LoginModel> logger)
+            ILogger<LoginModel> logger,
+            IAuditService auditService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
+            _auditService = auditService;
         }
 
         [BindProperty]
@@ -102,6 +106,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 if (check.IsLockedOut)
                 {
+                    await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                     ModelState.AddModelError(string.Empty, "Your account has been locked. Please contact administrator.");
                     return Page();
                 }
@@ -111,18 +116,21 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                     return Page();
                 }
 
+                await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginFailed", "Invalid password attempt", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                 ModelState.AddModelError(string.Empty, "Invalid credentials.");
                 return Page();
             }
 
             if (!user.IsActive)
             {
+                await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginFailed", "Inactive user attempt", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                 _logger.LogWarning("Inactive user attempted login. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
                 ModelState.AddModelError(string.Empty, "This account has been deactivated. You are not able to log in. Please contact your administrator.");
                 return Page();
             }
 
             await _signInManager.SignInAsync(user, Input.RememberMe);
+            await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginSuccess", "User logged in successfully", "Success", HttpContext.Connection.RemoteIpAddress?.ToString());
             _logger.LogInformation("User logged in (explicit sign-in). UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
 
             var roles = await _userManager.GetRolesAsync(user);

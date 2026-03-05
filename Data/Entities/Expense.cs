@@ -11,6 +11,7 @@ namespace WEB_Sentro.Data.Entities
         public DateTime Date { get; set; }
         public int? RiskId { get; set; }
         public int? PurchaseOrderId { get; set; }
+        public string? AttachmentPath { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

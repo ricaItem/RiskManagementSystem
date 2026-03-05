@@ -189,6 +189,23 @@
                     document.getElementById('audit-skeleton').classList.add('hidden');
                     document.getElementById('main-container').classList.remove('hidden');
 
+                    // Convert timestamps to local time
+                    document.querySelectorAll('.local-time').forEach(el => {
+                        const utc = el.getAttribute('data-utc');
+                        if (utc) {
+                            const date = new Date(utc);
+                            el.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
+                    });
+
+                    document.querySelectorAll('.local-date').forEach(el => {
+                        const utc = el.getAttribute('data-utc');
+                        if (utc) {
+                            const date = new Date(utc);
+                            el.innerText = date.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+                        }
+                    });
+
                     // Extract and execute scripts from the fetched HTML if any (though we moved most logic here)
                     const scripts = contentDiv.getElementsByTagName('script');
                     for (let i = 0; i < scripts.length; i++) {

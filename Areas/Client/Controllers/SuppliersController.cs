@@ -15,11 +15,13 @@ namespace Web_Sentro.Areas.Client.Controllers
     {
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _auditService;
 
-        public SuppliersController(ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
+        public SuppliersController(ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, IAuditService auditService)
         {
             _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
+            _auditService = auditService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -109,6 +111,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             };
             db.Suppliers.Add(entity);
             await db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                orgId.Value, 
+                user.Id, 
+                "Supplier", 
+                entity.SupplierId, 
+                "SupplierCreated", 
+                $"Supplier created: {entity.Name}", 
+                "Info", 
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             TempData["Message"] = "Supplier created.";
             return RedirectToAction(nameof(Index));
         }
@@ -129,6 +143,8 @@ namespace Web_Sentro.Areas.Client.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("SupplierId,Name,ContactPerson,Email,Phone,Category")] Supplier model)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
             if (id != model.SupplierId) return NotFound();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
@@ -150,6 +166,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             entity.Category = model.Category?.Trim();
             entity.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                orgId.Value, 
+                user.Id, 
+                "Supplier", 
+                entity.SupplierId, 
+                "SupplierUpdated", 
+                $"Supplier updated: {entity.Name}", 
+                "Info", 
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             TempData["Message"] = "Supplier updated.";
             return RedirectToAction(nameof(Index));
         }
@@ -170,6 +198,8 @@ namespace Web_Sentro.Areas.Client.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
 
@@ -178,6 +208,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (entity == null) return NotFound();
             db.Suppliers.Remove(entity);
             await db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                orgId.Value, 
+                user.Id, 
+                "Supplier", 
+                id, 
+                "SupplierDeleted", 
+                $"Supplier deleted: {entity.Name}", 
+                "Warning", 
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             TempData["Message"] = "Supplier deleted.";
             return RedirectToAction(nameof(Index));
         }

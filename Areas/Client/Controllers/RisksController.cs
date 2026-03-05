@@ -25,8 +25,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly INotificationService _notificationService;
         private readonly RiskExportService _exportService;
         private readonly IRiskVersionService _versionService;
+        private readonly IProcurementOverdueService _procurementOverdueService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -40,6 +41,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _notificationService = notificationService;
             _exportService = exportService;
             _versionService = versionService;
+            _procurementOverdueService = procurementOverdueService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -448,6 +450,8 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return View(new RiskMonitoringViewModel());
+
+            await _procurementOverdueService.CheckOverduePurchaseOrdersAsync(orgId.Value, user.Id, HttpContext.RequestAborted);
 
             var hubSites = await _monitoringHub.GetSitesForHubAsync(orgId.Value);
             var siteList = hubSites.Select(s => new MonitoringSiteItemViewModel

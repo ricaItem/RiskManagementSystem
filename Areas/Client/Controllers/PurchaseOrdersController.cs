@@ -15,11 +15,13 @@ namespace Web_Sentro.Areas.Client.Controllers
     {
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _auditService;
 
-        public PurchaseOrdersController(ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
+        public PurchaseOrdersController(ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, IAuditService auditService)
         {
             _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
+            _auditService = auditService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -100,17 +102,29 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SiteId,SupplierId,OrderNumber,OrderDate,Status")] PurchaseOrder model, string? lineDescription, decimal lineQuantity = 0, decimal lineUnitCost = 0)
+        public async Task<IActionResult> Create([Bind("SiteId,SupplierId,OrderNumber,OrderDate,Status,ExpectedDeliveryDate")] PurchaseOrder model, List<PurchaseOrderLine> items)
         {
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
 
-            if (string.IsNullOrWhiteSpace(model?.OrderNumber)) { ModelState.AddModelError("OrderNumber", "Order number is required."); await PopulateCreateDropdownsAsync(orgId.Value, model); return View(model); }
+            if (string.IsNullOrWhiteSpace(model?.OrderNumber)) 
+            { 
+                ModelState.AddModelError("OrderNumber", "Order number is required."); 
+                await PopulateCreateDropdownsAsync(orgId.Value, model); 
+                if (items != null) model.LineItems = items;
+                return View(model); 
+            }
 
             await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
             var site = await db.Sites.AnyAsync(s => s.SiteId == model.SiteId && s.OrgId == orgId.Value);
             var supplier = await db.Suppliers.AnyAsync(s => s.SupplierId == model.SupplierId && s.OrgId == orgId.Value);
-            if (!site || !supplier) { ModelState.AddModelError("", "Invalid site or supplier."); await PopulateCreateDropdownsAsync(orgId.Value, model); return View(model); }
+            if (!site || !supplier) 
+            { 
+                ModelState.AddModelError("", "Invalid site or supplier."); 
+                await PopulateCreateDropdownsAsync(orgId.Value, model); 
+                if (items != null) model.LineItems = items;
+                return View(model); 
+            }
 
             var entity = new PurchaseOrder
             {
@@ -120,16 +134,44 @@ namespace Web_Sentro.Areas.Client.Controllers
                 OrderNumber = model.OrderNumber.Trim(),
                 OrderDate = model.OrderDate,
                 Status = model.Status ?? "Draft",
+                ExpectedDeliveryDate = model.ExpectedDeliveryDate,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
             db.PurchaseOrders.Add(entity);
             await db.SaveChangesAsync();
 
-            if (!string.IsNullOrWhiteSpace(lineDescription) && lineQuantity > 0)
+            var user = await GetCurrentUserAsync();
+            if (user != null)
             {
-                var line = new PurchaseOrderLine { PurchaseOrderId = entity.PurchaseOrderId, Description = lineDescription, Quantity = lineQuantity, UnitCost = lineUnitCost };
-                db.PurchaseOrderLines.Add(line);
+                await _auditService.LogAsync(
+                    orgId.Value, 
+                    user.Id, 
+                    "PurchaseOrder", 
+                    entity.PurchaseOrderId, 
+                    "POCreated", 
+                    $"Purchase Order {entity.OrderNumber} created.", 
+                    "Info", 
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+
+            if (items != null && items.Any())
+            {
+                foreach (var item in items)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.Description) && item.Quantity > 0)
+                    {
+                        var line = new PurchaseOrderLine 
+                        { 
+                            PurchaseOrderId = entity.PurchaseOrderId, 
+                            Description = item.Description, 
+                            Quantity = item.Quantity, 
+                            UnitCost = item.UnitCost 
+                        };
+                        db.PurchaseOrderLines.Add(line);
+                    }
+                }
                 await db.SaveChangesAsync();
             }
 
@@ -161,14 +203,14 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("PurchaseOrderId,SiteId,SupplierId,OrderNumber,OrderDate,Status")] PurchaseOrder model)
+        public async Task<IActionResult> Edit(int id, [Bind("PurchaseOrderId,SiteId,SupplierId,OrderNumber,OrderDate,Status,ExpectedDeliveryDate")] PurchaseOrder model, List<PurchaseOrderLine> items)
         {
             if (id != model.PurchaseOrderId) return NotFound();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
 
             await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
-            var entity = await db.PurchaseOrders.FirstOrDefaultAsync(p => p.PurchaseOrderId == id && p.OrgId == orgId.Value);
+            var entity = await db.PurchaseOrders.Include(p => p.LineItems).FirstOrDefaultAsync(p => p.PurchaseOrderId == id && p.OrgId == orgId.Value);
             if (entity == null) return NotFound();
 
             entity.SiteId = model.SiteId;
@@ -176,8 +218,50 @@ namespace Web_Sentro.Areas.Client.Controllers
             entity.OrderNumber = model.OrderNumber?.Trim() ?? entity.OrderNumber;
             entity.OrderDate = model.OrderDate;
             entity.Status = model.Status ?? entity.Status;
+            entity.ExpectedDeliveryDate = model.ExpectedDeliveryDate;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            // Handle Line Items
+            if (entity.LineItems != null)
+            {
+                db.PurchaseOrderLines.RemoveRange(entity.LineItems);
+            }
+
+            if (items != null && items.Any())
+            {
+                foreach (var item in items)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.Description) && item.Quantity > 0)
+                    {
+                        var newLine = new PurchaseOrderLine 
+                        { 
+                            PurchaseOrderId = entity.PurchaseOrderId, 
+                            Description = item.Description, 
+                            Quantity = item.Quantity, 
+                            UnitCost = item.UnitCost 
+                        };
+                        db.PurchaseOrderLines.Add(newLine);
+                    }
+                }
+            }
+
             await db.SaveChangesAsync();
+            
+            var user = await GetCurrentUserAsync();
+            if (user != null)
+            {
+                await _auditService.LogAsync(
+                    orgId.Value, 
+                    user.Id, 
+                    "PurchaseOrder", 
+                    entity.PurchaseOrderId, 
+                    "POUpdated", 
+                    $"Purchase Order {entity.OrderNumber} updated.", 
+                    "Info", 
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+            
             TempData["Message"] = "Purchase order updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -197,6 +281,22 @@ namespace Web_Sentro.Areas.Client.Controllers
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            var user = await GetCurrentUserAsync();
+            if (user != null)
+            {
+                await _auditService.LogAsync(
+                    orgId.Value, 
+                    user.Id, 
+                    "PurchaseOrder", 
+                    id, 
+                    "StatusChanged", 
+                    $"Status updated to {status} for PO {entity.OrderNumber}", 
+                    "Info", 
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+
             TempData["Message"] = "Status updated to " + status + ".";
             return RedirectToAction(nameof(Details), new { id });
         }
