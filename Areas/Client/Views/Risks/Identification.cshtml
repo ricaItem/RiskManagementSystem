@@ -133,6 +133,27 @@
 
                     document.getElementById('risk-identification-skeleton').classList.add('hidden');
                     contentDiv.classList.remove('hidden');
+
+                    // Pre-fill form if needed
+                    @if (ViewBag.AutoOpenNewRiskModal == true)
+                    {
+                        <text>
+                        setTimeout(() => {
+                            const title = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.NewRiskTitle ?? ""));
+                            const desc = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.NewRiskDescription ?? ""));
+                            const siteId = "@ViewBag.NewRiskSiteId";
+                            const category = "@ViewBag.NewRiskCategory";
+                            const sourceType = "@ViewBag.NewRiskSourceType";
+
+                            if (document.getElementById('identifyRiskTitle')) document.getElementById('identifyRiskTitle').value = title + "\n\n" + desc;
+                            if (document.getElementById('identifyRiskCategory')) document.getElementById('identifyRiskCategory').value = category;
+                            if (document.getElementById('identifyRiskSourceType')) document.getElementById('identifyRiskSourceType').value = sourceType;
+                            if (document.getElementById('identifyRiskSiteId') && siteId) document.getElementById('identifyRiskSiteId').value = siteId;
+                            
+                            if (typeof toggleNewRiskModal === 'function') toggleNewRiskModal();
+                        }, 500);
+                        </text>
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching risk identification content:', error);

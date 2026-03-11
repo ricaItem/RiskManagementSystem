@@ -21,5 +21,6 @@ namespace WEB_Sentro.Data.Entities
         public ICollection<MonitoringSite> MonitoringSites { get; set; } = new List<MonitoringSite>();
         public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+        public ICollection<Incident> Incidents { get; set; } = new List<Incident>();
     }
 }

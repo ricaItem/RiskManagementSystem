@@ -109,30 +109,49 @@
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.color = '#64748b';
 
-            fetch('@Url.Action("DashboardContent", "Dashboard", new { area = "Client" })')
-                .then(response => response.text())
-                .then(html => {
-                    const contentDiv = document.getElementById('dashboard-content');
-                    contentDiv.innerHTML = html;
+            window.loadDashboardContent = function(url) {
+                if (!url) url = '@Url.Action("DashboardContent", "Dashboard", new { area = "Client" })';
+                
+                const contentDiv = document.getElementById('dashboard-content');
+                
+                if (contentDiv.innerHTML.trim() === '') {
+                     document.getElementById('dashboard-skeleton').classList.remove('hidden');
+                     contentDiv.classList.add('hidden');
+                } else {
+                     contentDiv.classList.add('opacity-50', 'pointer-events-none');
+                }
 
-                    // Extract and execute scripts from the fetched HTML
-                    const scripts = contentDiv.getElementsByTagName('script');
-                    for (let i = 0; i < scripts.length; i++) {
-                        const script = document.createElement('script');
-                        if (scripts[i].src) {
-                            script.src = scripts[i].src;
-                        } else {
-                            script.text = scripts[i].innerText;
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        contentDiv.innerHTML = html;
+
+                        const scripts = contentDiv.getElementsByTagName('script');
+                        const scriptsToRun = [];
+                        for (let i = 0; i < scripts.length; i++) {
+                            scriptsToRun.push(scripts[i]);
                         }
-                        document.body.appendChild(script);
-                    }
+                        
+                        scriptsToRun.forEach(oldScript => {
+                            const script = document.createElement('script');
+                            if (oldScript.src) {
+                                script.src = oldScript.src;
+                            } else {
+                                script.text = oldScript.innerText;
+                            }
+                            document.body.appendChild(script);
+                        });
 
-                    document.getElementById('dashboard-skeleton').classList.add('hidden');
-                    contentDiv.classList.remove('hidden');
-                })
-                .catch(error => {
-                    console.error('Error fetching dashboard content:', error);
-                });
+                        document.getElementById('dashboard-skeleton').classList.add('hidden');
+                        contentDiv.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching dashboard content:', error);
+                        contentDiv.classList.remove('opacity-50', 'pointer-events-none');
+                    });
+            };
+
+            loadDashboardContent();
         });
     </script>
 }

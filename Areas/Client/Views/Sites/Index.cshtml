@@ -3,96 +3,150 @@
     Layout = "_LayoutClient";
     var totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 1;
 }
-<div class="animate-in fade-in min-h-screen space-y-4 duration-500">
-    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+
+<div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
-            <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Project <span class="text-emerald-500 italic">Sites</span></h1>
-            <p class="mt-1 font-black tracking-[0.2em] text-[10px] text-slate-400 uppercase dark:text-slate-500">Manage sites and locations</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Project Sites
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage sites and geographical locations</p>
         </div>
-        <button type="button" onclick="openAddSiteModal()" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-700 hover:-translate-y-0.5">+ New Site</button>
+        <button type="button" onclick="openAddSiteModal()" class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 transition-all dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            New Site
+        </button>
     </div>
 
     @if (TempData["Message"] != null)
     {
-        <div class="rounded-xl border border-slate-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-slate-700 dark:bg-emerald-900/20 dark:text-emerald-300">@TempData["Message"]</div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-300 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            @TempData["Message"]
+        </div>
     }
 
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-        <form method="get" action="@Url.Action("Index", "Sites", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
-            <input type="text" name="search" value="@Model.Search" placeholder="Search by name or code..." class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white w-64" />
-            <select name="status" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white">
-                <option value="">All statuses</option>
-                <option value="Active" selected="@(Model.StatusFilter == "Active")">Active</option>
-                <option value="OnHold" selected="@(Model.StatusFilter == "OnHold")">On Hold</option>
-                <option value="Completed" selected="@(Model.StatusFilter == "Completed")">Completed</option>
-                <option value="Archived" selected="@(Model.StatusFilter == "Archived")">Archived</option>
-            </select>
-            <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-slate-700">Filter</button>
-        </form>
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden">
+        <div class="relative z-10 flex flex-wrap items-center gap-6">
+            <div class="flex-1 min-w-[200px]">
+                <form method="get" action="@Url.Action("Index", "Sites", new { area = "Client" })" class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1">
+                        <label class="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">Search</label>
+                        <input type="text" name="search" value="@Model.Search" placeholder="Search by name or code..." class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" />
+                    </div>
+                    <div class="w-48">
+                        <label class="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">Status</label>
+                        <select name="status" asp-items="@(new SelectList(new[] { "Active", "OnHold", "Completed", "Archived" }, Model.StatusFilter))" class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                            <option value="">All statuses</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 h-[38px]">Filter</button>
+                </form>
+            </div>
+            
+            <div class="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+            
+            <div class="flex gap-6">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Sites</p>
+                    <p class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.TotalCount</p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Active</p>
+                    <p class="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">@Model.Items.Count(s => s.Status == "Active")</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    @* Split layout: map 9/12, list 3/12; height fills viewport minus header *@
-    <div id="sites-split-container" class="grid grid-cols-1 lg:grid-cols-12 gap-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90 overflow-hidden" style="min-height: calc(100vh - 14rem);">
-        <div class="lg:col-span-9 relative min-h-[320px] flex-shrink-0">
-            <div id="sites-map" class="absolute inset-0 w-full h-full rounded-l-xl"></div>
-        </div>
-        <div class="lg:col-span-3 flex flex-col min-h-0 border-l border-slate-200 dark:border-slate-700">
-            <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Sites</span>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" style="min-height: 600px;">
+        <!-- Map Section -->
+        <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative min-h-[400px]">
+            <div id="sites-map" class="w-full h-full"></div>
+            <!-- Map Controls/Overlay if needed -->
+             <div class="absolute top-4 left-4 flex flex-col gap-2 z-[400]">
+                <div class="rounded-lg border border-slate-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/80 flex flex-wrap gap-3 items-center">
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Map Layer</span>
+                </div>
             </div>
-            <div id="sites-list" class="flex-1 overflow-y-auto custom-scrollbar">
+        </div>
+
+        <!-- List Section -->
+        <div class="lg:col-span-4 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/20">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">Site List</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Model.TotalCount sites found</p>
+                </div>
+            </div>
+            
+            <div id="sites-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800" style="max-height: 600px;">
                 @foreach (var s in Model.Items)
                 {
-                    var statusCls = s.Status == "Active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                        s.Status == "OnHold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                        s.Status == "Completed" ? "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300" :
-                        "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400";
                     var hasCoords = s.Latitude.HasValue && s.Longitude.HasValue;
-                    <div class="sites-list-item border-b border-slate-100 dark:border-slate-700/50 px-3 py-2.5 cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                         role="button"
-                         tabindex="0"
+                    var statusColor = s.Status == "Active" ? "bg-emerald-500" : s.Status == "OnHold" ? "bg-amber-500" : "bg-slate-400";
+                    
+                    <div class="sites-list-item group relative flex items-start gap-4 p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                          data-site-id="@s.SiteId"
                          data-lat="@(hasCoords ? s.Latitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
                          data-lng="@(hasCoords ? s.Longitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-bold text-slate-900 dark:text-white truncate">@s.SiteName</p>
-                                <p class="text-[10px] font-mono text-slate-500 dark:text-slate-400">@s.SiteCode</p>
-                                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                    <span class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase @statusCls">@s.Status</span>
-                                    @if (!hasCoords)
+                        
+                        <div class="flex-shrink-0 relative mt-1">
+                            <div class="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-100/10 font-bold text-slate-600 dark:text-slate-300">
+                                @(s.SiteName?.Substring(0, 1).ToUpper() ?? "S")
+                            </div>
+                            <span class="absolute -bottom-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full @statusColor ring-2 ring-white dark:ring-slate-900"></span>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2 mb-0.5">
+                                <h4 class="text-sm font-medium text-slate-900 dark:text-white truncate">@s.SiteName</h4>
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">@s.Status</span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">@s.SiteCode</p>
+                            
+                            <div class="flex items-center gap-3">
+                                @if (hasCoords)
+                                {
+                                    <span class="text-[10px] text-slate-400 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        Mapped
+                                    </span>
+                                }
+                                <div class="flex gap-2 ml-auto">
+                                    <a href="@Url.Action("Details", "Sites", new { area = "Client", id = s.SiteId })" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 uppercase tracking-wide">View</a>
+                                    @if (s.Status != "Archived")
                                     {
-                                        <span class="rounded px-1.5 py-0.5 text-[9px] font-medium bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400">No location</span>
+                                        <span class="text-slate-300 dark:text-slate-700">|</span>
+                                        <a href="@Url.Action("Edit", "Sites", new { area = "Client", id = s.SiteId })" class="text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 uppercase tracking-wide">Edit</a>
                                     }
                                 </div>
-                            </div>
-                            <div class="flex gap-1 flex-shrink-0">
-                                <a href="@Url.Action("Details", "Sites", new { area = "Client", id = s.SiteId })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" onclick="event.stopPropagation();">View</a>
-                                @if (s.Status != "Archived")
-                                {
-                                    <a href="@Url.Action("Edit", "Sites", new { area = "Client", id = s.SiteId })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" onclick="event.stopPropagation();">Edit</a>
-                                }
                             </div>
                         </div>
                     </div>
                 }
+                
                 @if (Model.Items.Count == 0)
                 {
-                    <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No sites found.</p>
+                    <div class="p-8 text-center">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">No sites found</p>
+                        <p class="text-xs text-slate-400 mt-1">Try adjusting your search or filters</p>
+                    </div>
                 }
             </div>
+
             @if (totalPages > 1)
             {
-                <div class="flex items-center justify-between border-t border-slate-200 px-3 py-2 dark:border-slate-700 flex-shrink-0">
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400">@((Model.PageNumber - 1) * Model.PageSize + 1)–@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount</p>
+                <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 dark:bg-slate-800/30 dark:border-slate-800 flex items-center justify-between">
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Page @Model.PageNumber of @totalPages</p>
                     <div class="flex gap-1">
-                        @if (Model.PageNumber > 1)
+                         @if (Model.PageNumber > 1)
                         {
-                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber - 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold dark:border-slate-600">Prev</a>
+                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber - 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700">Prev</a>
                         }
                         @if (Model.PageNumber < totalPages)
                         {
-                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber + 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold dark:border-slate-600">Next</a>
+                            <a href="@Url.Action("Index", "Sites", new { area = "Client", page = Model.PageNumber + 1, search = Model.Search, status = Model.StatusFilter, pageSize = Model.PageSize })" class="rounded px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700">Next</a>
                         }
                     </div>
                 </div>
@@ -101,13 +155,13 @@
     </div>
 </div>
 
-<!-- Add Site Modal: map to pick location + form to save name, etc. -->
+<!-- Add Site Modal: (Preserved functionality, updated generic styles inherited from main css) -->
 <div id="addSiteModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addSiteModalTitle">
     <div class="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col relative z-[1101]" id="addSiteModal">
         <form action="@Url.Action("Create", "Sites", new { area = "Client" })" method="post" class="flex flex-col flex-1 min-h-0" onsubmit="var b=document.getElementById('addSiteSubmitBtn');if(b){b.disabled=true;b.textContent='Creating...';}">
             @Html.AntiForgeryToken()
             <div class="flex justify-between items-center flex-shrink-0 px-6 pt-5 pb-2">
-                <h2 id="addSiteModalTitle" class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">New <span class="text-emerald-500 italic">Site</span></h2>
+                <h2 id="addSiteModalTitle" class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">New <span class="text-indigo-600 dark:text-indigo-400">Site</span></h2>
                 <button type="button" onclick="closeAddSiteModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1" aria-label="Close">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -117,14 +171,14 @@
                 {
                     <div class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">@ViewData["CreateError"]</div>
                 }
-                @* Map: address search (auto-picker) + click/drag to set location; address fields auto-filled *@
+                <!-- Map: address search (auto-picker) + click/drag to set location; address fields auto-filled -->
                 <div>
                     <label class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Location on map</label>
                     <div class="mb-2 flex gap-2">
                         <div class="relative flex-1">
                             <input type="text" id="addSite_AddressSearch" placeholder="Search address or place..." maxlength="200"
                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-20 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                            <button type="button" id="addSite_SearchBtn" class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Search</button>
+                            <button type="button" id="addSite_SearchBtn" class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700">Search</button>
                         </div>
                         <button type="button" id="addSite_MyLocationBtn" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" title="Use my location">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -177,11 +231,90 @@
             </div>
             <div class="flex gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
                 <button type="button" onclick="closeAddSiteModal()" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
-                <button type="submit" id="addSiteSubmitBtn" class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-700">Create Site</button>
+                <button type="submit" id="addSiteSubmitBtn" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-400">Create Site</button>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+    /* Leaflet monitoring site markers: bouncing pin + radio-wave pulse - Adapted for Sites Module */
+    .site-marker {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center bottom;
+    }
+    .site-marker .pin {
+        position: relative;
+        z-index: 10;
+        width: 14px;
+        height: 14px;
+        border-radius: 9999px;
+        background: #10b981;
+        border: 2px solid #ffffff;
+        box-shadow: 0 6px 10px rgba(15, 23, 42, 0.45);
+    }
+    .site-marker .pulse {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        border: 2px solid currentColor;
+        transform: translate(-50%, -50%) scale(0.6);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .site-marker .pulse::before,
+    .site-marker .pulse::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: inherit;
+        transform: scale(0.6);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Status colors */
+    .site-marker.status-Active { color: #10b981; }
+    .site-marker.status-Active .pin { background: #10b981; }
+    
+    .site-marker.status-OnHold { color: #f59e0b; }
+    .site-marker.status-OnHold .pin { background: #f59e0b; }
+    
+    .site-marker.status-Completed { color: #64748b; }
+    .site-marker.status-Completed .pin { background: #64748b; }
+    
+    .site-marker.status-Archived { color: #94a3b8; }
+    .site-marker.status-Archived .pin { background: #94a3b8; }
+
+    /* Bounce animation for selected */
+    @@keyframes site-marker-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+    .site-marker.selected .pin {
+        animation: site-marker-bounce 1.2s ease-in-out infinite;
+        border-color: #4f46e5;
+        border-width: 3px;
+    }
+    .site-marker.selected .pulse {
+        animation: site-marker-pulse 2s ease-out infinite;
+        opacity: 1;
+    }
+     @@keyframes site-marker-pulse {
+        0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.55; }
+        100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+    }
+</style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -356,13 +489,20 @@
         sitesWithCoords.forEach(function(s) {
             var lat = Number(s.lat), lng = Number(s.lng);
             var popupContent = '<strong>' + (s.name || '').replace(/</g, '&lt;') + '</strong>' + (s.code ? ' <span class="text-slate-500">(' + (s.code || '').replace(/</g, '&lt;') + ')</span>' : '');
-            var marker = L.marker([lat, lng]).bindPopup(popupContent);
+            
+            // Custom marker icon
+            var icon = L.divIcon({
+                className: 'monitoring-site-icon', // Use base class to remove default styles
+                html: '<div class="site-marker status-' + s.status + '"><div class="pin"></div><div class="pulse"></div></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 20],
+                popupAnchor: [0, -20]
+            });
+
+            var marker = L.marker([lat, lng], { icon: icon }).bindPopup(popupContent);
             marker._siteId = s.id;
             marker.on('click', function() {
-                selectedSiteId = s.id;
-                highlightListRow(s.id);
-                var row = listEl && listEl.querySelector('[data-site-id="' + s.id + '"]');
-                if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                selectSite(s.id);
             });
             markersLayer.addLayer(marker);
             markerBySiteId.set(String(s.id), marker);
@@ -373,14 +513,29 @@
             map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
         }
 
-        function highlightListRow(siteId) {
-            if (!listEl) return;
-            listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
-                var id = el.getAttribute('data-site-id');
-                if (id === String(siteId)) {
-                    el.classList.add('bg-emerald-50', 'dark:bg-emerald-900/20', 'ring-2', 'ring-emerald-500/50');
-                } else {
-                    el.classList.remove('bg-emerald-50', 'dark:bg-emerald-900/20', 'ring-2', 'ring-emerald-500/50');
+        function selectSite(siteId) {
+            selectedSiteId = siteId;
+            // Update list highlighting
+            if (listEl) {
+                listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
+                    var id = el.getAttribute('data-site-id');
+                    if (id === String(siteId)) {
+                        el.classList.add('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
+                        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    } else {
+                        el.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
+                    }
+                });
+            }
+            // Update marker styles (add 'selected' class)
+            markerBySiteId.forEach(function(m, id) {
+                var el = m.getElement();
+                if (el) {
+                    var inner = el.querySelector('.site-marker');
+                    if (inner) {
+                        if (id === String(siteId)) inner.classList.add('selected');
+                        else inner.classList.remove('selected');
+                    }
                 }
             });
         }
@@ -390,19 +545,12 @@
                 el.addEventListener('click', function() {
                     var siteId = el.getAttribute('data-site-id');
                     var lat = el.getAttribute('data-lat'), lng = el.getAttribute('data-lng');
-                    selectedSiteId = siteId ? parseInt(siteId, 10) : null;
-                    highlightListRow(selectedSiteId);
+                    selectSite(siteId);
                     if (lat && lng) {
                         var latNum = parseFloat(lat), lngNum = parseFloat(lng);
                         map.flyTo([latNum, lngNum], FOCUS_ZOOM);
                         var m = markerBySiteId.get(String(siteId));
                         if (m) m.openPopup();
-                    }
-                });
-                el.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        el.click();
                     }
                 });
             });

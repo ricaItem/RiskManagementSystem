@@ -76,6 +76,7 @@ builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
 // App services
 builder.Services.AddScoped<RiskService>();
 builder.Services.AddScoped<RiskAnalyticsService>();
+builder.Services.AddScoped<RiskAnalyticsPdfService>();
 builder.Services.AddScoped<RiskAttachmentService>();
 builder.Services.AddScoped<RiskEvaluationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -89,6 +90,7 @@ builder.Services.AddScoped<MonitoringHubService>();
 builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService>();
 builder.Services.AddScoped<SupplierRiskService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IIncidentService, IncidentService>();
 builder.Services.AddHostedService<MonitoringSyncHostedService>();
 builder.Services.AddHostedService<RiskReviewReminderHostedService>();
 

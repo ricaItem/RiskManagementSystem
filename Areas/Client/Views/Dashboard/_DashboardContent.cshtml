@@ -1,3 +1,4 @@
+@model WEB_Sentro.Areas.Client.Models.DashboardViewModel
 @* This partial contains the actual dashboard content to be loaded asynchronously *@
 
 <div class="animate-in fade-in slide-in-from-bottom-4 min-h-screen space-y-6 duration-700">
@@ -13,17 +14,18 @@
         <div class="flex flex-wrap items-center gap-3">
             <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
                 <span class="text-xs font-medium text-slate-500">Range</span>
-                <input type="date" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300" value="2024-01-01" />
+                <input type="date" id="dashStart" onchange="window.reloadDashFilters()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
                 <span class="text-slate-300">–</span>
-                <input type="date" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300" value="2024-06-30" />
+                <input type="date" id="dashEnd" onchange="window.reloadDashFilters()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
             </div>
             
             <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
                 <span class="text-xs font-medium text-slate-500">Project</span>
-                <select class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300">
-                    <option>Global View</option>
-                    <option>Sky Tower</option>
-                    <option>River Bridge</option>
+                <select id="dashSite" onchange="window.reloadDashFilters()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300">
+                    @foreach (var item in Model.Sites)
+                    {
+                        @if (item.Selected) { <option value="@item.Value" selected>@item.Text</option> } else { <option value="@item.Value">@item.Text</option> }
+                    }
                 </select>
             </div>
 
@@ -38,7 +40,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Overdue Items</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">12</h3>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@Model.OverdueItemsCount</h3>
                 </div>
                 <div class="rounded-full bg-rose-50 p-2 dark:bg-rose-900/20">
                     <svg class="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -46,7 +48,7 @@
             </div>
             <div class="mt-4 flex items-center gap-2">
                 <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
-                    Critical Priority
+                    Action Required
                 </span>
             </div>
         </a>
@@ -55,7 +57,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Pending Approvals</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">08</h3>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@Model.PendingApprovalsCount</h3>
                 </div>
                 <div class="rounded-full bg-indigo-50 p-2 dark:bg-indigo-900/20">
                     <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -63,7 +65,7 @@
             </div>
             <div class="mt-4 flex items-center gap-2">
                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
-                    +6 New Today
+                    Review Needed
                 </span>
             </div>
         </a>
@@ -72,7 +74,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Health Index</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">98.2%</h3>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@Model.HealthIndex.ToString("0.0")%</h3>
                 </div>
                 <div class="rounded-full bg-emerald-50 p-2 dark:bg-emerald-900/20">
                     <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -80,23 +82,23 @@
             </div>
             <div class="mt-4">
                 <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div class="h-full rounded-full bg-emerald-500" style="width: 98%"></div>
+                    <div class="h-full rounded-full bg-emerald-500" style="width: @Model.HealthIndex.ToString("0")%"></div>
                 </div>
             </div>
         </a>
 
-        <a href="@Url.Action("Index", "Supplier", new { area = "Client" })" class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+        <a href="@Url.Action("Index", "Incidents", new { area = "Client" })" class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">System State</p>
-                    <h3 class="mt-2 text-xl font-bold text-slate-900 dark:text-white">Operational</h3>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Open Incidents</p>
+                    <h3 class="mt-2 text-xl font-bold text-slate-900 dark:text-white">@Model.OpenIncidentsCount</h3>
                 </div>
-                <div class="rounded-full bg-emerald-50 p-2 dark:bg-emerald-900/20">
-                    <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <div class="rounded-full bg-amber-50 p-2 dark:bg-amber-900/20">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Optimal Flow</span>
+                <span class="text-xs font-medium text-amber-600 dark:text-amber-400">Needs Investigation</span>
             </div>
         </a>
     </div>
@@ -145,20 +147,28 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                            <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200">SteelCo Fabrication</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20">Critical</span>
-                            </td>
-                            <td class="px-6 py-4 text-right text-xs font-medium text-slate-500">Insurance Expired</td>
-                        </tr>
-                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                            <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200">Apex Concrete</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-600 ring-1 ring-inset ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20">Elevated</span>
-                            </td>
-                            <td class="px-6 py-4 text-right text-xs font-medium text-slate-500">Audit Pending</td>
-                        </tr>
+                        @foreach (var alert in Model.SupplierAlerts)
+                        {
+                            <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200">@alert.PartnerName</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center rounded-md 
+                                        @(alert.RiskLevel == "Critical" ? "bg-rose-50 text-rose-600 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" : 
+                                          alert.RiskLevel == "Elevated" ? "bg-amber-50 text-amber-600 ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20" :
+                                          "bg-slate-50 text-slate-600 ring-slate-600/10 dark:bg-slate-900/20 dark:text-slate-400 dark:ring-slate-500/20") 
+                                        px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                                        @alert.RiskLevel
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right text-xs font-medium text-slate-500">@alert.Status</td>
+                            </tr>
+                        }
+                        @if (!Model.SupplierAlerts.Any())
+                        {
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-xs text-slate-500">No alerts found.</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -167,24 +177,18 @@
         <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
             <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Department Efficiency</h3>
             <div class="space-y-6">
-                <div>
-                    <div class="mb-2 flex justify-between items-end">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Structural Engineering</span>
-                        <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">92%</span>
+                @foreach (var dept in Model.DepartmentEfficiencies)
+                {
+                    <div>
+                        <div class="mb-2 flex justify-between items-end">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@dept.DepartmentName</span>
+                            <span class="text-sm font-bold @(dept.EfficiencyPercentage >= 80 ? "text-emerald-600 dark:text-emerald-400" : dept.EfficiencyPercentage >= 60 ? "text-amber-500 dark:text-amber-400" : "text-rose-500 dark:text-rose-400")">@dept.EfficiencyPercentage%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                            <div class="animate-in slide-in-from-left h-full @(dept.EfficiencyPercentage >= 80 ? "bg-emerald-500" : dept.EfficiencyPercentage >= 60 ? "bg-amber-500" : "bg-rose-500") duration-1000" style="width: @dept.EfficiencyPercentage%"></div>
+                        </div>
                     </div>
-                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div class="animate-in slide-in-from-left h-full bg-emerald-500 duration-1000" style="width: 92%"></div>
-                    </div>
-                </div>
-                <div>
-                    <div class="mb-2 flex justify-between items-end">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Logistics & Supply</span>
-                        <span class="text-sm font-bold text-amber-500 dark:text-amber-400">64%</span>
-                    </div>
-                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div class="animate-in slide-in-from-left h-full bg-amber-500 duration-1000" style="width: 64%"></div>
-                    </div>
-                </div>
+                }
             </div>
         </div>
     </div>
@@ -192,82 +196,125 @@
 
 @* Charts Initialization Script *@
 <script>
-    if (typeof Chart !== 'undefined') {
-        const trendCtx = document.getElementById('riskTrendChart').getContext('2d');
-        const greenGrad = trendCtx.createLinearGradient(0, 0, 0, 300);
-        greenGrad.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
-        greenGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    // Defined globally so inputs can call it
+    window.reloadDashFilters = function() {
+        const start = document.getElementById('dashStart').value;
+        const end = document.getElementById('dashEnd').value;
+        const site = document.getElementById('dashSite').value;
+        // Construct URL manually to avoid encoding issues with razor inside JS string literals sometimes
+        const baseUrl = '@Url.Action("DashboardContent", "Dashboard", new { area = "Client" })';
+        const url = `${baseUrl}?startDate=${start}&endDate=${end}&siteId=${site}`;
+        
+        if (typeof window.loadDashboardContent === 'function') {
+            window.loadDashboardContent(url);
+        }
+    };
 
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'],
-                datasets: [{
-                    label: 'Resolved',
-                    data: [30, 45, 38, 60, 55, 75],
-                    borderColor: '#10b981',
-                    borderWidth: 3,
-                    fill: true,
-                    backgroundColor: greenGrad,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6
-                }, {
-                    label: 'Critical',
-                    data: [40, 35, 45, 30, 35, 25],
-                    borderColor: '#f43f5e',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    pointRadius: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                animation: { duration: 2000, easing: 'easeOutQuart' },
-                scales: {
-                    y: { display: false },
-                    x: { 
-                        grid: { display: false }, 
-                        border: { display: false }, 
-                        ticks: { font: { size: 10, weight: '500' }, color: '#94a3b8' } 
-                    }
-                }
-            }
-        });
+    (function() {
+        if (typeof Chart !== 'undefined') {
+            const trendCanvas = document.getElementById('riskTrendChart');
+            const catCanvas = document.getElementById('riskCategoryChart');
 
-        const catCtx = document.getElementById('riskCategoryChart').getContext('2d');
-        new Chart(catCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Safety', 'Financial', 'Legal'],
-                datasets: [{
-                    data: [45, 30, 25],
-                    backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '80%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { 
-                            boxWidth: 8, 
-                            usePointStyle: true, 
-                            font: { size: 11, weight: '500', family: "'Inter', sans-serif" },
-                            padding: 20,
-                            color: '#64748b'
+            // Cleanup old charts to prevent memory leaks or glitches
+            // Use ID string to find existing charts associated with these canvas IDs, 
+            // even if the DOM element was just replaced.
+            const oldTrend = Chart.getChart('riskTrendChart');
+            if (oldTrend) oldTrend.destroy();
+
+            const oldCat = Chart.getChart('riskCategoryChart');
+            if (oldCat) oldCat.destroy();
+
+            if (trendCanvas) {
+                const trendCtx = trendCanvas.getContext('2d');
+                const greenGrad = trendCtx.createLinearGradient(0, 0, 0, 300);
+                greenGrad.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
+                greenGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+                // Prepare data from Model
+                const trendLabels = @Html.Raw(Json.Serialize(Model.RiskTrend.Select(x => x.Month)));
+                const trendResolved = @Html.Raw(Json.Serialize(Model.RiskTrend.Select(x => x.Resolved)));
+                const trendCritical = @Html.Raw(Json.Serialize(Model.RiskTrend.Select(x => x.Critical)));
+
+                new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [{
+                            label: 'Resolved',
+                            data: trendResolved,
+                            borderColor: '#10b981',
+                            borderWidth: 3,
+                            fill: true,
+                            backgroundColor: greenGrad,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6
+                        }, {
+                            label: 'Critical',
+                            data: trendCritical,
+                            borderColor: '#f43f5e',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        animation: { duration: 2000, easing: 'easeOutQuart' },
+                        scales: {
+                            y: { display: false },
+                            x: { 
+                                grid: { display: false }, 
+                                border: { display: false }, 
+                                ticks: { font: { size: 10, weight: '500' }, color: '#94a3b8' } 
+                            }
                         }
                     }
-                },
-                animation: { animateScale: true, animateRotate: true }
+                });
             }
-        });
-    }
+
+            if (catCanvas) {
+                const catCtx = catCanvas.getContext('2d');
+                
+                // Prepare data for Category Chart
+                const catLabels = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Category)));
+                const catData = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Count)));
+                const catColors = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']; // Extended palette
+
+                new Chart(catCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            data: catData,
+                            backgroundColor: catColors.slice(0, catData.length),
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '80%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    boxWidth: 8, 
+                                    usePointStyle: true, 
+                                    font: { size: 11, weight: '500', family: "'Inter', sans-serif" },
+                                    padding: 20,
+                                    color: '#64748b'
+                                }
+                            }
+                        },
+                        animation: { animateScale: true, animateRotate: true }
+                    }
+                });
+            }
+        }
+    })();
 </script>

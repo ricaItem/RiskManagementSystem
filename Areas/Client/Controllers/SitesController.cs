@@ -246,6 +246,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             var activeRisks = await db.Risks.AsNoTracking().CountAsync(r => r.SiteId == id && r.DeletedAt == null);
             var criticalRisks = await db.Risks.AsNoTracking().CountAsync(r => r.SiteId == id && r.DeletedAt == null && r.Priority == "Critical");
+            var openIncidents = await db.Incidents.AsNoTracking().CountAsync(i => i.SiteId == id && i.Status == "Open");
 
             var monitoringSite = await db.MonitoringSites.AsNoTracking().FirstOrDefaultAsync(m => m.SiteId == id && m.OrgId == orgId.Value);
             string? latestWeather = null;
@@ -258,6 +259,75 @@ namespace WEB_Sentro.Areas.Client.Controllers
                     .FirstOrDefaultAsync();
                 latestWeather = lastAlert ?? "No alerts yet";
             }
+
+            // Identity / Assignments
+            // 1. Project Manager
+            string? pmName = null;
+            if (!string.IsNullOrEmpty(site.ProjectManagerUserId))
+            {
+                var pm = await _platformDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == site.ProjectManagerUserId);
+                pmName = pm != null ? $"{pm.FirstName} {pm.LastName}" : "Unknown User";
+            }
+
+            // 2. Derive "Assigned Employees" from activity (Risk Owners, Incident Reporters, Task Assignees)
+            // This creates a dynamic "Team" based on real work
+            var riskOwnerIds = await db.Risks.AsNoTracking()
+                .Where(r => r.SiteId == id && r.RiskOwnerId != null)
+                .Select(r => r.RiskOwnerId!)
+                .Distinct()
+                .ToListAsync();
+
+            var incidentReporterIds = await db.Incidents.AsNoTracking()
+                .Where(i => i.SiteId == id && i.ReportedByUserId != null)
+                .Select(i => i.ReportedByUserId!)
+                .Distinct()
+                .ToListAsync();
+
+            var taskAssigneeIds = await db.MitigationTasks.AsNoTracking()
+                .Include(t => t.Plan).ThenInclude(p => p.Risk)
+                .Where(t => t.Plan != null && t.Plan.Risk.SiteId == id && t.AssignedToUserId != null)
+                .Select(t => t.AssignedToUserId!)
+                .Distinct()
+                .ToListAsync();
+
+            var involvedUserIds = riskOwnerIds
+                .Union(incidentReporterIds)
+                .Union(taskAssigneeIds)
+                .Distinct()
+                .Where(uid => uid != site.ProjectManagerUserId) // Exclude PM from general list if desired, or keep
+                .ToList();
+
+            var assignedUsers = new List<SiteUserViewModel>();
+            if (involvedUserIds.Any())
+            {
+                var users = await _platformDb.Users.AsNoTracking()
+                    .Where(u => involvedUserIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
+                    .ToListAsync();
+
+                foreach (var u in users)
+                {
+                    // Determine primary role for display
+                    var roles = new List<string>();
+                    if (riskOwnerIds.Contains(u.Id)) roles.Add("Risk Owner");
+                    if (taskAssigneeIds.Contains(u.Id)) roles.Add("Mitigation Task");
+                    if (incidentReporterIds.Contains(u.Id)) roles.Add("Reporter");
+                    
+                    assignedUsers.Add(new SiteUserViewModel
+                    {
+                        UserId = u.Id,
+                        Name = $"{u.FirstName} {u.LastName}",
+                        Role = roles.Any() ? roles.First() : "Contributor" // Simplify to first found role
+                    });
+                }
+            }
+
+            // 3. All Org Users for Dropdown
+            var allOrgUsers = await _platformDb.Users.AsNoTracking()
+                .Where(u => u.OrganizationId == orgId.Value)
+                .Select(u => new { u.Id, u.FirstName, u.LastName })
+                .OrderBy(u => u.FirstName)
+                .ToListAsync();
 
             var vm = new SiteDetailsViewModel
             {
@@ -273,9 +343,51 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 BudgetAllocated = site.BudgetAllocated,
                 ActiveRisksCount = activeRisks,
                 CriticalRisksCount = criticalRisks,
-                LatestWeatherCondition = latestWeather ?? "No monitoring configured"
+                OpenIncidentsCount = openIncidents,
+                LatestWeatherCondition = latestWeather ?? "No monitoring configured",
+                ProjectManagerUserId = site.ProjectManagerUserId,
+                ProjectManagerName = pmName,
+                AssignedEmployees = assignedUsers,
+                AllEmployees = allOrgUsers.Select(u => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                {
+                    Value = u.Id,
+                    Text = $"{u.FirstName} {u.LastName}",
+                    Selected = u.Id == site.ProjectManagerUserId
+                }).ToList()
             };
             return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignManager(int siteId, string managerEmployeeId)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Index));
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+            var site = await db.Sites.FirstOrDefaultAsync(s => s.SiteId == siteId && s.OrgId == orgId.Value);
+            if (site == null) return NotFound();
+
+            // verify user exists in org
+            if (!string.IsNullOrEmpty(managerEmployeeId))
+            {
+                var targetUser = await _platformDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == managerEmployeeId && u.OrganizationId == orgId.Value);
+                if (targetUser == null)
+                {
+                    TempData["Error"] = "User not found.";
+                    return RedirectToAction(nameof(Details), new { id = siteId });
+                }
+            }
+
+            site.ProjectManagerUserId = string.IsNullOrWhiteSpace(managerEmployeeId) ? null : managerEmployeeId;
+            site.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            TempData["Message"] = "Project Manager updated.";
+            return RedirectToAction(nameof(Details), new { id = siteId });
         }
 
         [HttpPost]
@@ -357,6 +469,21 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public decimal? BudgetAllocated { get; set; }
         public int ActiveRisksCount { get; set; }
         public int CriticalRisksCount { get; set; }
+        public int OpenIncidentsCount { get; set; }
         public string LatestWeatherCondition { get; set; } = "";
+
+        // Identity / Assignments
+        public string? ProjectManagerUserId { get; set; }
+        public string? ProjectManagerName { get; set; }
+        public List<SiteUserViewModel> AssignedEmployees { get; set; } = new();
+        public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> AllEmployees { get; set; } = new();
+    }
+
+    public class SiteUserViewModel
+    {
+        public string UserId { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Role { get; set; } = ""; // Derived from their activity (e.g. "Risk Owner", "Safety Officer")
+        public string Initials => Name.Split(' ').Select(x => x[0]).Take(2).Aggregate("", (x, y) => x + y).ToUpper();
     }
 }

@@ -37,6 +37,7 @@ namespace WEB_Sentro.Data
         public DbSet<Control> Controls { get; set; } = null!;
         public DbSet<RiskControl> RiskControls { get; set; } = null!;
         public DbSet<ProcurementAlert> ProcurementAlerts { get; set; } = null!;
+        public DbSet<Incident> Incidents { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -354,6 +355,27 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => new { x.RiskId, x.ControlId }).IsUnique();
                 e.HasOne(x => x.Risk).WithMany(r => r.RiskControls).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.Control).WithMany(c => c.RiskControls).HasForeignKey(x => x.ControlId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<Incident>(e =>
+            {
+                e.ToTable("Incidents");
+                e.HasKey(x => x.IncidentId);
+                e.Property(x => x.Title).HasMaxLength(200);
+                e.Property(x => x.Description).HasMaxLength(1000);
+                e.Property(x => x.Type).HasMaxLength(50);
+                e.Property(x => x.Severity).HasMaxLength(20);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.RootCause).HasMaxLength(1000);
+                e.Property(x => x.CorrectiveActions).HasMaxLength(1000);
+                e.Property(x => x.WeatherConditions).HasMaxLength(100);
+                e.Property(x => x.ReportedByUserId).HasMaxLength(450);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.SiteId);
+                e.HasIndex(x => x.Status);
+                e.HasIndex(x => x.IncidentDate);
+                e.HasQueryFilter(x => x.DeletedAt == null);
+                e.HasOne(x => x.Site).WithMany(s => s.Incidents).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

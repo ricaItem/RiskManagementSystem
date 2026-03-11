@@ -26,8 +26,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly RiskExportService _exportService;
         private readonly IRiskVersionService _versionService;
         private readonly IProcurementOverdueService _procurementOverdueService;
+        private readonly IIncidentService _incidentService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -42,6 +43,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _exportService = exportService;
             _versionService = versionService;
             _procurementOverdueService = procurementOverdueService;
+            _incidentService = incidentService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -57,8 +59,29 @@ namespace Web_Sentro.Areas.Client.Controllers
         private bool IsRiskManager() => User.IsInRole("RiskManager");
         private bool EmployeeOnly() => !IsRiskManager() && !IsAdmin();
 
-        public IActionResult Identification(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Identification(string? search, string? status, string? category, int? siteId = null, bool showDeleted = false, int page = 1, int pageSize = 10, int? createFromIncidentId = null)
         {
+            if (createFromIncidentId.HasValue)
+            {
+                var user = await GetCurrentUserAsync();
+                if (user != null)
+                {
+                    var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+                    if (orgId.HasValue)
+                    {
+                        var incident = await _incidentService.GetIncidentByIdAsync(createFromIncidentId.Value, orgId.Value);
+                        if (incident != null)
+                        {
+                            ViewBag.NewRiskTitle = $"Risk from Incident: {incident.Title}";
+                            ViewBag.NewRiskDescription = incident.Description;
+                            ViewBag.NewRiskSiteId = incident.SiteId;
+                            ViewBag.NewRiskCategory = "Safety";
+                            ViewBag.NewRiskSourceType = "Incident";
+                            ViewBag.AutoOpenNewRiskModal = true;
+                        }
+                    }
+                }
+            }
             return View();
         }
 

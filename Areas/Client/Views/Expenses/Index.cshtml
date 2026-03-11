@@ -102,17 +102,15 @@
     <form method="get" action="@Url.Action("Index", "Expenses", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <span class="text-xs font-medium text-slate-500">Site</span>
-            <select name="siteId" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
+            <select name="siteId" onchange="this.form.submit()" asp-items="siteFilterList" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
                 <option value="">All Sites</option>
-                @foreach (var s in siteFilterList) { <option value="@s.Value" selected="@s.Selected">@s.Text</option> }
             </select>
         </div>
 
         <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <span class="text-xs font-medium text-slate-500">Category</span>
-            <select name="category" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+            <select name="category" onchange="this.form.submit()" asp-items="@(new SelectList(categories, ViewBag.SelectedCategory))" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
                 <option value="">All Categories</option>
-                @foreach (var c in categories) { <option value="@c" selected="@(ViewBag.SelectedCategory as string == c)">@c</option> }
             </select>
         </div>
         

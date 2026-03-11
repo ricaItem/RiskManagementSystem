@@ -13,34 +13,33 @@
 <div class="min-h-screen space-y-6 animate-in fade-in duration-500">
 
     <!-- Header card -->
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
         <div class="flex flex-col gap-4 p-6 sm:flex-row sm:items-start sm:justify-between">
 
             <div class="flex items-start gap-4">
-                <!-- Back button: history -> fallback -->
+                <!-- Back button -->
                 <button type="button"
                         onclick="goBackToSites()"
-                        class="mt-1 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                    <span class="text-base">←</span>
-                    Back
+                        class="mt-1 inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 </button>
 
                 <div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                             @Model.SiteName
                         </h1>
-                        <span class="inline-flex items-center rounded-xl border px-3 py-1 text-xs font-black uppercase @statusCls">
+                        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium @statusCls">
                             @Model.Status
                         </span>
                     </div>
 
                     <div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-                        <span class="font-mono font-bold">@Model.SiteCode</span>
+                        <span class="font-mono">@Model.SiteCode</span>
                         @if (!string.IsNullOrEmpty(Model.City) || !string.IsNullOrEmpty(Model.Province))
                         {
                             <span>•</span>
-                            <span class="font-semibold text-slate-600 dark:text-slate-300">
+                            <span class="font-medium text-slate-600 dark:text-slate-300">
                                 @(string.Join(", ", new[] { Model.City, Model.Province }.Where(x => !string.IsNullOrWhiteSpace(x))))
                             </span>
                         }
@@ -56,15 +55,11 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <a asp-action="Index"
-                   class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                    Sites List
-                </a>
-
                 @if (Model.Status != "Archived")
                 {
-                    <a asp-action="Edit" asp-route-id="@Model.SiteId"
-                       class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow transition hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600">
+                    <a href="@Url.Action("Edit", "Sites", new { id = Model.SiteId })"
+                       class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Edit Site
                     </a>
                 }
@@ -72,17 +67,20 @@
         </div>
 
         <!-- Quick actions -->
-        <div class="flex flex-wrap gap-3 border-t border-slate-100 p-4 dark:border-slate-700/60">
-            <a asp-controller="Risks" asp-action="Identification" asp-route-siteId="@Model.SiteId"
-               class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700">
-                Risks
+        <div class="flex flex-wrap gap-2 border-t border-slate-100 p-4 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+            <a href="@Url.Action("Identification", "Risks", new { siteId = Model.SiteId })"
+               class="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-indigo-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:text-indigo-400">
+               <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Risk Register
             </a>
-            <a asp-controller="Risks" asp-action="Monitoring" asp-route-siteId="@Model.SiteId"
-               class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                Monitoring
+            <a href="@Url.Action("Monitoring", "Risks", new { siteId = Model.SiteId })"
+               class="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-indigo-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:text-indigo-400">
+               <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"/></svg>
+                Monitoring Dashboard
             </a>
-            <a asp-controller="Incidents" asp-action="Index" asp-route-siteId="@Model.SiteId"
-               class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+            <a href="@Url.Action("Index", "Incidents", new { siteId = Model.SiteId })"
+               class="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-indigo-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:text-indigo-400">
+               <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 Incidents
             </a>
         </div>
@@ -90,30 +88,32 @@
 
     @if (TempData["Message"] != null)
     {
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-200">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-200">
             @TempData["Message"]
         </div>
     }
 
     <!-- KPIs -->
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Active Risks</p>
-            <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.ActiveRisksCount</p>
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Active Risks</p>
+            <p class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.ActiveRisksCount</p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Critical Risks</p>
-            <p class="mt-2 text-3xl font-black @(Model.CriticalRisksCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")">
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Critical Risks</p>
+            <p class="mt-1 text-2xl font-bold tracking-tight @(Model.CriticalRisksCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")">
                 @Model.CriticalRisksCount
             </p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Budget</p>
-            <p class="mt-2 text-2xl font-black text-slate-900 dark:text-white">@money(Model.BudgetAllocated)</p>
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Open Incidents</p>
+            <p class="mt-1 text-2xl font-bold tracking-tight @(Model.OpenIncidentsCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-900 dark:text-white")">
+                @Model.OpenIncidentsCount
+            </p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Latest Weather</p>
-            <p class="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">@Model.LatestWeatherCondition</p>
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Budget</p>
+            <p class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@money(Model.BudgetAllocated)</p>
         </div>
     </div>
 
@@ -121,127 +121,142 @@
     <div class="grid gap-6 lg:grid-cols-3">
 
         <!-- Details -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/90 lg:col-span-2">
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Site Details</h2>
-                <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">ERP • Risk Context</span>
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 lg:col-span-2">
+            <div class="mb-6 flex items-center justify-between">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Site Details</h2>
+                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">ERP • Risk Context</span>
             </div>
 
-            <dl class="grid gap-4 sm:grid-cols-2">
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
-                    <dt class="text-[10px] font-black uppercase text-slate-400">Address</dt>
-                    <dd class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+            <dl class="grid gap-6 sm:grid-cols-2">
+                <div class="space-y-1">
+                    <dt class="text-xs font-medium text-slate-500 dark:text-slate-400">Address</dt>
+                    <dd class="text-sm font-medium text-slate-900 dark:text-white">
                         @(string.IsNullOrWhiteSpace(Model.AddressLine) ? "—" : Model.AddressLine)
                     </dd>
                 </div>
 
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
-                    <dt class="text-[10px] font-black uppercase text-slate-400">City / Province</dt>
-                    <dd class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                <div class="space-y-1">
+                    <dt class="text-xs font-medium text-slate-500 dark:text-slate-400">City / Province</dt>
+                    <dd class="text-sm font-medium text-slate-900 dark:text-white">
                         @(string.Join(", ", new[] { Model.City, Model.Province }.Where(x => !string.IsNullOrWhiteSpace(x))).Length == 0
                                                 ? "—"
                                                 : string.Join(", ", new[] { Model.City, Model.Province }.Where(x => !string.IsNullOrWhiteSpace(x))))
                     </dd>
                 </div>
 
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
-                    <dt class="text-[10px] font-black uppercase text-slate-400">Coordinates</dt>
-                    <dd class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                <div class="space-y-1">
+                    <dt class="text-xs font-medium text-slate-500 dark:text-slate-400">Coordinates</dt>
+                    <dd class="text-sm font-medium text-slate-900 dark:text-white">
                         @(Model.Latitude.HasValue && Model.Longitude.HasValue
                                                 ? $"{Model.Latitude.Value:F4}, {Model.Longitude.Value:F4}"
                                                 : "—")
                     </dd>
                 </div>
 
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
-                    <dt class="text-[10px] font-black uppercase text-slate-400">Site Code</dt>
-                    <dd class="mt-1 font-mono text-sm font-black text-slate-900 dark:text-white">@Model.SiteCode</dd>
+                <div class="space-y-1">
+                    <dt class="text-xs font-medium text-slate-500 dark:text-slate-400">Site Code</dt>
+                    <dd class="font-mono text-sm font-medium text-slate-900 dark:text-white">@Model.SiteCode</dd>
                 </div>
             </dl>
 
             <!-- Risk note -->
-            <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
-                <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Risk Notes</h3>
-                <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <div class="mt-8 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300">Risk Notes</h3>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
                     Use assignments to ensure accountability for risk mitigation, monitoring, and incident response at this site.
                 </p>
             </div>
         </div>
 
-        <!-- Assignments (MOCK + wire-ready) -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/90">
-            <div class="flex items-center justify-between">
-                <h2 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Assignments</h2>
-                <span id="mockBadge" class="hidden rounded-lg bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                    Mock mode
-                </span>
+        <!-- Assignments -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Assignments</h2>
             </div>
 
             <!-- Current manager -->
-            <div class="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
-                <p class="text-[10px] font-black uppercase text-slate-400">Manager</p>
-                <p id="currentManager" class="mt-1 text-sm font-black text-slate-900 dark:text-white">Unassigned</p>
-                <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Owner for risk approvals & escalations.</p>
+            <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Project Manager</p>
+                <div class="mt-1 flex items-center justify-between">
+                     <div class="flex items-center gap-3">
+                        @if (!string.IsNullOrEmpty(Model.ProjectManagerName))
+                        {
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                @Model.ProjectManagerName.Substring(0, 1)
+                            </span>
+                            <p class="text-sm font-bold text-slate-900 dark:text-white">@Model.ProjectManagerName</p>
+                        }
+                        else
+                        {
+                             <span class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">?</span>
+                             <p class="text-sm font-bold text-slate-400 italic">Unassigned</p>
+                        }
+                     </div>
+                </div>
+                <p class="mt-2 text-xs text-slate-400 dark:text-slate-500">Responsible for risk approvals & escalations.</p>
             </div>
 
-            <!-- Assign manager (wire-ready form, intercepted in mock mode) -->
-            <form id="assignManagerForm" asp-action="AssignManager" method="post" class="mt-4 space-y-2">
+            <!-- Assign manager form -->
+            <form action="@Url.Action("AssignManager", "Sites")" method="post" class="mt-4 space-y-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="siteId" value="@Model.SiteId" />
-                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400">Assign / Change Manager</label>
-                <select id="managerSelect" name="managerEmployeeId"
-                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-900/40">
-                </select>
-
-                <button type="submit"
-                        class="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600">
-                    Save Manager
-                </button>
-
-                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    (Wiring later) POST: <span class="font-mono">Sites/AssignManager</span>
-                </p>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400">Assign / Change Manager</label>
+                <div class="flex gap-2">
+                    <select name="managerEmployeeId" asp-items="Model.AllEmployees"
+                            class="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        <option value="">-- Select Manager --</option>
+                    </select>
+                    <button type="submit"
+                            class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                        Save
+                    </button>
+                </div>
             </form>
 
             <!-- Assigned employees list -->
-            <div class="mt-6">
-                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Assigned Employees</p>
+            <div class="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Active Team Members</p>
+                    <span class="text-[10px] text-slate-400" title="Team members are automatically added when they report incidents, own risks, or are assigned tasks at this site.">
+                        <svg class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Auto-detected
+                    </span>
+                </div>
 
-                <div id="assignedEmployees" class="mt-2 space-y-2"></div>
-
-                <div id="noEmployees"
-                     class="mt-2 hidden rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300">
-                    No employees assigned.
+                <div class="space-y-2">
+                    @if (Model.AssignedEmployees.Any())
+                    {
+                        @foreach (var emp in Model.AssignedEmployees)
+                        {
+                            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        @emp.Initials
+                                    </span>
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900 dark:text-white">@emp.Name</p>
+                                        <div class="flex items-center gap-2">
+                                            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">@emp.Role</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-sm text-slate-500 italic text-center py-4">
+                            No active team members detected.<br/>
+                            <span class="text-xs">Assign tasks or risks to add members.</span>
+                        </div>
+                    }
                 </div>
             </div>
-
-            <!-- Assign employees (wire-ready form, intercepted in mock mode) -->
-            <form id="assignEmployeesForm" asp-action="AssignEmployees" method="post" class="mt-4 space-y-2">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="siteId" value="@Model.SiteId" />
-                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400">Add Employees</label>
-
-                <select id="employeeMulti" name="employeeIds" multiple size="8"
-                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-900/40">
-                </select>
-
-                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Tip: Hold Ctrl/⌘ to select multiple.
-                    <br />
-                    (Wiring later) POST: <span class="font-mono">Sites/AssignEmployees</span>
-                </p>
-
-                <button type="submit"
-                        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-800 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
-                    Add Selected Employees
-                </button>
-            </form>
         </div>
     </div>
 </div>
 
 <script>
-    // Back behavior: history if likely from Sites, else fallback to Sites/Index
     function goBackToSites() {
         if (document.referrer && document.referrer.toLowerCase().includes('/sites')) {
             window.history.back();
@@ -249,150 +264,4 @@
         }
         window.location.href = '@Url.Action("Index", "Sites")';
     }
-
-    /**
-     * MOCK DATA (ready for wiring)
-     * Replace later with Model-provided lists and remove mock interception.
-     */
-    const mock = {
-        mode: true, // set false when wired
-        employees: [
-            { id: "E101", code: "EMP-101", name: "Aira Santos", role: "Safety Officer" },
-            { id: "E102", code: "EMP-102", name: "Jomar Reyes", role: "Maintenance" },
-            { id: "E103", code: "EMP-103", name: "Kaye Dizon", role: "Compliance" },
-            { id: "E104", code: "EMP-104", name: "Ralph Lim", role: "Operations" },
-            { id: "E105", code: "EMP-105", name: "Mina Cruz", role: "Warehouse" }
-        ],
-        managerId: "E103",
-        assigned: ["E101", "E102"]
-    };
-
-    const $ = (id) => document.getElementById(id);
-
-    function opt(text, value, selected) {
-        const o = document.createElement("option");
-        o.value = value;
-        o.textContent = text;
-        if (selected) o.selected = true;
-        return o;
-    }
-
-    function renderManager() {
-        const mgr = mock.employees.find(e => e.id === mock.managerId);
-        $("currentManager").textContent = mgr ? `${mgr.name} (${mgr.code})` : "Unassigned";
-    }
-
-    function renderManagerOptions() {
-        const sel = $("managerSelect");
-        sel.innerHTML = "";
-        sel.appendChild(opt("-- Select manager --", "", !mock.managerId));
-        mock.employees.forEach(e => {
-            sel.appendChild(opt(`${e.name} (${e.code})`, e.id, e.id === mock.managerId));
-        });
-    }
-
-    function renderEmployeeOptions() {
-        const multi = $("employeeMulti");
-        multi.innerHTML = "";
-        // Show only employees not yet assigned to reduce clutter (optional)
-        const assignedSet = new Set(mock.assigned);
-        mock.employees.forEach(e => {
-            if (!assignedSet.has(e.id)) {
-                multi.appendChild(opt(`${e.name} • ${e.role} (${e.code})`, e.id, false));
-            }
-        });
-    }
-
-    function pill(text) {
-        const s = document.createElement("span");
-        s.className = "rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-200";
-        s.textContent = text;
-        return s;
-    }
-
-    function renderAssignedEmployees() {
-        const wrap = $("assignedEmployees");
-        wrap.innerHTML = "";
-
-        if (!mock.assigned.length) {
-            $("noEmployees").classList.remove("hidden");
-            return;
-        }
-        $("noEmployees").classList.add("hidden");
-
-        mock.assigned.forEach(id => {
-            const emp = mock.employees.find(e => e.id === id);
-            if (!emp) return;
-
-            const row = document.createElement("div");
-            row.className = "flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800";
-
-            const left = document.createElement("div");
-            const name = document.createElement("p");
-            name.className = "text-sm font-black text-slate-900 dark:text-white";
-            name.textContent = emp.name;
-
-            const meta = document.createElement("div");
-            meta.className = "mt-0.5 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400";
-            meta.appendChild(pill(emp.code));
-
-            const role = document.createElement("span");
-            role.textContent = emp.role;
-            meta.appendChild(role);
-
-            left.appendChild(name);
-            left.appendChild(meta);
-
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
-            btn.textContent = "Remove";
-            btn.onclick = () => {
-                mock.assigned = mock.assigned.filter(x => x !== emp.id);
-                refreshAll();
-            };
-
-            row.appendChild(left);
-            row.appendChild(btn);
-            wrap.appendChild(row);
-        });
-    }
-
-    function refreshAll() {
-        renderManager();
-        renderManagerOptions();
-        renderAssignedEmployees();
-        renderEmployeeOptions();
-    }
-
-    // MOCK interception (keeps your forms wire-ready but functional now)
-    function wireMockHandlers() {
-        if (!mock.mode) return;
-
-        $("mockBadge").classList.remove("hidden");
-
-        $("assignManagerForm").addEventListener("submit", (e) => {
-            e.preventDefault();
-            const val = $("managerSelect").value || "";
-            mock.managerId = val || null;
-            refreshAll();
-        });
-
-        $("assignEmployeesForm").addEventListener("submit", (e) => {
-            e.preventDefault();
-            const selected = Array.from($("employeeMulti").selectedOptions).map(o => o.value);
-            if (!selected.length) return;
-
-            const set = new Set(mock.assigned);
-            selected.forEach(id => set.add(id));
-            mock.assigned = Array.from(set);
-            refreshAll();
-        });
-    }
-
-    // Init
-    (function init() {
-        refreshAll();
-        wireMockHandlers();
-    })();
 </script>

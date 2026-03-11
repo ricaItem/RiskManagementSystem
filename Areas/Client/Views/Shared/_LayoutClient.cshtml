@@ -327,6 +327,14 @@
                                     <span class="sidebar-label">Risk Monitoring</span>
                                 </a>
 
+                                <a data-nav href="/Client/Incidents"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Incidents")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="sidebar-label">HSE Incidents</span>
+                                </a>
+
                                 <a data-nav href="/Client/RiskAnalytics"
                                    class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/RiskAnalytics")">
                                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -460,6 +468,14 @@
                             </button>
 
                             <div id="intelAccordion" class="accordion-panel mt-1 space-y-1 pl-2">
+                                <a data-nav href="@Url.Action("Index", "Reports", new { area = "Client" })"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Reports")">
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span class="sidebar-label">Executive Reports</span>
+                                </a>
+
                                 <a data-nav href="/Client/Sites"
                                    class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Sites")">
                                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

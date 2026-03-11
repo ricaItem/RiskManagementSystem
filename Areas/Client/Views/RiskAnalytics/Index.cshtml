@@ -12,6 +12,14 @@
 }
 
 <div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative" id="risk-analytics-root">
+    <style type="text/css" data-pdf-export="true">
+        #report-summary details[open] .report-summary-label-closed { display: none; }
+        #report-summary details[open] .report-summary-label-open { display: inline !important; }
+        @@media print {
+            #risk-analytics-root section { page-break-inside: avoid; }
+            #report-summary { page-break-after: avoid; }
+        }
+    </style>
     
     @* ---------- Header ---------- *@
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -26,9 +34,12 @@
             <button type="button" id="btn-print" class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700/80 transition-all">
                 Print Report
             </button>
-            <button type="button" id="btn-export" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all">
-                Export Data
-            </button>
+            @{
+                var exportPdfUrl = Url.Action("ExportPdf", "RiskAnalytics", new { area = "Client", dateRange = Context.Request.Query["dateRange"].FirstOrDefault(), siteId = Context.Request.Query["siteId"].FirstOrDefault(), category = Context.Request.Query["category"].FirstOrDefault(), source = Context.Request.Query["source"].FirstOrDefault(), status = Context.Request.Query["status"].FirstOrDefault() });
+            }
+            <a href="@exportPdfUrl" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all inline-block">
+                Export PDF
+            </a>
         </div>
     </div>
 
@@ -38,9 +49,9 @@
             <div class="space-y-1.5">
                 <label for="filter-date-range" class="text-xs font-medium text-slate-500 dark:text-slate-400">Time Period</label>
                 <select id="filter-date-range" name="dateRange" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[140px]">
-                    <option value="7" @(Context.Request.Query["dateRange"] == "7" ? "selected" : "")>Last 7 days</option>
-                    <option value="30" @(Context.Request.Query["dateRange"] != "7" && Context.Request.Query["dateRange"] != "90" ? "selected" : "")>Last 30 days</option>
-                    <option value="90" @(Context.Request.Query["dateRange"] == "90" ? "selected" : "")>Last 90 days</option>
+                    @if (Context.Request.Query["dateRange"] == "7") { <option value="7" selected>Last 7 days</option> } else { <option value="7">Last 7 days</option> }
+                    @if (Context.Request.Query["dateRange"] != "7" && Context.Request.Query["dateRange"] != "90") { <option value="30" selected>Last 30 days</option> } else { <option value="30">Last 30 days</option> }
+                    @if (Context.Request.Query["dateRange"] == "90") { <option value="90" selected>Last 90 days</option> } else { <option value="90">Last 90 days</option> }
                 </select>
             </div>
             
@@ -50,7 +61,7 @@
                     <option value="">All Sites</option>
                     @foreach (var s in sites.Where(x => !string.IsNullOrEmpty(x.Value)))
                     {
-                        <option value="@s.Value" @(Context.Request.Query["siteId"] == s.Value ? "selected" : "")>@s.Text</option>
+                        @if (Context.Request.Query["siteId"] == s.Value) { <option value="@s.Value" selected>@s.Text</option> } else { <option value="@s.Value">@s.Text</option> }
                     }
                 </select>
             </div>
@@ -61,7 +72,7 @@
                     <option value="">All Categories</option>
                     @foreach (var c in categories.Where(x => !string.IsNullOrEmpty(x.Value)))
                     {
-                        <option value="@c.Value" @(Context.Request.Query["category"] == c.Value ? "selected" : "")>@c.Text</option>
+                        @if (Context.Request.Query["category"] == c.Value) { <option value="@c.Value" selected>@c.Text</option> } else { <option value="@c.Value">@c.Text</option> }
                     }
                 </select>
             </div>
@@ -76,7 +87,7 @@
             </div>
 
             <div class="ml-auto">
-                <button type="button" id="btn-refresh" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-all">
+                <button type="button" id="btn-refresh" data-html2canvas-ignore="true" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-all">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
@@ -86,11 +97,56 @@
         </div>
     </div>
 
+    @* ---------- Report summary (for PDF and on-screen clarity) ---------- *@
+    @{
+        var kpis = Model?.Kpis;
+        var activeRisks = kpis?.ActiveRisks ?? 0;
+        var criticalRisks = kpis?.CriticalRisks ?? 0;
+        var createdInPeriod = kpis?.CreatedInPeriod ?? 0;
+        var avgReduction = kpis?.AvgRiskReductionPercent ?? 0;
+        var avgCloseDays = kpis?.AvgTimeToCloseDays ?? 0;
+        var periodLabel = Context.Request.Query["dateRange"].FirstOrDefault() switch { "7" => "Last 7 days", "90" => "Last 90 days", _ => "Last 30 days" };
+        var siteLabel = string.IsNullOrEmpty(Context.Request.Query["siteId"].FirstOrDefault()) ? "All sites" : (sites.FirstOrDefault(s => s.Value == Context.Request.Query["siteId"].FirstOrDefault())?.Text ?? "Selected site");
+        var categoryLabel = string.IsNullOrEmpty(Context.Request.Query["category"].FirstOrDefault()) ? "All categories" : (categories.FirstOrDefault(c => c.Value == Context.Request.Query["category"].FirstOrDefault())?.Text ?? "Selected category");
+    }
+    <div id="report-summary" class="rounded-xl border border-slate-200 bg-slate-50/80 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 print:bg-white print:border-slate-200 overflow-hidden">
+        <details class="group/report">
+            <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 rounded-xl [&::-webkit-details-marker]:hidden">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 group-open/report:rotate-180 transition-transform">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    </span>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Report summary</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Scope: <strong>@periodLabel</strong> · @siteLabel · @categoryLabel</p>
+                    </div>
+                </div>
+                <span class="report-summary-label-closed text-xs font-medium text-indigo-600 dark:text-indigo-400">Show executive summary</span>
+                <span class="report-summary-label-open text-xs font-medium text-indigo-600 dark:text-indigo-400 hidden">Hide executive summary</span>
+            </summary>
+            <div class="border-t border-slate-200 bg-white/60 px-5 py-4 dark:border-slate-700 dark:bg-slate-800/30">
+                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    This report presents risk performance across the selected period. There are <strong>@activeRisks</strong> active risks in scope, including <strong>@criticalRisks</strong> critical. <strong>@createdInPeriod</strong> new risks were identified in the period. On average, mitigation measures have reduced risk scores by <strong>@avgReduction%</strong>, and risks are closed within approximately <strong>@avgCloseDays</strong> days. The sections below provide trend charts, category distribution, mitigation effectiveness, site-level comparison, and high-priority items requiring attention.
+                </p>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Generated on @DateTime.Now.ToString("MMMM d, yyyy") at @DateTime.Now.ToString("h:mm tt")</p>
+            </div>
+        </details>
+    </div>
+
     @* ---------- Content ---------- *@
     <main id="content-main" class="space-y-8">
         
         @* ---------- KPI Cards ---------- *@
         <section aria-label="Key metrics">
+            <div class="mb-3 flex items-center justify-between gap-2">
+                <details class="analytics-insight group">
+                    <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        What this means
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">Key metrics at a glance: active and critical risk counts, new risks in period, weather-related items, average time to close, and overall risk reduction from mitigation.</p>
+                </details>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 @{
                     var kpiList = Model?.Kpis?.KpiCards ?? new List<KpiCardViewModel>();
@@ -114,11 +170,18 @@
         <section aria-label="Charts" class="grid gap-6 lg:grid-cols-12">
             @* Risks Over Time *@
             <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
                     <div>
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white">Risk Trends</h3>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">New risks identified over time</p>
                     </div>
+                    <details class="analytics-insight">
+                        <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            What this means
+                        </summary>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-xl">This chart shows how many new risks were identified in each time bucket. Use it to spot spikes (e.g. after incidents or audits) or to confirm that detection and reporting are consistent. A rising trend may indicate increased exposure or improved identification.</p>
+                    </details>
                 </div>
                 <div class="h-72 w-full">
                     <canvas id="canvas-risks-over-time" aria-label="Line chart of risks over time"></canvas>
@@ -127,11 +190,18 @@
 
             @* Category Distribution *@
             <div class="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
                     <div>
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white">Risk Categories</h3>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Distribution by type</p>
                     </div>
+                    <details class="analytics-insight">
+                        <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            What this means
+                        </summary>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Risks are grouped by category (e.g. Operational, Safety, Financial). This helps prioritise controls and training by focusing on the most frequent types.</p>
+                    </details>
                 </div>
                 <div class="h-72 w-full">
                     <canvas id="canvas-risks-by-category" aria-label="Bar chart of risks by category"></canvas>
@@ -142,8 +212,19 @@
         @* ---------- Mitigation Effectiveness ---------- *@
         <section aria-label="Mitigation effectiveness" class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
             <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20">
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white">Mitigation Effectiveness</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Impact of control measures on risk scores</p>
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Mitigation Effectiveness</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Impact of control measures on risk scores</p>
+                    </div>
+                    <details class="analytics-insight">
+                        <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            What this means
+                        </summary>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">Initial score is the risk level before controls; residual score is after mitigation. A higher reduction percentage indicates that control measures are effectively lowering exposure. The chart compares average initial vs residual scores.</p>
+                    </details>
+                </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
                 <div class="p-6">
@@ -186,17 +267,33 @@
             </div>
         </section>
         
+        <section aria-label="Predictive insights intro" class="flex flex-col gap-2">
+            <details class="analytics-insight">
+                <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1 w-fit">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    What this section shows
+                </summary>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">The following section shows forward-looking signals: risk escalation candidates, flood probability (where applicable), and risk momentum. Use these to prioritise reviews and allocate resources.</p>
+            </details>
+        </section>
         @await Html.PartialAsync("_PredictiveInsightsPanel")
 
         @* ---------- Site Ranking Table ---------- *@
         <section aria-label="Site rankings">
             <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
-                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20 flex justify-between items-center">
-                    <div>
+                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20 flex flex-wrap justify-between items-start gap-2">
+                    <div class="min-w-0">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white">Site Risk Performance</h3>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Comparative analysis across locations</p>
+                        <details class="analytics-insight mt-2">
+                            <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                What this means
+                            </summary>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">Sites are compared by active risk count, critical count, average risk score, trend (improving or worsening), average time to close risks, and on-time mitigation percentage. Use this to identify locations that need extra support or resources.</p>
+                        </details>
                     </div>
-                    <div class="hidden sm:block">
+                    <div class="hidden sm:block shrink-0">
                         <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20">Ranked by Criticality</span>
                     </div>
                 </div>
@@ -261,8 +358,19 @@
         <section aria-label="Top risks">
             <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
                 <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20">
-                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">High Priority Risks</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Items requiring immediate attention</p>
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white">High Priority Risks</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Items requiring immediate attention</p>
+                        </div>
+                        <details class="analytics-insight">
+                            <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                What this means
+                            </summary>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">This table lists risks that are high or critical severity, with current score, status, owner, and days open. Use it to drive action and ensure the most serious risks are being addressed on time.</p>
+                        </details>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm whitespace-nowrap">
@@ -488,6 +596,12 @@
                 this.classList.add('bg-white', 'text-slate-900', 'shadow-sm', 'dark:bg-slate-700', 'dark:text-white');
             });
         });
+
+        // Print Logic
+        const btnPrint = document.getElementById('btn-print');
+        if (btnPrint) {
+            btnPrint.addEventListener('click', () => window.print());
+        }
     });
 </script>
 }

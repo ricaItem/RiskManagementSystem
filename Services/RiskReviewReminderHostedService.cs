@@ -53,6 +53,16 @@ namespace WEB_Sentro.Services
                             var recipientId = risk.RiskOwnerId ?? risk.AccountableId ?? risk.ReportByUserId;
                             if (string.IsNullOrEmpty(recipientId)) continue;
                             var title = risk.OverdueFlag ? "Risk review overdue" : "Risk review due";
+
+                            var alreadyNotified = await db.Notifications.AnyAsync(n =>
+                                n.UserId == recipientId &&
+                                n.EntityType == "Risk" &&
+                                n.EntityId == risk.RiskId &&
+                                n.Title == title &&
+                                n.CreatedAt > DateTime.UtcNow.AddHours(-20), stoppingToken);
+
+                            if (alreadyNotified) continue;
+
                             var message = $"Risk '{risk.Title}' (Id: {risk.RiskId}) is " + (risk.OverdueFlag ? "overdue" : "due") + " for review" + (risk.NextReviewDate.HasValue ? $" by {risk.NextReviewDate.Value:yyyy-MM-dd}" : "") + ".";
                             db.Notifications.Add(new Data.Entities.Notification
                             {
