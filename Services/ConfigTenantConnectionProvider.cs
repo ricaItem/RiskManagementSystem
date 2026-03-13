@@ -20,6 +20,12 @@ namespace WEB_Sentro.Services
         {
             var key = $"Tenant_Org_{orgId}";
             var cs = _configuration.GetConnectionString(key);
+
+            if (string.IsNullOrWhiteSpace(cs) && orgId <= 0)
+            {
+                cs = _configuration.GetConnectionString("Tenant_Org_1");
+            }
+
             return Task.FromResult(cs);
         }
     }

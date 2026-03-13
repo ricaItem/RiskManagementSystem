@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace WEB_Sentro.Data.Migrations.Tenant
 {
+    [DbContext(typeof(TenantDbContext))]
+    [Migration("20260228000000_AddMonitoringSitesAndAlerts")]
     public partial class AddMonitoringSitesAndAlerts : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -44,12 +47,6 @@ namespace WEB_Sentro.Data.Migrations.Tenant
             migrationBuilder.CreateIndex(name: "IX_MonitoringAlerts_OrgId_SiteId", table: "MonitoringAlerts", columns: new[] { "OrgId", "SiteId" });
             migrationBuilder.CreateIndex(name: "IX_MonitoringAlerts_TriggeredAt", table: "MonitoringAlerts", column: "TriggeredAt");
 
-            // Seed 5 sites for OrgId=1
-            migrationBuilder.InsertData("MonitoringSites", new[] { "OrgId", "Name", "Latitude", "Longitude" }, new object[] { 1, "Sentro Tower - Davao", 7.0707, 125.6083 });
-            migrationBuilder.InsertData("MonitoringSites", new[] { "OrgId", "Name", "Latitude", "Longitude" }, new object[] { 1, "North Gate Construction", 7.0731, 125.6125 });
-            migrationBuilder.InsertData("MonitoringSites", new[] { "OrgId", "Name", "Latitude", "Longitude" }, new object[] { 1, "South Site - Digos", 6.7492, 125.3572 });
-            migrationBuilder.InsertData("MonitoringSites", new[] { "OrgId", "Name", "Latitude", "Longitude" }, new object[] { 1, "East Warehouse Complex", 7.0850, 125.6200 });
-            migrationBuilder.InsertData("MonitoringSites", new[] { "OrgId", "Name", "Latitude", "Longitude" }, new object[] { 1, "West Logistics Hub", 7.0550, 125.5950 });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

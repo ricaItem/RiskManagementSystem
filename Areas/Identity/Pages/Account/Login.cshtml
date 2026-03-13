@@ -17,7 +17,7 @@
                     <div class="flex items-center gap-3">
                         <img src="~/images/logo1.png"
                              alt="Sentro Logo"
-                             class="h-10 w-auto object-contain transition-all duration-300 dark:brightness-0 dark:invert" />
+                             class="h-10 w-auto object-contain transition-all duration-300" />
                         <span class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Sentro</span>
                     </div>
                     <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">ERP Risk Management</div>
@@ -31,7 +31,7 @@
                 Welcome back. Please enter your details.
             </p>
 
-            <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)]
+            <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-lg
                         dark:border-slate-800 dark:bg-slate-900">
                 <form method="post" class="space-y-5">
                     @if (ViewData.ModelState[""]?.Errors?.Count > 0)

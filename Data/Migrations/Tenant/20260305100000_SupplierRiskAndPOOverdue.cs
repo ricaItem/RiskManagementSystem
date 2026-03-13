@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace WEB_Sentro.Data.Migrations.Tenant
 {
+    [DbContext(typeof(TenantDbContext))]
+    [Migration("20260305100000_SupplierRiskAndPOOverdue")]
     public partial class SupplierRiskAndPOOverdue : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

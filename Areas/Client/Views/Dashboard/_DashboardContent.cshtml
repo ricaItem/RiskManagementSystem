@@ -280,9 +280,14 @@
                 const catCtx = catCanvas.getContext('2d');
                 
                 // Prepare data for Category Chart
-                const catLabels = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Category)));
-                const catData = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Count)));
-                const catColors = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']; // Extended palette
+                const rawCatLabels = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Category)));
+                const rawCatData = @Html.Raw(Json.Serialize(Model.RiskCategories.Select(x => x.Count)));
+                const hasCategoryData = Array.isArray(rawCatData) && rawCatData.some(v => Number(v) > 0);
+                const catLabels = hasCategoryData ? rawCatLabels : ['No Data'];
+                const catData = hasCategoryData ? rawCatData : [1];
+                const catColors = hasCategoryData
+                    ? ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']
+                    : ['#cbd5e1'];
 
                 new Chart(catCtx, {
                     type: 'doughnut',
@@ -307,13 +312,13 @@
                                     usePointStyle: true, 
                                     font: { size: 11, weight: '500', family: "'Inter', sans-serif" },
                                     padding: 20,
-                                    color: '#64748b'
-                                }
-                            }
-                        },
-                        animation: { animateScale: true, animateRotate: true }
-                    }
-                });
+                                     color: '#64748b'
+                                 }
+                             }
+                         },
+                         animation: { animateScale: true, animateRotate: true }
+                     }
+                 });
             }
         }
     })();

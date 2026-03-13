@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace WEB_Sentro.Data.Migrations.Tenant
 {
+    [DbContext(typeof(TenantDbContext))]
+    [Migration("20260301120000_AddProcurementAndExpense")]
     public partial class AddProcurementAndExpense : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

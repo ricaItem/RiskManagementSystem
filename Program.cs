@@ -4,6 +4,7 @@ using WEB_Sentro.Data;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
 using WEB_Sentro.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,6 +97,12 @@ builder.Services.AddHostedService<RiskReviewReminderHostedService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+//SMTP --start--
+
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+
+//SMTP --end--
 
 var app = builder.Build();
 

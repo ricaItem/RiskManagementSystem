@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace WEB_Sentro.Data.Migrations.Tenant
 {
+    [DbContext(typeof(TenantDbContext))]
+    [Migration("20260301200000_Phase2_GovernanceUpgrade")]
     public partial class Phase2_GovernanceUpgrade : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -74,7 +77,7 @@ namespace WEB_Sentro.Data.Migrations.Tenant
                     VersionNo = table.Column<int>(type: "int", nullable: false),
                     ChangedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ChangedByUserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    SnapshotJson = table.Column<string>(type: "nvarchar(8000)", maxLength: 8000, nullable: true),
+                    SnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ChangeSummary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>

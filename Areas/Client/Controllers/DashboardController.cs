@@ -35,7 +35,9 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public async Task<IActionResult> DashboardContent(DateTime? startDate = null, DateTime? endDate = null, int? siteId = null)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null || user.OrganizationId <= 0) return Unauthorized();
+            if (user == null) return Challenge();
+
+            var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
 
             // Defaults
             var start = startDate ?? DateTime.Today.AddMonths(-6);
@@ -48,11 +50,11 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 SelectedSiteId = siteId
             };
 
-            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
             // Populate Sites
             var sites = await db.Sites.AsNoTracking()
-                .Where(s => s.OrgId == user.OrganizationId && s.Status != "Archived")
+                .Where(s => s.OrgId == orgId && s.Status != "Archived")
                 .OrderBy(s => s.SiteName)
                 .Select(s => new { s.SiteId, s.SiteName })
                 .ToListAsync();
@@ -66,13 +68,13 @@ namespace WEB_Sentro.Areas.Client.Controllers
             model.Sites.Insert(0, new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "", Text = "Global View", Selected = !siteId.HasValue });
 
             // 1. Incidents (supports full filtering)
-            var incidentStats = await _incidentService.GetIncidentStatsAsync(user.OrganizationId, start, end, siteId);
+            var incidentStats = await _incidentService.GetIncidentStatsAsync(orgId, start, end, siteId);
             model.OpenIncidentsCount = incidentStats.Open;
 
             // 2. Overdue Items (Mitigation Tasks)
             var tasksQuery = db.MitigationTasks.AsNoTracking()
                 .Include(t => t.Plan).ThenInclude(p => p.Risk)
-                .Where(t => t.Plan.Risk.OrgId == user.OrganizationId);
+                .Where(t => t.Plan.Risk.OrgId == orgId);
 
             if (siteId.HasValue)
                 tasksQuery = tasksQuery.Where(t => t.Plan.Risk.SiteId == siteId.Value);
@@ -81,7 +83,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 .CountAsync(t => t.DueDate < DateTime.Today && t.Status != "Done" && t.Status != "Completed" && t.Status != "Closed");
 
             // 3. Pending Approvals (Purchase Orders)
-            var poQuery = db.PurchaseOrders.AsNoTracking().Where(po => po.OrgId == user.OrganizationId);
+            var poQuery = db.PurchaseOrders.AsNoTracking().Where(po => po.OrgId == orgId);
             if (siteId.HasValue)
                 poQuery = poQuery.Where(po => po.SiteId == siteId.Value);
             
@@ -92,7 +94,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             // 4. Health Index (Active Risks)
             var risksQuery = db.Risks.AsNoTracking()
-                .Where(r => r.OrgId == user.OrganizationId && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.Status != "Draft");
+                .Where(r => r.OrgId == orgId && r.DeletedAt == null && r.Status != "Closed_Invalid" && r.Status != "Rejected" && r.Status != "Draft");
 
             if (siteId.HasValue)
                 risksQuery = risksQuery.Where(r => r.SiteId == siteId.Value);
@@ -126,7 +128,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             // Apply date filter
             var alerts = await db.ProcurementAlerts
                 .Include(a => a.Supplier)
-                .Where(a => a.OrgId == user.OrganizationId && a.Status == "Active")
+                .Where(a => a.OrgId == orgId && a.Status == "Active")
                 .Where(a => a.TriggeredAt >= start && a.TriggeredAt <= end)
                 .OrderByDescending(a => a.TriggeredAt)
                 .Take(5)
@@ -144,7 +146,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             else
             {
                  var riskySuppliers = await db.Suppliers
-                    .Where(s => s.OrgId == user.OrganizationId && (s.DeliveryTrend == "Critical" || s.DeliveryTrend == "Poor"))
+                    .Where(s => s.OrgId == orgId && (s.DeliveryTrend == "Critical" || s.DeliveryTrend == "Poor"))
                     .Take(5)
                     .ToListAsync();
                     
