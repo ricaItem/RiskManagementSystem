@@ -1,3 +1,4 @@
+@model WEB_Sentro.Areas.Vendor.Models.OrganizationsIndexViewModel
 @{
     ViewData["Title"] = "Organization Management";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
@@ -28,45 +29,46 @@
 
     <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Revenue (MRR)</p>
-            <p class="text-2xl font-black text-slate-900 dark:text-white">$42,500.00</p>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Revenue</p>
+            <p class="text-2xl font-black text-slate-900 dark:text-white">@Model.TotalRevenueDisplay</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Tenants</p>
-            <p class="text-2xl font-black text-emerald-600">128 Firms</p>
+            <p class="text-2xl font-black text-emerald-600">@Model.ActiveTenantsCount Firms</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">System Availability</p>
-            <p class="text-2xl font-black text-sky-500">99.98%</p>
+            <p class="text-2xl font-black text-sky-500">@Model.SystemAvailabilityDisplay</p>
         </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-12">
+    <form method="get" class="grid gap-4 md:grid-cols-12">
         <div class="relative md:col-span-6 lg:col-span-8">
             <span class="absolute inset-y-0 left-4 flex items-center text-slate-400">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </span>
-            <input type="text" placeholder="Search by Firm Name, ID, or Admin..." class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-900/50 dark:text-white" />
+            <input type="text" name="search" value="@Model.Search" placeholder="Search by Firm Name or Code..." class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-900/50 dark:text-white" />
         </div>
         <div class="md:col-span-3 lg:col-span-2">
-            <select class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option>All Plans</option>
-                <option>Enterprise</option>
-                <option>Professional</option>
-                <option>Basic</option>
+            <select name="plan" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
+                <option value="">All Plans</option>
+                <option value="Enterprise" @(Model.PlanFilter == "Enterprise" ? "selected" : "")>Enterprise</option>
+                <option value="Professional" @(Model.PlanFilter == "Professional" ? "selected" : "")>Professional</option>
+                <option value="Basic" @(Model.PlanFilter == "Basic" ? "selected" : "")>Basic</option>
             </select>
         </div>
         <div class="md:col-span-3 lg:col-span-2">
-            <select class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option>All Status</option>
-                <option>Active</option>
-                <option>Pending</option>
-                <option>Suspended</option>
+            <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
+                <option value="">All Status</option>
+                <option value="Active" @(Model.StatusFilter == "Active" ? "selected" : "")>Active</option>
+                <option value="Pending" @(Model.StatusFilter == "Pending" ? "selected" : "")>Pending</option>
+                <option value="Suspended" @(Model.StatusFilter == "Suspended" ? "selected" : "")>Suspended</option>
             </select>
         </div>
-
-
-    </div>
+        <div class="md:col-span-12 flex justify-end">
+            <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white">Apply filters</button>
+        </div>
+    </form>
 
     <div class="rounded-3xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800/70 dark:bg-slate-900/50 overflow-hidden">
         <div class="overflow-x-auto">
@@ -82,54 +84,52 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    @{
-                        var firms = new[] {
-                                        new { Name = "BuildCraft Solutions", Type = "Enterprise", Admins = 3, Risks = 142, Status = "Active", Color = "emerald" },
-                                        new { Name = "Skyline Heights Const.", Type = "Professional", Admins = 2, Risks = 89, Status = "Active", Color = "emerald" },
-                                        new { Name = "Terraform Infrastructure", Type = "Basic", Admins = 1, Risks = 12, Status = "Pending", Color = "amber" },
-                                        new { Name = "Apex Residential Ltd.", Type = "Enterprise", Admins = 5, Risks = 312, Status = "Suspended", Color = "rose" }
-                                        };
-                    }
-
-                    @foreach (var firm in firms)
+                    @foreach (var org in Model.Organizations)
                     {
                         <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500">
-                                        @firm.Name.Substring(0, 1)
+                                        @(org.OrgName.Length > 0 ? org.OrgName[0].ToString().ToUpperInvariant() : "—")
                                     </div>
                                     <div>
-                                        <div class="text-sm font-bold text-slate-900 dark:text-white">@firm.Name</div>
-                                        <div class="text-[10px] text-slate-500 font-medium">ID: ORG-9921-@firm.Name.Substring(0, 2).ToUpper()</div>
+                                        <div class="text-sm font-bold text-slate-900 dark:text-white">@org.OrgName</div>
+                                        <div class="text-[10px] text-slate-500 font-medium">@org.OrgCode</div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                                    @firm.Type
+                                    @org.PlanName
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-400">
-                                @firm.Admins Accounts
+                                @org.AdminCount Account@(org.AdminCount != 1 ? "s" : "")
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                        <div class="h-full bg-emerald-500" style="width: @(firm.Risks / 4)%"></div>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-500">@firm.Risks</span>
+                                    @if (org.RiskLoad.HasValue && org.RiskLoad > 0)
+                                    {
+                                        <div class="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                            <div class="h-full bg-emerald-500" style="width: @(Math.Min(100, org.RiskLoad.Value / 4))%"></div>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-500">@org.RiskLoad</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs font-bold text-slate-400">—</span>
+                                    }
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-@firm.Color-500"></span>
-                                    <span class="text-xs font-bold text-@firm.Color-600">@firm.Status</span>
+                                    <span class="h-1.5 w-1.5 rounded-full bg-@(org.StatusColor)-500"></span>
+                                    <span class="text-xs font-bold text-@(org.StatusColor)-600">@org.Status</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <button class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all dark:bg-slate-800">
+                                    <button type="button" class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all dark:bg-slate-800">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                     </button>
                                 </div>
@@ -141,11 +141,7 @@
         </div>
 
         <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">Showing 4 of 128 Organizations</span>
-            <div class="flex gap-2">
-                <button class="px-3 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-400 cursor-not-allowed">Previous</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Next</button>
-            </div>
+            <span class="text-xs font-bold text-slate-500">Showing @Model.Organizations.Count of @Model.TotalCount Organizations</span>
         </div>
     </div>
 </div>

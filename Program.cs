@@ -4,6 +4,7 @@ using WEB_Sentro.Data;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
 using WEB_Sentro.Services;
+using WEB_Sentro.Services.PayMongo;
 using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +41,11 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequiredLength = 12;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireNonAlphanumeric = true;
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<PlatformDbContext>()
@@ -86,6 +92,9 @@ builder.Services.AddScoped<IRiskMatrixService, RiskMatrixService>();
 builder.Services.AddScoped<ControlService>();
 builder.Services.AddScoped<RiskExportService>();
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+builder.Services.Configure<PayMongoOptions>(builder.Configuration.GetSection(PayMongoOptions.SectionName));
+builder.Services.AddScoped<IPayMongoService, PayMongoService>();
 builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
 builder.Services.AddScoped<MonitoringHubService>();
 builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService>();
@@ -132,6 +141,8 @@ using (var scope = app.Services.CreateScope())
             await tenantDb.Database.MigrateAsync();
         }
     }
+
+    await PlatformSeeder.SeedPlansAsync(services);
 }
 
 if (app.Environment.IsDevelopment())
