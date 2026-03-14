@@ -19,7 +19,40 @@
     </div>
 }
 
-<div class="animate-in fade-in min-h-screen space-y-6 duration-700">
+<!-- Loading Skeleton -->
+<div id="budget-skeleton" class="animate-pulse min-h-screen space-y-6 p-6">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <div class="h-8 w-56 rounded bg-slate-200 dark:bg-slate-700"></div>
+            <div class="mt-2 h-4 w-80 rounded bg-slate-100 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        @for (var i = 0; i < 4; i++)
+        {
+            <div class="h-28 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+        }
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <div class="h-80 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+        <div class="h-80 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="h-12 border-b border-slate-100 bg-slate-50/30 dark:border-slate-800 dark:bg-slate-800/20"></div>
+        <div class="space-y-3 p-5">
+            @for (var i = 0; i < 6; i++)
+            {
+                <div class="h-14 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+            }
+        </div>
+    </div>
+</div>
+
+<div id="budget-content" class="hidden animate-in fade-in min-h-screen space-y-6 duration-700">
     
     <!-- Header -->
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -231,159 +264,168 @@
 
 <!-- Scripts -->
 <script>
-    // Data for Charts
-    const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels));
-    const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendData));
-    
-    // Top 5 Sites for Chart
-    const topSites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Sites.OrderByDescending(s => s.BudgetAllocated).Take(5).Select(s => new { s.SiteName, s.BudgetAllocated, s.TotalExpenses })));
+    (function () {
+        const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels));
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendData));
+        const topSites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Sites.OrderByDescending(s => s.BudgetAllocated).Take(5).Select(s => new { s.SiteName, s.BudgetAllocated, s.TotalExpenses })));
 
-    document.addEventListener("DOMContentLoaded", function() {
-        if (typeof Chart !== 'undefined') {
-            // Trend Chart
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: trendLabels,
-                    datasets: [{
-                        label: 'Spending',
-                        data: trendData,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                        x: { grid: { display: false } }
+        let categoryChartInstance = null;
+
+        function initBudgetPage() {
+            const content = document.getElementById('budget-content');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('budget-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+
+                if (typeof Chart !== 'undefined') {
+                    const trendCanvas = document.getElementById('trendChart');
+                    if (trendCanvas) {
+                        new Chart(trendCanvas.getContext('2d'), {
+                            type: 'line',
+                            data: {
+                                labels: trendLabels,
+                                datasets: [{
+                                    label: 'Spending',
+                                    data: trendData,
+                                    borderColor: '#6366f1',
+                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                    x: { grid: { display: false } }
+                                }
+                            }
+                        });
+                    }
+
+                    const bvaCanvas = document.getElementById('budgetVsActualChart');
+                    if (bvaCanvas) {
+                        new Chart(bvaCanvas.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: topSites.map(s => s.SiteName),
+                                datasets: [
+                                    {
+                                        label: 'Budget',
+                                        data: topSites.map(s => s.BudgetAllocated),
+                                        backgroundColor: '#e2e8f0',
+                                        borderRadius: 4
+                                    },
+                                    {
+                                        label: 'Actual',
+                                        data: topSites.map(s => s.TotalExpenses),
+                                        backgroundColor: '#6366f1',
+                                        borderRadius: 4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } },
+                                scales: {
+                                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                    x: { grid: { display: false } }
+                                }
+                            }
+                        });
                     }
                 }
+
+                const toast = document.getElementById('toastAlert');
+                if (toast) {
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 500);
+                    }, 4000);
+                }
+            }, 300);
+        }
+
+        window.openEditModal = function (id, name, amount) {
+            document.getElementById('editSiteId').value = id;
+            document.getElementById('modalSiteName').innerText = name;
+            document.getElementById('editAmount').value = amount;
+            document.getElementById('editBudgetModal').classList.remove('hidden');
+        };
+
+        window.closeModal = function () {
+            document.getElementById('editBudgetModal').classList.add('hidden');
+        };
+
+        window.openSidePanel = function (siteData) {
+            document.getElementById('panelSiteName').innerText = siteData.SiteName;
+
+            const listContainer = document.getElementById('categoryList');
+            listContainer.innerHTML = '';
+
+            const cats = Object.keys(siteData.CategoryBreakdown);
+            const vals = Object.values(siteData.CategoryBreakdown);
+
+            cats.forEach((cat, i) => {
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center p-3 bg-slate-50 rounded-lg dark:bg-slate-800/50';
+                row.innerHTML = `
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-300">${cat}</span>
+                    <span class="text-sm font-bold text-slate-900 dark:text-white">$${vals[i].toLocaleString()}</span>
+                `;
+                listContainer.appendChild(row);
             });
 
-            // Budget vs Actual Chart
-            const bvaCtx = document.getElementById('budgetVsActualChart').getContext('2d');
-            new Chart(bvaCtx, {
-                type: 'bar',
-                data: {
-                    labels: topSites.map(s => s.SiteName),
-                    datasets: [
-                        {
-                            label: 'Budget',
-                            data: topSites.map(s => s.BudgetAllocated),
-                            backgroundColor: '#e2e8f0',
-                            borderRadius: 4
+            if (typeof Chart !== 'undefined') {
+                const ctx = document.getElementById('categoryChart').getContext('2d');
+                if (categoryChartInstance) categoryChartInstance.destroy();
+
+                if (cats.length > 0) {
+                    categoryChartInstance = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: cats,
+                            datasets: [{
+                                data: vals,
+                                backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6'],
+                                borderWidth: 0
+                            }]
                         },
-                        {
-                            label: 'Actual',
-                            data: topSites.map(s => s.TotalExpenses),
-                            backgroundColor: '#6366f1',
-                            borderRadius: 4
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                        x: { grid: { display: false } }
-                    }
+                    });
                 }
-            });
-        }
-        
-        // Toast Auto-dismiss
-        const toast = document.getElementById('toastAlert');
-        if (toast) {
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
-        }
-    });
-
-    // Modal Logic
-    function openEditModal(id, name, amount) {
-        document.getElementById('editSiteId').value = id;
-        document.getElementById('modalSiteName').innerText = name;
-        document.getElementById('editAmount').value = amount;
-        document.getElementById('editBudgetModal').classList.remove('hidden');
-    }
-
-    function closeModal() {
-        document.getElementById('editBudgetModal').classList.add('hidden');
-    }
-
-    // Side Panel Logic & Pie Chart
-    let categoryChartInstance = null;
-
-    function openSidePanel(siteData) {
-        document.getElementById('panelSiteName').innerText = siteData.SiteName;
-        
-        // Populate List
-        const listContainer = document.getElementById('categoryList');
-        listContainer.innerHTML = '';
-        
-        const cats = Object.keys(siteData.CategoryBreakdown);
-        const vals = Object.values(siteData.CategoryBreakdown);
-        
-        cats.forEach((cat, i) => {
-            const row = document.createElement('div');
-            row.className = 'flex justify-between items-center p-3 bg-slate-50 rounded-lg dark:bg-slate-800/50';
-            row.innerHTML = `
-                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">${cat}</span>
-                <span class="text-sm font-bold text-slate-900 dark:text-white">$${vals[i].toLocaleString()}</span>
-            `;
-            listContainer.appendChild(row);
-        });
-
-        // Chart
-        if (typeof Chart !== 'undefined') {
-            const ctx = document.getElementById('categoryChart').getContext('2d');
-            if (categoryChartInstance) categoryChartInstance.destroy();
-            
-            if (cats.length > 0) {
-                categoryChartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: cats,
-                        datasets: [{
-                            data: vals,
-                            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
-                    }
-                });
-            } else {
-                // Handle empty case
             }
+
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            panel.classList.remove('translate-x-full');
+        };
+
+        window.closeSidePanel = function () {
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            panel.classList.add('translate-x-full');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBudgetPage);
+        } else {
+            initBudgetPage();
         }
-
-        // Open Panel
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        overlay.classList.remove('hidden');
-        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
-        panel.classList.remove('translate-x-full');
-    }
-
-    function closeSidePanel() {
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        panel.classList.add('translate-x-full');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
+    })();
 </script>

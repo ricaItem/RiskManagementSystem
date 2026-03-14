@@ -1,0 +1,326 @@
+@model Web_Sentro.Areas.Client.Models.PagedResult<Web_Sentro.Areas.Client.Models.SupplierRiskViewModel>
+@{
+    var baseUrl = Url.Action("Index", "Supplier", new { area = "Client" });
+}
+
+<div class="animate-in fade-in min-h-screen space-y-8 duration-500 max-w-[1920px] mx-auto px-6 py-8">
+    <!-- Header Section -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Supplier Registry
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Monitor vendor performance, reliability scores, and contract status.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+             <a href="@Url.Action("Index", "Supplier", new { area = "Client" })" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                Audit Registry
+            </a>
+            <a href="@Url.Action("Create", "Suppliers", new { area = "Client" })" class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Supplier
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="get" action="@Url.Action("Index", "Supplier", new { area = "Client" })" id="supplierFilterForm" class="contents">
+            
+            <!-- Search Filter -->
+            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input type="text" name="search" value="@Context.Request.Query["search"]" placeholder="Search suppliers..." class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 placeholder:text-slate-400 dark:text-slate-300 w-48">
+            </div>
+
+            <!-- Resource Type Filter -->
+            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <span class="text-xs font-medium text-slate-500">Resource</span>
+                <select name="resourceType" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="">All Resources</option>
+                    @if (Context.Request.Query["resourceType"] == "Structural Steel") { <option value="Structural Steel" selected>Structural Steel</option> } else { <option value="Structural Steel">Structural Steel</option> }
+                    @if (Context.Request.Query["resourceType"] == "Concrete/Aggregates") { <option value="Concrete/Aggregates" selected>Concrete/Aggregates</option> } else { <option value="Concrete/Aggregates">Concrete/Aggregates</option> }
+                    @if (Context.Request.Query["resourceType"] == "Electrical Components") { <option value="Electrical Components" selected>Electrical Components</option> } else { <option value="Electrical Components">Electrical Components</option> }
+                    @if (Context.Request.Query["resourceType"] == "Heavy Machinery") { <option value="Heavy Machinery" selected>Heavy Machinery</option> } else { <option value="Heavy Machinery">Heavy Machinery</option> }
+                </select>
+            </div>
+
+            <!-- Financial Status Filter -->
+            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <span class="text-xs font-medium text-slate-500">Financial</span>
+                <select name="financialStatus" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="">All Status</option>
+                    @if (Context.Request.Query["financialStatus"] == "Stable") { <option value="Stable" selected>Stable</option> } else { <option value="Stable">Stable</option> }
+                    @if (Context.Request.Query["financialStatus"] == "Warning") { <option value="Warning" selected>Warning</option> } else { <option value="Warning">Warning</option> }
+                    @if (Context.Request.Query["financialStatus"] == "Critical") { <option value="Critical" selected>Critical</option> } else { <option value="Critical">Critical</option> }
+                </select>
+            </div>
+
+            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-500 transition-colors">
+                Apply Filters
+            </button>
+        </form>
+    </div>
+
+    <!-- Registry Table -->
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/50 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3 font-medium">Supplier Identity</th>
+                        <th class="px-6 py-3 font-medium">Reliability</th>
+                        <th class="px-6 py-3 font-medium">Financial Health</th>
+                        <th class="px-6 py-3 font-medium">Delivery Trend</th>
+                        <th class="px-6 py-3 font-medium">Contract Value</th>
+                        <th class="px-6 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @foreach (var supplier in Model.Items)
+                    {
+                        var isAtRisk = supplier.ReliabilityScore < 50;
+                        var financialClass = supplier.FinancialStatus == "Critical" ? "bg-rose-50 text-rose-700 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" :
+                                             supplier.FinancialStatus == "Warning" ? "bg-amber-50 text-amber-700 ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20" :
+                                             "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/20";
+                                             
+                        var deliveryClass = supplier.DeliveryTrend == "Critical" ? "bg-rose-50 text-rose-700 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" :
+                                            supplier.DeliveryTrend == "Warning" ? "bg-amber-50 text-amber-700 ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20" :
+                                            "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/20";
+
+                        <tr class="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-lg dark:bg-slate-800">
+                                        @(supplier.ResourceType.Contains("Steel") ? "🏗️" : supplier.ResourceType.Contains("Electrical") ? "⚡" : supplier.ResourceType.Contains("Concrete") ? "🧱" : "📦")
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-sm text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 transition-colors">@supplier.SupplierName</div>
+                                        <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">@supplier.ResourceType</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <div class="relative h-2 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                        <div class="h-full rounded-full @(isAtRisk ? "bg-rose-500" : "bg-emerald-500")" style="width: @supplier.ReliabilityScore%"></div>
+                                    </div>
+                                    <span class="text-xs font-bold @(isAtRisk ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")">@supplier.ReliabilityScore%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset @financialClass">
+                                    @supplier.FinancialStatus
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset @deliveryClass">
+                                    @supplier.DeliveryTrend
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-xs font-medium text-slate-900 dark:text-slate-200 font-mono">₱@string.Format("{0:N0}", supplier.ContractValue)</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="relative inline-block text-left">
+                                    <button type="button" onclick="toggleActionMenu(this, '@supplier.Id')" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors focus:outline-none dark:hover:bg-slate-800 dark:hover:text-indigo-400" aria-label="Actions">
+                                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" /></svg>
+                                    </button>
+                                    <div id="actionMenu-@supplier.Id" class="action-menu absolute right-0 z-10 mt-2 hidden w-48 origin-top-right rounded-xl border border-slate-100 bg-white p-1 shadow-xl focus:outline-none dark:border-slate-700 dark:bg-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                                        <a href="@Url.Action("Audit", "Supplier", new { area = "Client", id = supplier.Id })" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                            <svg class="h-4 w-4 text-slate-400 group-hover:text-indigo-500 dark:text-slate-400 dark:group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            View History
+                                        </a>
+                                        <button type="button" onclick="toggleCreateRiskModal(@supplier.Id, '@(supplier.SupplierName?.Replace("'", "\\'"))')" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                            <svg class="h-4 w-4 text-slate-400 group-hover:text-indigo-500 dark:text-slate-400 dark:group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                                            Create Risk
+                                        </button>
+                                        <button type="button" onclick="toggleDisputeModal(@supplier.Id, '@(supplier.SupplierName?.Replace("'", "\\'"))')" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                            <svg class="h-4 w-4 text-slate-400 group-hover:text-rose-500 dark:text-slate-400 dark:group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" /></svg>
+                                            File Dispute
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @{
+            ViewData["PageNumber"] = Model.PageNumber;
+            ViewData["TotalPages"] = Model.TotalPages;
+            ViewData["TotalCount"] = Model.TotalCount;
+            ViewData["PageSize"] = Model.PageSize;
+            ViewData["BaseUrl"] = baseUrl;
+        }
+        @await Html.PartialAsync("_Pagination")
+    </div>
+</div>
+
+<!-- Dispute Modal -->
+<div id="disputeModal" class="fixed inset-0 z-[100] hidden transition-all duration-300" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleDisputeModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
+             <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
+                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM2.25 12c0 5.385 4.365 9.75 9.75 9.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25 2.25 6.615 2.25 12z" /></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Open Dispute</h2>
+                        <p class="text-xs text-slate-500">Breach of Agreement Filing</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleDisputeModal()" class="rounded-lg p-2 text-slate-400 hover:text-rose-500 transition-colors"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            
+            <form method="post" action="@Url.Action("OpenDispute", "Supplier", new { area = "Client" })" class="p-6 space-y-4" onsubmit="var b=document.getElementById('fileDisputeBtn');b.disabled=true;b.innerHTML='Saving...';">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="disputeSupplierId" name="supplierId" />
+                
+                <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Target Supplier</span>
+                    <span id="disputeSupplierNameDisplay" class="text-sm font-bold text-slate-900 dark:text-white">Loading...</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Reason for Violation</label>
+                    <textarea name="reason" rows="4" required
+                              class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-rose-500 focus:bg-white focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white placeholder:text-slate-400 transition-all"
+                              placeholder="Describe the incident in detail..."></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleDisputeModal()" class="flex-1 rounded-lg px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors dark:text-slate-400 dark:hover:text-white">Cancel</button>
+                    <button type="submit" id="fileDisputeBtn" class="flex-1 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rose-700 transition-colors">File Dispute</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Risk Modal -->
+<div id="createRiskModal" class="fixed inset-0 z-[100] hidden transition-all duration-300" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleCreateRiskModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
+             <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Create Supplier Risk</h2>
+                        <p class="text-xs text-slate-500">Initiate risk assessment for supplier</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleCreateRiskModal()" class="rounded-lg p-2 text-slate-400 hover:text-indigo-500 transition-colors"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+
+            <form method="post" action="@Url.Action("CreateRiskFromSupplier", "Supplier", new { area = "Client" })" class="p-6 space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="riskSupplierId" name="supplierId" />
+
+                <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Target Supplier</span>
+                    <span id="riskSupplierNameDisplay" class="text-sm font-bold text-slate-900 dark:text-white">Loading...</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-2 dark:text-slate-300">Risk Type</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20 dark:has-[:checked]:border-indigo-500/50">
+                            <input type="radio" name="riskType" value="Delivery" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300" checked>
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Delivery Delay</div>
+                                <div class="text-xs text-slate-500">Late shipments or missed deadlines</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20 dark:has-[:checked]:border-indigo-500/50">
+                            <input type="radio" name="riskType" value="Quality" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Quality Issue</div>
+                                <div class="text-xs text-slate-500">Defective materials or poor workmanship</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20 dark:has-[:checked]:border-indigo-500/50">
+                            <input type="radio" name="riskType" value="Financial" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Financial Risk</div>
+                                <div class="text-xs text-slate-500">Bankruptcy, credit issues, or pricing disputes</div>
+                            </div>
+                        </label>
+                         <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20 dark:has-[:checked]:border-indigo-500/50">
+                            <input type="radio" name="riskType" value="Contract" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Contract Risk</div>
+                                <div class="text-xs text-slate-500">Breach of terms or legal compliance issues</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleCreateRiskModal()" class="flex-1 rounded-lg px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors dark:text-slate-400 dark:hover:text-white">Cancel</button>
+                    <button type="submit" class="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-700 transition-colors">Create Risk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleCreateRiskModal(id, name) {
+        const modal = document.getElementById('createRiskModal');
+        const idInput = document.getElementById('riskSupplierId');
+        const nameDisplay = document.getElementById('riskSupplierNameDisplay');
+
+        if (id && name) {
+            idInput.value = id;
+            nameDisplay.innerText = name;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        } else {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    function toggleDisputeModal(id, name) {
+        const modal = document.getElementById('disputeModal');
+        const idInput = document.getElementById('disputeSupplierId');
+        const nameDisplay = document.getElementById('disputeSupplierNameDisplay');
+
+        if (id && name) {
+            idInput.value = id;
+            nameDisplay.innerText = name;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; 
+        } else {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; 
+        }
+    }
+
+    // Toggle Action Menu in Table
+    function toggleActionMenu(btn, id) {
+        // Close all others
+        document.querySelectorAll('.action-menu').forEach(m => {
+            if(m.id !== 'actionMenu-' + id) m.classList.add('hidden');
+        });
+        const menu = document.getElementById('actionMenu-' + id);
+        menu.classList.toggle('hidden');
+    }
+
+    // Close menus on click outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('button[onclick^="toggleActionMenu"]') && !e.target.closest('.action-menu')) {
+            document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
+        }
+    });
+</script>

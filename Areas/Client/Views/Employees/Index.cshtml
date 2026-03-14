@@ -408,30 +408,30 @@
 </div>
 
 <script>
-    function initEmployeesPage() {
-        const content = document.getElementById('employee-content');
-        if (!content || content.dataset.loaded === '1') return;
-
-        setTimeout(function() {
-            const skeleton = document.getElementById('employee-skeleton');
-            if (skeleton) skeleton.classList.add('hidden');
-            content.classList.remove('hidden');
-            content.dataset.loaded = '1';
-        }, 600);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initEmployeesPage);
-    } else {
-        initEmployeesPage();
-    }
-
-    let isEditMode = false;
-    const searchInput = document.getElementById('empSearch');
-    const roleFilter = document.getElementById('roleFilter');
-    const dateFilter = document.getElementById('dateFilter');
-
     (function () {
+        function initEmployeesPage() {
+            const content = document.getElementById('employee-content');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('employee-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+            }, 600);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEmployeesPage);
+        } else {
+            initEmployeesPage();
+        }
+
+        let isEditMode = false;
+        const searchInput = document.getElementById('empSearch');
+        const roleFilter = document.getElementById('roleFilter');
+        const dateFilter = document.getElementById('dateFilter');
+
         const toast = document.getElementById('toastAlert');
         if (toast) {
             toast.style.transition = 'opacity 0.4s ease';
@@ -440,151 +440,152 @@
                 setTimeout(function () { toast.style.display = 'none'; }, 400);
             }, 4000);
         }
-    })();
 
-    function filterEmployees() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const roleTerm = (roleFilter.value || "").toLowerCase();
-        const dateDays = dateFilter.value ? parseInt(dateFilter.value, 10) : 0;
-        const cutoff = dateDays > 0 ? new Date(Date.now() - dateDays * 24 * 60 * 60 * 1000) : null;
+        function filterEmployees() {
+            if (!searchInput || !roleFilter || !dateFilter) return;
 
-        document.querySelectorAll('.emp-row').forEach(row => {
-            const name = (row.querySelector('.emp-name')?.innerText || "").toLowerCase();
-            const email = (row.querySelector('.emp-email')?.innerText || "").toLowerCase();
-            const role = (row.querySelector('.emp-role')?.innerText || "").toLowerCase();
-            const addedStr = row.getAttribute('data-added');
-            const addedDate = addedStr ? new Date(addedStr) : null;
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const roleTerm = (roleFilter.value || '').toLowerCase();
+            const dateDays = dateFilter.value ? parseInt(dateFilter.value, 10) : 0;
+            const cutoff = dateDays > 0 ? new Date(Date.now() - dateDays * 24 * 60 * 60 * 1000) : null;
 
-            const matchesSearch = !searchTerm || name.includes(searchTerm) || email.includes(searchTerm) || role.includes(searchTerm);
-            const matchesRole = !roleTerm || role === roleTerm || role.replace(/\s/g, '').toLowerCase() === roleTerm.replace(/\s/g, '').toLowerCase();
-            const matchesDate = !cutoff || (addedDate && addedDate >= cutoff);
+            document.querySelectorAll('.emp-row').forEach(row => {
+                const name = (row.querySelector('.emp-name')?.innerText || '').toLowerCase();
+                const email = (row.querySelector('.emp-email')?.innerText || '').toLowerCase();
+                const role = (row.querySelector('.emp-role')?.innerText || '').toLowerCase();
+                const addedStr = row.getAttribute('data-added');
+                const addedDate = addedStr ? new Date(addedStr) : null;
 
-            row.style.display = (matchesSearch && matchesRole && matchesDate) ? "" : "none";
-        });
-    }
+                const matchesSearch = !searchTerm || name.includes(searchTerm) || email.includes(searchTerm) || role.includes(searchTerm);
+                const matchesRole = !roleTerm || role === roleTerm || role.replace(/\s/g, '').toLowerCase() === roleTerm.replace(/\s/g, '').toLowerCase();
+                const matchesDate = !cutoff || (addedDate && addedDate >= cutoff);
 
-    searchInput.addEventListener('input', filterEmployees);
-    roleFilter.addEventListener('change', filterEmployees);
-    dateFilter.addEventListener('change', filterEmployees);
-
-    function resetFilters() {
-        searchInput.value = "";
-        roleFilter.value = "";
-        dateFilter.value = "";
-        filterEmployees();
-    }
-
-    function openProfile(emp) {
-        isEditMode = false;
-        document.getElementById('viewMode').classList.remove('hidden');
-        document.getElementById('editMode').classList.add('hidden');
-        document.getElementById('panelFooter').classList.remove('hidden');
-        
-        // Reset Edit Button State
-        const editBtn = document.getElementById('editBtn');
-        editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
-        editBtn.classList.add('text-slate-400');
-
-        document.getElementById('panelName').innerText = emp.name ?? "";
-        document.getElementById('panelRole').innerText = (emp.role ?? "Employee") + " • " + (emp.department ?? "N/A");
-        document.getElementById('panelInitial').innerText = (emp.name ?? "??").substring(0, 2);
-        document.getElementById('panelBio').innerText = emp.bio ?? "No biography available.";
-        document.getElementById('panelUtil').innerText = emp.utilization ?? "0%";
-        document.getElementById('panelPerf').innerText = (emp.performance ?? 0) + "%";
-
-        document.getElementById('editId').value = emp.userId ?? emp.id ?? "";
-        document.getElementById('editName').value = emp.name ?? "";
-        document.getElementById('editEmail').value = emp.email ?? "";
-        var roleSelect = document.getElementById('editRole');
-        var roleVal = (emp.role || "Employee").trim();
-        if (roleSelect.querySelector('option[value="' + roleVal + '"]')) {
-            roleSelect.value = roleVal;
-        } else {
-            roleSelect.value = "Employee";
-        }
-
-        const skillsContainer = document.getElementById('panelSkills');
-        skillsContainer.innerHTML = '';
-        if (emp.skills && emp.skills.length) {
-            emp.skills.forEach(skill => {
-                skillsContainer.innerHTML += `<span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">${skill}</span>`;
+                row.style.display = (matchesSearch && matchesRole && matchesDate) ? '' : 'none';
             });
-        } else {
-            skillsContainer.innerHTML = `<span class="text-sm text-slate-400 italic">No skills listed</span>`;
         }
 
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        overlay.classList.remove('hidden');
-        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
-        panel.classList.remove('translate-x-full');
-    }
+        if (searchInput) searchInput.addEventListener('input', filterEmployees);
+        if (roleFilter) roleFilter.addEventListener('change', filterEmployees);
+        if (dateFilter) dateFilter.addEventListener('change', filterEmployees);
 
-    function closeProfile() {
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        panel.classList.add('translate-x-full');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
+        window.resetFilters = function () {
+            if (searchInput) searchInput.value = '';
+            if (roleFilter) roleFilter.value = '';
+            if (dateFilter) dateFilter.value = '';
+            filterEmployees();
+        };
 
-    function openDeployModal() {
-        const overlay = document.getElementById('deployModalOverlay');
-        const modal = document.getElementById('deployModal');
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-            overlay.classList.replace('opacity-0', 'opacity-100');
-            modal.classList.replace('scale-95', 'scale-100');
-        }, 10);
-    }
+        window.openProfile = function (emp) {
+            isEditMode = false;
+            document.getElementById('viewMode').classList.remove('hidden');
+            document.getElementById('editMode').classList.add('hidden');
+            document.getElementById('panelFooter').classList.remove('hidden');
 
-    function closeDeployModal() {
-        const overlay = document.getElementById('deployModalOverlay');
-        const modal = document.getElementById('deployModal');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        modal.classList.replace('scale-100', 'scale-95');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
-
-    function toggleStatus(id, currentStatus) {
-        if (currentStatus === "Active") {
-            document.getElementById('statusEmpId').value = id;
-            const overlay = document.getElementById('statusModalOverlay');
-            overlay.classList.remove('hidden');
-            setTimeout(() => overlay.classList.add('opacity-100'), 10);
-        } else {
-            if (confirm("Reactivate this employee?")) {
-                document.getElementById('reactivateId').value = id;
-                document.getElementById('reactivateForm').submit();
-            }
-        }
-    }
-
-    function closeStatusModal() {
-        const overlay = document.getElementById('statusModalOverlay');
-        overlay.classList.remove('opacity-100');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
-
-    function toggleEditMode() {
-        isEditMode = !isEditMode;
-        const viewDiv = document.getElementById('viewMode');
-        const editForm = document.getElementById('editMode');
-        const footer = document.getElementById('panelFooter');
-        const editBtn = document.getElementById('editBtn');
-
-        if (isEditMode) {
-            viewDiv.classList.add('hidden');
-            footer.classList.add('hidden');
-            editForm.classList.remove('hidden');
-            editBtn.classList.add('bg-indigo-50', 'text-indigo-600');
-            editBtn.classList.remove('text-slate-400');
-        } else {
-            viewDiv.classList.remove('hidden');
-            footer.classList.remove('hidden');
-            editForm.classList.add('hidden');
+            const editBtn = document.getElementById('editBtn');
             editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
             editBtn.classList.add('text-slate-400');
-        }
-    }
+
+            document.getElementById('panelName').innerText = emp.name ?? '';
+            document.getElementById('panelRole').innerText = (emp.role ?? 'Employee') + ' • ' + (emp.department ?? 'N/A');
+            document.getElementById('panelInitial').innerText = (emp.name ?? '??').substring(0, 2);
+            document.getElementById('panelBio').innerText = emp.bio ?? 'No biography available.';
+            document.getElementById('panelUtil').innerText = emp.utilization ?? '0%';
+            document.getElementById('panelPerf').innerText = (emp.performance ?? 0) + '%';
+
+            document.getElementById('editId').value = emp.userId ?? emp.id ?? '';
+            document.getElementById('editName').value = emp.name ?? '';
+            document.getElementById('editEmail').value = emp.email ?? '';
+            const roleSelect = document.getElementById('editRole');
+            const roleVal = (emp.role || 'Employee').trim();
+            if (roleSelect.querySelector('option[value="' + roleVal + '"]')) {
+                roleSelect.value = roleVal;
+            } else {
+                roleSelect.value = 'Employee';
+            }
+
+            const skillsContainer = document.getElementById('panelSkills');
+            skillsContainer.innerHTML = '';
+            if (emp.skills && emp.skills.length) {
+                emp.skills.forEach(skill => {
+                    skillsContainer.innerHTML += `<span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">${skill}</span>`;
+                });
+            } else {
+                skillsContainer.innerHTML = '<span class="text-sm text-slate-400 italic">No skills listed</span>';
+            }
+
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            panel.classList.remove('translate-x-full');
+        };
+
+        window.closeProfile = function () {
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            panel.classList.add('translate-x-full');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        window.openDeployModal = function () {
+            const overlay = document.getElementById('deployModalOverlay');
+            const modal = document.getElementById('deployModal');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.replace('opacity-0', 'opacity-100');
+                modal.classList.replace('scale-95', 'scale-100');
+            }, 10);
+        };
+
+        window.closeDeployModal = function () {
+            const overlay = document.getElementById('deployModalOverlay');
+            const modal = document.getElementById('deployModal');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            modal.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        window.toggleStatus = function (id, currentStatus) {
+            if (currentStatus === 'Active') {
+                document.getElementById('statusEmpId').value = id;
+                const overlay = document.getElementById('statusModalOverlay');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                if (confirm('Reactivate this employee?')) {
+                    document.getElementById('reactivateId').value = id;
+                    document.getElementById('reactivateForm').submit();
+                }
+            }
+        };
+
+        window.closeStatusModal = function () {
+            const overlay = document.getElementById('statusModalOverlay');
+            overlay.classList.remove('opacity-100');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        window.toggleEditMode = function () {
+            isEditMode = !isEditMode;
+            const viewDiv = document.getElementById('viewMode');
+            const editForm = document.getElementById('editMode');
+            const footer = document.getElementById('panelFooter');
+            const editBtn = document.getElementById('editBtn');
+
+            if (isEditMode) {
+                viewDiv.classList.add('hidden');
+                footer.classList.add('hidden');
+                editForm.classList.remove('hidden');
+                editBtn.classList.add('bg-indigo-50', 'text-indigo-600');
+                editBtn.classList.remove('text-slate-400');
+            } else {
+                viewDiv.classList.remove('hidden');
+                footer.classList.remove('hidden');
+                editForm.classList.add('hidden');
+                editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
+                editBtn.classList.add('text-slate-400');
+            }
+        };
+    })();
 </script>

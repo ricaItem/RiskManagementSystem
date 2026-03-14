@@ -40,9 +40,15 @@ namespace Web_Sentro.Areas.Client.Controllers
         public async Task<IActionResult> Index(string? search, string? resourceType, string? financialStatus, int page = 1, int pageSize = DefaultPageSize)
         {
             ViewData["Title"] = "Supplier Risk Registry";
+            return View();
+        }
+
+        public async Task<IActionResult> IndexContent(string? search, string? resourceType, string? financialStatus, int page = 1, int pageSize = DefaultPageSize)
+        {
+            ViewData["Title"] = "Supplier Risk Registry";
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue)
-                return View(new PagedResult<SupplierRiskViewModel> { Items = new List<SupplierRiskViewModel>(), TotalCount = 0, PageNumber = 1, PageSize = pageSize });
+                return PartialView("_IndexContent", new PagedResult<SupplierRiskViewModel> { Items = new List<SupplierRiskViewModel>(), TotalCount = 0, PageNumber = 1, PageSize = pageSize });
 
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 4, 20);
@@ -103,7 +109,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 PageNumber = page,
                 PageSize = pageSize
             };
-            return View(model);
+            return PartialView("_IndexContent", model);
         }
 
 

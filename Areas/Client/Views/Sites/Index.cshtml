@@ -4,7 +4,24 @@
     var totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 1;
 }
 
-<div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative">
+<div id="sites-skeleton" class="animate-pulse min-h-screen space-y-8 p-6">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <div class="h-8 w-52 rounded bg-slate-200 dark:bg-slate-700"></div>
+            <div class="mt-2 h-4 w-80 rounded bg-slate-100 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-10 w-32 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+
+    <div class="h-36 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-12" style="min-height: 600px;">
+        <div class="h-[600px] rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40 lg:col-span-8"></div>
+        <div class="h-[600px] rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40 lg:col-span-4"></div>
+    </div>
+</div>
+
+<div id="sites-content" class="hidden animate-in fade-in min-h-screen space-y-8 duration-1000 relative">
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
@@ -319,245 +336,275 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
-    var addSiteMapInstance = null;
-    var addSiteMarker = null;
-    var ADD_SITE_DEFAULT_LAT = 7.0707, ADD_SITE_DEFAULT_LNG = 125.6083;
-    var NOMINATIM_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'SentroSitePicker/1.0' };
+    (function () {
+        var addSiteMapInstance = null;
+        var addSiteMarker = null;
+        var mainSitesMap = null;
+        var ADD_SITE_DEFAULT_LAT = 7.0707, ADD_SITE_DEFAULT_LNG = 125.6083;
+        var NOMINATIM_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'SentroSitePicker/1.0' };
 
-    function openAddSiteModal() {
-        var overlay = document.getElementById('addSiteModalOverlay');
-        var modal = document.getElementById('addSiteModal');
-        if (!overlay || !modal) return;
-        overlay.classList.remove('hidden');
-        setTimeout(function() {
-            overlay.classList.replace('opacity-0', 'opacity-100');
-            modal.classList.replace('scale-95', 'scale-100');
-        }, 10);
-        setTimeout(initAddSiteMap, 100);
-    }
-
-    function addSiteSetMarkerAndCoords(lat, lng) {
-        var latInput = document.getElementById('addSite_Latitude');
-        var lngInput = document.getElementById('addSite_Longitude');
-        if (latInput) latInput.value = lat.toFixed(6);
-        if (lngInput) lngInput.value = lng.toFixed(6);
-        if (addSiteMarker) {
-            addSiteMarker.setLatLng([lat, lng]);
-        } else if (addSiteMapInstance) {
-            addSiteMarker = L.marker([lat, lng], { draggable: true }).addTo(addSiteMapInstance);
-            addSiteMarker.on('dragend', function() {
-                var pos = addSiteMarker.getLatLng();
-                addSiteSetMarkerAndCoords(pos.lat, pos.lng);
-                addSiteReverseGeocode(pos.lat, pos.lng);
-            });
-        }
-        if (addSiteMapInstance) addSiteMapInstance.setView([lat, lng], Math.max(addSiteMapInstance.getZoom(), 14));
-    }
-
-    function addSiteReverseGeocode(lat, lng) {
-        var addressEl = document.getElementById('addSite_AddressLine');
-        var cityEl = document.getElementById('addSite_City');
-        var provinceEl = document.getElementById('addSite_Province');
-        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json', { headers: NOMINATIM_HEADERS })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (!data || !data.address) return;
-                var a = data.address;
-                var road = [a.house_number, a.road].filter(Boolean).join(' ');
-                var city = a.city || a.town || a.village || a.municipality || a.county || '';
-                var state = a.state || a.province || '';
-                if (addressEl) addressEl.value = road || data.display_name || '';
-                if (cityEl) cityEl.value = city;
-                if (provinceEl) provinceEl.value = state;
-            })
-            .catch(function() {});
-    }
-
-    function initAddSiteMap() {
-        var mapEl = document.getElementById('addSiteMap');
-        if (!mapEl || typeof L === 'undefined') return;
-        if (addSiteMapInstance) return;
-        var latInput = document.getElementById('addSite_Latitude');
-        var lngInput = document.getElementById('addSite_Longitude');
-        addSiteMapInstance = L.map('addSiteMap').setView([ADD_SITE_DEFAULT_LAT, ADD_SITE_DEFAULT_LNG], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(addSiteMapInstance);
-        addSiteMapInstance.on('click', function(e) {
-            var lat = e.latlng.lat, lng = e.latlng.lng;
-            if (!addSiteMarker) {
+        function addSiteSetMarkerAndCoords(lat, lng) {
+            var latInput = document.getElementById('addSite_Latitude');
+            var lngInput = document.getElementById('addSite_Longitude');
+            if (latInput) latInput.value = lat.toFixed(6);
+            if (lngInput) lngInput.value = lng.toFixed(6);
+            if (addSiteMarker) {
+                addSiteMarker.setLatLng([lat, lng]);
+            } else if (addSiteMapInstance) {
                 addSiteMarker = L.marker([lat, lng], { draggable: true }).addTo(addSiteMapInstance);
-                addSiteMarker.on('dragend', function() {
+                addSiteMarker.on('dragend', function () {
                     var pos = addSiteMarker.getLatLng();
                     addSiteSetMarkerAndCoords(pos.lat, pos.lng);
                     addSiteReverseGeocode(pos.lat, pos.lng);
                 });
-            } else {
-                addSiteMarker.setLatLng(e.latlng);
             }
-            addSiteSetMarkerAndCoords(lat, lng);
-            addSiteReverseGeocode(lat, lng);
-        });
-        var searchInput = document.getElementById('addSite_AddressSearch');
-        var searchBtn = document.getElementById('addSite_SearchBtn');
-        var resultsEl = document.getElementById('addSite_SearchResults');
-        function doSearch() {
-            var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
-            if (!q) return;
-            if (resultsEl) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; }
-            fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=5', { headers: NOMINATIM_HEADERS })
-                .then(function(r) { return r.json(); })
-                .then(function(list) {
-                    if (!resultsEl || !list || list.length === 0) return;
-                    resultsEl.innerHTML = list.map(function(item) {
-                        return '<button type="button" class="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700" data-lat="' + item.lat + '" data-lng="' + item.lon + '">' + (item.display_name || '').replace(/</g, '&lt;') + '</button>';
-                    }).join('');
-                    resultsEl.classList.remove('hidden');
-                    resultsEl.querySelectorAll('button').forEach(function(btn) {
-                        btn.addEventListener('click', function() {
-                            var lat = parseFloat(btn.getAttribute('data-lat')), lng = parseFloat(btn.getAttribute('data-lng'));
+            if (addSiteMapInstance) addSiteMapInstance.setView([lat, lng], Math.max(addSiteMapInstance.getZoom(), 14));
+        }
+
+        function addSiteReverseGeocode(lat, lng) {
+            var addressEl = document.getElementById('addSite_AddressLine');
+            var cityEl = document.getElementById('addSite_City');
+            var provinceEl = document.getElementById('addSite_Province');
+            fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json', { headers: NOMINATIM_HEADERS })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.address) return;
+                    var a = data.address;
+                    var road = [a.house_number, a.road].filter(Boolean).join(' ');
+                    var city = a.city || a.town || a.village || a.municipality || a.county || '';
+                    var state = a.state || a.province || '';
+                    if (addressEl) addressEl.value = road || data.display_name || '';
+                    if (cityEl) cityEl.value = city;
+                    if (provinceEl) provinceEl.value = state;
+                })
+                .catch(function () { });
+        }
+
+        function initAddSiteMap() {
+            var mapEl = document.getElementById('addSiteMap');
+            if (!mapEl || typeof L === 'undefined' || addSiteMapInstance) return;
+
+            addSiteMapInstance = L.map('addSiteMap').setView([ADD_SITE_DEFAULT_LAT, ADD_SITE_DEFAULT_LNG], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(addSiteMapInstance);
+
+            addSiteMapInstance.on('click', function (e) {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+                if (!addSiteMarker) {
+                    addSiteMarker = L.marker([lat, lng], { draggable: true }).addTo(addSiteMapInstance);
+                    addSiteMarker.on('dragend', function () {
+                        var pos = addSiteMarker.getLatLng();
+                        addSiteSetMarkerAndCoords(pos.lat, pos.lng);
+                        addSiteReverseGeocode(pos.lat, pos.lng);
+                    });
+                } else {
+                    addSiteMarker.setLatLng(e.latlng);
+                }
+                addSiteSetMarkerAndCoords(lat, lng);
+                addSiteReverseGeocode(lat, lng);
+            });
+
+            var searchInput = document.getElementById('addSite_AddressSearch');
+            var searchBtn = document.getElementById('addSite_SearchBtn');
+            var resultsEl = document.getElementById('addSite_SearchResults');
+            function doSearch() {
+                var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+                if (!q) return;
+                if (resultsEl) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; }
+                fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=5', { headers: NOMINATIM_HEADERS })
+                    .then(function (r) { return r.json(); })
+                    .then(function (list) {
+                        if (!resultsEl || !list || list.length === 0) return;
+                        resultsEl.innerHTML = list.map(function (item) {
+                            return '<button type="button" class="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700" data-lat="' + item.lat + '" data-lng="' + item.lon + '">' + (item.display_name || '').replace(/</g, '&lt;') + '</button>';
+                        }).join('');
+                        resultsEl.classList.remove('hidden');
+                        resultsEl.querySelectorAll('button').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                var lat = parseFloat(btn.getAttribute('data-lat'));
+                                var lng = parseFloat(btn.getAttribute('data-lng'));
+                                addSiteSetMarkerAndCoords(lat, lng);
+                                addSiteReverseGeocode(lat, lng);
+                                if (searchInput) searchInput.value = btn.textContent.trim();
+                                resultsEl.classList.add('hidden');
+                            });
+                        });
+                    })
+                    .catch(function () { });
+            }
+
+            if (searchBtn) searchBtn.addEventListener('click', doSearch);
+            if (searchInput) searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+            });
+
+            var myLocBtn = document.getElementById('addSite_MyLocationBtn');
+            if (myLocBtn) {
+                myLocBtn.addEventListener('click', function () {
+                    if (!navigator.geolocation) { alert('Geolocation is not supported'); return; }
+                    myLocBtn.disabled = true;
+                    navigator.geolocation.getCurrentPosition(
+                        function (pos) {
+                            var lat = pos.coords.latitude;
+                            var lng = pos.coords.longitude;
                             addSiteSetMarkerAndCoords(lat, lng);
                             addSiteReverseGeocode(lat, lng);
-                            if (searchInput) searchInput.value = btn.textContent.trim();
-                            resultsEl.classList.add('hidden');
-                        });
-                    });
-                })
-                .catch(function() {});
-        }
-        if (searchBtn) searchBtn.addEventListener('click', doSearch);
-        if (searchInput) searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
-        var myLocBtn = document.getElementById('addSite_MyLocationBtn');
-        if (myLocBtn) {
-            myLocBtn.addEventListener('click', function() {
-                if (!navigator.geolocation) { alert('Geolocation is not supported'); return; }
-                myLocBtn.disabled = true;
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        var lat = pos.coords.latitude, lng = pos.coords.longitude;
-                        addSiteSetMarkerAndCoords(lat, lng);
-                        addSiteReverseGeocode(lat, lng);
-                        myLocBtn.disabled = false;
-                    },
-                    function() {
-                        alert('Could not get your location');
-                        myLocBtn.disabled = false;
-                    }
-                );
-            });
-        }
-    }
-
-    function closeAddSiteModal() {
-        var overlay = document.getElementById('addSiteModalOverlay');
-        var modal = document.getElementById('addSiteModal');
-        if (!overlay || !modal) return;
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        modal.classList.replace('scale-100', 'scale-95');
-        setTimeout(function() {
-            overlay.classList.add('hidden');
-            if (addSiteMapInstance) {
-                addSiteMapInstance.remove();
-                addSiteMapInstance = null;
-                addSiteMarker = null;
-            }
-        }, 300);
-    }
-    var overlayEl = document.getElementById('addSiteModalOverlay');
-    if (overlayEl) overlayEl.addEventListener('click', function(e) {
-        if (e.target === this) closeAddSiteModal();
-    });
-
-    (function sitesMapAndList() {
-        var sites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items.Select(s => new { id = s.SiteId, code = s.SiteCode, name = s.SiteName, status = s.Status, lat = s.Latitude, lng = s.Longitude }).ToList()));
-        var mapEl = document.getElementById('sites-map');
-        var listEl = document.getElementById('sites-list');
-        if (!mapEl || typeof L === 'undefined') return;
-
-        var DEFAULT_LAT = 7.0707, DEFAULT_LNG = 125.6083, FOCUS_ZOOM = 15;
-        var selectedSiteId = null;
-        var markerBySiteId = new Map();
-        var markersLayer = L.layerGroup();
-
-        var map = L.map('sites-map').setView([DEFAULT_LAT, DEFAULT_LNG], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
-        markersLayer.addTo(map);
-
-        var sitesWithCoords = sites.filter(function(s) { return s.lat != null && s.lng != null; });
-        sitesWithCoords.forEach(function(s) {
-            var lat = Number(s.lat), lng = Number(s.lng);
-            var popupContent = '<strong>' + (s.name || '').replace(/</g, '&lt;') + '</strong>' + (s.code ? ' <span class="text-slate-500">(' + (s.code || '').replace(/</g, '&lt;') + ')</span>' : '');
-            
-            // Custom marker icon
-            var icon = L.divIcon({
-                className: 'monitoring-site-icon', // Use base class to remove default styles
-                html: '<div class="site-marker status-' + s.status + '"><div class="pin"></div><div class="pulse"></div></div>',
-                iconSize: [20, 20],
-                iconAnchor: [10, 20],
-                popupAnchor: [0, -20]
-            });
-
-            var marker = L.marker([lat, lng], { icon: icon }).bindPopup(popupContent);
-            marker._siteId = s.id;
-            marker.on('click', function() {
-                selectSite(s.id);
-            });
-            markersLayer.addLayer(marker);
-            markerBySiteId.set(String(s.id), marker);
-        });
-
-        if (sitesWithCoords.length > 0) {
-            var bounds = L.latLngBounds(sitesWithCoords.map(function(s) { return [Number(s.lat), Number(s.lng)]; }));
-            map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
-        }
-
-        function selectSite(siteId) {
-            selectedSiteId = siteId;
-            // Update list highlighting
-            if (listEl) {
-                listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
-                    var id = el.getAttribute('data-site-id');
-                    if (id === String(siteId)) {
-                        el.classList.add('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
-                        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                    } else {
-                        el.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
-                    }
+                            myLocBtn.disabled = false;
+                        },
+                        function () {
+                            alert('Could not get your location');
+                            myLocBtn.disabled = false;
+                        }
+                    );
                 });
             }
-            // Update marker styles (add 'selected' class)
-            markerBySiteId.forEach(function(m, id) {
-                var el = m.getElement();
-                if (el) {
-                    var inner = el.querySelector('.site-marker');
-                    if (inner) {
-                        if (id === String(siteId)) inner.classList.add('selected');
-                        else inner.classList.remove('selected');
-                    }
+        }
+
+        window.openAddSiteModal = function () {
+            var overlay = document.getElementById('addSiteModalOverlay');
+            var modal = document.getElementById('addSiteModal');
+            if (!overlay || !modal) return;
+            overlay.classList.remove('hidden');
+            setTimeout(function () {
+                overlay.classList.replace('opacity-0', 'opacity-100');
+                modal.classList.replace('scale-95', 'scale-100');
+            }, 10);
+            setTimeout(initAddSiteMap, 100);
+        };
+
+        window.closeAddSiteModal = function () {
+            var overlay = document.getElementById('addSiteModalOverlay');
+            var modal = document.getElementById('addSiteModal');
+            if (!overlay || !modal) return;
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            modal.classList.replace('scale-100', 'scale-95');
+            setTimeout(function () {
+                overlay.classList.add('hidden');
+                if (addSiteMapInstance) {
+                    addSiteMapInstance.remove();
+                    addSiteMapInstance = null;
+                    addSiteMarker = null;
                 }
-            });
-        }
+            }, 300);
+        };
 
-        if (listEl) {
-            listEl.querySelectorAll('.sites-list-item').forEach(function(el) {
-                el.addEventListener('click', function() {
-                    var siteId = el.getAttribute('data-site-id');
-                    var lat = el.getAttribute('data-lat'), lng = el.getAttribute('data-lng');
-                    selectSite(siteId);
-                    if (lat && lng) {
-                        var latNum = parseFloat(lat), lngNum = parseFloat(lng);
-                        map.flyTo([latNum, lngNum], FOCUS_ZOOM);
-                        var m = markerBySiteId.get(String(siteId));
-                        if (m) m.openPopup();
-                    }
+        function initSitesMapAndList() {
+            var sites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items.Select(s => new { id = s.SiteId, code = s.SiteCode, name = s.SiteName, status = s.Status, lat = s.Latitude, lng = s.Longitude }).ToList()));
+            var mapEl = document.getElementById('sites-map');
+            var listEl = document.getElementById('sites-list');
+            if (!mapEl || typeof L === 'undefined') return;
+
+            var DEFAULT_LAT = 7.0707, DEFAULT_LNG = 125.6083, FOCUS_ZOOM = 15;
+            var markerBySiteId = new Map();
+            var markersLayer = L.layerGroup();
+
+            mainSitesMap = L.map('sites-map').setView([DEFAULT_LAT, DEFAULT_LNG], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(mainSitesMap);
+            markersLayer.addTo(mainSitesMap);
+
+            var sitesWithCoords = sites.filter(function (s) { return s.lat != null && s.lng != null; });
+            sitesWithCoords.forEach(function (s) {
+                var lat = Number(s.lat), lng = Number(s.lng);
+                var popupContent = '<strong>' + (s.name || '').replace(/</g, '&lt;') + '</strong>' + (s.code ? ' <span class="text-slate-500">(' + (s.code || '').replace(/</g, '&lt;') + ')</span>' : '');
+
+                var icon = L.divIcon({
+                    className: 'monitoring-site-icon',
+                    html: '<div class="site-marker status-' + s.status + '"><div class="pin"></div><div class="pulse"></div></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 20],
+                    popupAnchor: [0, -20]
                 });
+
+                var marker = L.marker([lat, lng], { icon: icon }).bindPopup(popupContent);
+                marker.on('click', function () { selectSite(s.id); });
+                markersLayer.addLayer(marker);
+                markerBySiteId.set(String(s.id), marker);
             });
+
+            if (sitesWithCoords.length > 0) {
+                var bounds = L.latLngBounds(sitesWithCoords.map(function (s) { return [Number(s.lat), Number(s.lng)]; }));
+                mainSitesMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+            }
+            setTimeout(function () { if (mainSitesMap) mainSitesMap.invalidateSize(); }, 50);
+
+            function selectSite(siteId) {
+                if (listEl) {
+                    listEl.querySelectorAll('.sites-list-item').forEach(function (el) {
+                        var id = el.getAttribute('data-site-id');
+                        if (id === String(siteId)) {
+                            el.classList.add('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
+                            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        } else {
+                            el.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20', 'ring-1', 'ring-indigo-500/30');
+                        }
+                    });
+                }
+                markerBySiteId.forEach(function (m, id) {
+                    var el = m.getElement();
+                    if (!el) return;
+                    var inner = el.querySelector('.site-marker');
+                    if (!inner) return;
+                    if (id === String(siteId)) inner.classList.add('selected');
+                    else inner.classList.remove('selected');
+                });
+            }
+
+            if (listEl) {
+                listEl.querySelectorAll('.sites-list-item').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        var siteId = el.getAttribute('data-site-id');
+                        var lat = el.getAttribute('data-lat'), lng = el.getAttribute('data-lng');
+                        selectSite(siteId);
+                        if (lat && lng && mainSitesMap) {
+                            var latNum = parseFloat(lat), lngNum = parseFloat(lng);
+                            mainSitesMap.flyTo([latNum, lngNum], FOCUS_ZOOM);
+                            var m = markerBySiteId.get(String(siteId));
+                            if (m) m.openPopup();
+                        }
+                    });
+                });
+            }
         }
 
-        window.addEventListener('beforeunload', function() {
-            if (map) map.remove();
+        function initSitesPage() {
+            var content = document.getElementById('sites-content');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                var skeleton = document.getElementById('sites-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+
+                if (typeof L === 'undefined') {
+                    setTimeout(initSitesPage, 200);
+                    return;
+                }
+
+                var overlayEl = document.getElementById('addSiteModalOverlay');
+                if (overlayEl) {
+                    overlayEl.addEventListener('click', function (e) {
+                        if (e.target === this) window.closeAddSiteModal();
+                    });
+                }
+
+                initSitesMapAndList();
+                content.dataset.loaded = '1';
+            }, 300);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSitesPage);
+        } else {
+            initSitesPage();
+        }
+
+        window.addEventListener('beforeunload', function () {
+            if (mainSitesMap) mainSitesMap.remove();
+            if (addSiteMapInstance) addSiteMapInstance.remove();
         });
     })();
 </script>

@@ -27,7 +27,41 @@
     </div>
 }
 
-<div class="animate-in fade-in min-h-screen space-y-6 duration-700">
+<!-- Loading Skeleton -->
+<div id="expenses-skeleton" class="animate-pulse min-h-screen space-y-6 p-6">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <div class="h-8 w-52 rounded bg-slate-200 dark:bg-slate-700"></div>
+            <div class="mt-2 h-4 w-80 rounded bg-slate-100 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-10 w-32 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-3">
+        @for (var i = 0; i < 3; i++)
+        {
+            <div class="h-32 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+        }
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+        <div class="h-10 w-44 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+        <div class="h-10 w-44 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+        <div class="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="h-12 border-b border-slate-100 bg-slate-50/30 dark:border-slate-800 dark:bg-slate-800/20"></div>
+        <div class="space-y-3 p-5">
+            @for (var i = 0; i < 6; i++)
+            {
+                <div class="h-14 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+            }
+        </div>
+    </div>
+</div>
+
+<div id="expenses-content" class="hidden animate-in fade-in min-h-screen space-y-6 duration-700">
     
     <!-- Header -->
     <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -371,110 +405,121 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const toast = document.getElementById('toastAlert');
-        if (toast) {
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
+    (function () {
+        function initExpensesPage() {
+            const content = document.getElementById('expenses-content');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('expenses-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+
+                const toast = document.getElementById('toastAlert');
+                if (toast) {
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 500);
+                    }, 4000);
+                }
+
+                @if (ViewBag.PreFillPOId != null)
+                {
+                    <text>
+                    openCreateModal();
+                    document.getElementById('PurchaseOrderId').value = '@ViewBag.PreFillPOId';
+                    document.getElementById('SiteId').value = '@ViewBag.PreFillSiteId';
+                    document.getElementById('Amount').value = '@ViewBag.PreFillAmount';
+                    if ('@ViewBag.PreFillDate') {
+                        document.getElementById('Date').value = '@ViewBag.PreFillDate';
+                    }
+                    </text>
+                }
+            }, 300);
         }
-    });
 
-    function openSidePanel(expense) {
-        document.getElementById('panelAmount').innerText = expense.Amount.toLocaleString('en-US', { style: 'currency', currency: 'PHP' }); 
-        
-        const date = new Date(expense.Date);
-        document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-        
-        document.getElementById('panelSite').innerText = expense.Site ? expense.Site.SiteName : "—";
-        document.getElementById('panelPO').innerText = expense.PurchaseOrder ? expense.PurchaseOrder.OrderNumber : "—";
-        document.getElementById('panelRisk').innerText = expense.Risk ? expense.Risk.Title : "—";
+        window.openSidePanel = function (expense) {
+            document.getElementById('panelAmount').innerText = expense.Amount.toLocaleString('en-US', { style: 'currency', currency: 'PHP' });
 
-        const badge = document.getElementById('panelCategoryBadge');
-        badge.innerText = expense.Category || "Other";
+            const date = new Date(expense.Date);
+            document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
-        const receiptSection = document.getElementById('panelReceiptSection');
-        const receiptLink = document.getElementById('panelReceiptLink');
-        if (expense.AttachmentPath) {
-            receiptSection.classList.remove('hidden');
-            receiptLink.href = expense.AttachmentPath;
-        } else {
-            receiptSection.classList.add('hidden');
-        }
+            document.getElementById('panelSite').innerText = expense.Site ? expense.Site.SiteName : '—';
+            document.getElementById('panelPO').innerText = expense.PurchaseOrder ? expense.PurchaseOrder.OrderNumber : '—';
+            document.getElementById('panelRisk').innerText = expense.Risk ? expense.Risk.Title : '—';
 
-        // Setup Edit Button in Panel
-        const editBtn = document.getElementById('panelEditBtn');
-        editBtn.onclick = function() {
-            closeSidePanel();
-            openEditModal(expense);
+            const badge = document.getElementById('panelCategoryBadge');
+            badge.innerText = expense.Category || 'Other';
+
+            const receiptSection = document.getElementById('panelReceiptSection');
+            const receiptLink = document.getElementById('panelReceiptLink');
+            if (expense.AttachmentPath) {
+                receiptSection.classList.remove('hidden');
+                receiptLink.href = expense.AttachmentPath;
+            } else {
+                receiptSection.classList.add('hidden');
+            }
+
+            const editBtn = document.getElementById('panelEditBtn');
+            editBtn.onclick = function () {
+                closeSidePanel();
+                openEditModal(expense);
+            };
+
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            panel.classList.remove('translate-x-full');
         };
 
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        overlay.classList.remove('hidden');
-        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
-        panel.classList.remove('translate-x-full');
-    }
+        window.closeSidePanel = function () {
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            panel.classList.add('translate-x-full');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
 
-    function closeSidePanel() {
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        panel.classList.add('translate-x-full');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
+        window.openCreateModal = function () {
+            const form = document.getElementById('expenseForm');
+            form.reset();
+            form.action = '@Url.Action("Create", "Expenses", new { area = "Client" })';
+            document.getElementById('modalTitle').innerText = 'Record Expense';
+            document.getElementById('Date').valueAsDate = new Date();
 
-    // Modal Logic
-    function openCreateModal() {
-        const form = document.getElementById('expenseForm');
-        form.reset();
-        form.action = '@Url.Action("Create", "Expenses", new { area = "Client" })';
-        document.getElementById('modalTitle').innerText = 'Record Expense';
-        document.getElementById('Date').valueAsDate = new Date();
-        
-        const modal = document.getElementById('formModal');
-        modal.classList.remove('hidden');
-    }
+            const modal = document.getElementById('formModal');
+            modal.classList.remove('hidden');
+        };
 
-    function openEditModal(expense) {
-        const form = document.getElementById('expenseForm');
-        form.reset();
-        form.action = '@Url.Action("Edit", "Expenses", new { area = "Client" })/' + expense.ExpenseId;
-        document.getElementById('modalTitle').innerText = 'Edit Expense';
+        window.openEditModal = function (expense) {
+            const form = document.getElementById('expenseForm');
+            form.reset();
+            form.action = '@Url.Action("Edit", "Expenses", new { area = "Client" })/' + expense.ExpenseId;
+            document.getElementById('modalTitle').innerText = 'Edit Expense';
 
-        // Populate fields
-        document.getElementById('ExpenseId').value = expense.ExpenseId;
-        document.getElementById('SiteId').value = expense.SiteId;
-        document.getElementById('Amount').value = expense.Amount;
-        document.getElementById('Category').value = expense.Category;
-        document.getElementById('Date').value = expense.Date.split('T')[0]; // Format for date input
-        
-        if (expense.PurchaseOrderId) document.getElementById('PurchaseOrderId').value = expense.PurchaseOrderId;
-        if (expense.RiskId) document.getElementById('RiskId').value = expense.RiskId;
+            document.getElementById('ExpenseId').value = expense.ExpenseId;
+            document.getElementById('SiteId').value = expense.SiteId;
+            document.getElementById('Amount').value = expense.Amount;
+            document.getElementById('Category').value = expense.Category;
+            document.getElementById('Date').value = expense.Date.split('T')[0];
 
-        const modal = document.getElementById('formModal');
-        modal.classList.remove('hidden');
-    }
+            if (expense.PurchaseOrderId) document.getElementById('PurchaseOrderId').value = expense.PurchaseOrderId;
+            if (expense.RiskId) document.getElementById('RiskId').value = expense.RiskId;
 
-    function closeModal() {
-        document.getElementById('formModal').classList.add('hidden');
-    }
+            const modal = document.getElementById('formModal');
+            modal.classList.remove('hidden');
+        };
 
-    // Auto-open modal if pre-fill data exists (e.g. from PO)
-    @if (ViewBag.PreFillPOId != null)
-    {
-        <text>
-        document.addEventListener("DOMContentLoaded", function() {
-            openCreateModal();
-            // Pre-fill values
-            document.getElementById('PurchaseOrderId').value = '@ViewBag.PreFillPOId';
-            document.getElementById('SiteId').value = '@ViewBag.PreFillSiteId';
-            document.getElementById('Amount').value = '@ViewBag.PreFillAmount';
-            if ('@ViewBag.PreFillDate') {
-                document.getElementById('Date').value = '@ViewBag.PreFillDate';
-            }
-        });
-        </text>
-    }
+        window.closeModal = function () {
+            document.getElementById('formModal').classList.add('hidden');
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initExpensesPage);
+        } else {
+            initExpensesPage();
+        }
+    })();
 </script>

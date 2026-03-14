@@ -401,141 +401,135 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        setTimeout(function() {
-            const skeleton = document.getElementById('supplier-skeleton');
+    (function () {
+        function initSuppliersPage() {
             const content = document.getElementById('supplier-content');
-            
-            if(skeleton && content) {
-                skeleton.classList.add('hidden');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('supplier-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
                 content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+            }, 300);
+
+            const toast = document.getElementById('toastAlert');
+            if (toast) {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
             }
-        }, 300);
-
-        const toast = document.getElementById('toastAlert');
-        if (toast) {
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
         }
-    });
 
-    let currentSupplierId = null;
-    let isEditMode = false;
-
-    // Create Modal
-    function openCreateModal() {
-        const overlay = document.getElementById('createModalOverlay');
-        const modal = document.getElementById('createModal');
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-            overlay.classList.replace('opacity-0', 'opacity-100');
-            modal.classList.replace('scale-95', 'scale-100');
-        }, 10);
-    }
-
-    function closeCreateModal() {
-        const overlay = document.getElementById('createModalOverlay');
-        const modal = document.getElementById('createModal');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        modal.classList.replace('scale-100', 'scale-95');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
-
-    // Side Panel
-    function openSidePanel(supplier) {
-        currentSupplierId = supplier.SupplierId;
-        isEditMode = false;
-        
-        // Reset Edit/View state
-        document.getElementById('viewMode').classList.remove('hidden');
-        document.getElementById('editMode').classList.add('hidden');
-        document.getElementById('panelFooter').classList.remove('hidden');
-        const editBtn = document.getElementById('editBtn');
-        editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
-        editBtn.classList.add('text-slate-400');
-
-        // Populate View
-        document.getElementById('panelInitial').innerText = (supplier.Name || "??").substring(0, 2).toUpperCase();
-        document.getElementById('panelName').innerText = supplier.Name || "";
-        document.getElementById('panelCategory').innerText = supplier.Category || "Uncategorized";
-        document.getElementById('viewContact').innerText = supplier.ContactPerson || "—";
-        document.getElementById('viewEmail').innerText = supplier.Email || "—";
-        document.getElementById('viewPhone').innerText = supplier.Phone || "—";
-
-        // Populate Edit Form
-        document.getElementById('editId').value = supplier.SupplierId;
-        document.getElementById('editName').value = supplier.Name || "";
-        document.getElementById('editContact').value = supplier.ContactPerson || "";
-        document.getElementById('editCategory').value = supplier.Category || "Materials";
-        document.getElementById('editEmail').value = supplier.Email || "";
-        document.getElementById('editPhone').value = supplier.Phone || "";
-        
-        // Set Form Actions dynamically
-        const editAction = '@Url.Action("Edit", "Suppliers", new { area = "Client" })?id=' + supplier.SupplierId;
-        document.getElementById('editMode').action = editAction;
-        
-        // Delete setup
-        document.getElementById('deleteName').innerText = supplier.Name || "";
-        const deleteAction = '@Url.Action("Delete", "Suppliers", new { area = "Client" })/' + supplier.SupplierId;
-        document.getElementById('deleteForm').action = deleteAction;
-
-        // Animate open
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        overlay.classList.remove('hidden');
-        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
-        panel.classList.remove('translate-x-full');
-    }
-
-    function closeSidePanel() {
-        const panel = document.getElementById('sidePanel');
-        const overlay = document.getElementById('sidePanelOverlay');
-        panel.classList.add('translate-x-full');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
-
-    function toggleEditMode() {
-        isEditMode = !isEditMode;
-        const viewDiv = document.getElementById('viewMode');
-        const editForm = document.getElementById('editMode');
-        const footer = document.getElementById('panelFooter');
-        const editBtn = document.getElementById('editBtn');
-
-        if (isEditMode) {
-            viewDiv.classList.add('hidden');
-            footer.classList.add('hidden');
-            editForm.classList.remove('hidden');
-            editBtn.classList.add('bg-indigo-50', 'text-indigo-600');
-            editBtn.classList.remove('text-slate-400');
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSuppliersPage);
         } else {
-            viewDiv.classList.remove('hidden');
-            footer.classList.remove('hidden');
-            editForm.classList.add('hidden');
+            initSuppliersPage();
+        }
+
+        let isEditMode = false;
+
+        window.openCreateModal = function () {
+            const overlay = document.getElementById('createModalOverlay');
+            const modal = document.getElementById('createModal');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.replace('opacity-0', 'opacity-100');
+                modal.classList.replace('scale-95', 'scale-100');
+            }, 10);
+        };
+
+        window.closeCreateModal = function () {
+            const overlay = document.getElementById('createModalOverlay');
+            const modal = document.getElementById('createModal');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            modal.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        window.openSidePanel = function (supplier) {
+            isEditMode = false;
+
+            document.getElementById('viewMode').classList.remove('hidden');
+            document.getElementById('editMode').classList.add('hidden');
+            document.getElementById('panelFooter').classList.remove('hidden');
+            const editBtn = document.getElementById('editBtn');
             editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
             editBtn.classList.add('text-slate-400');
-        }
-    }
 
-    // Delete Modal
-    function openDeleteModal() {
-        // Close side panel first (optional, but cleaner)
-        // closeSidePanel(); 
-        
-        const overlay = document.getElementById('deleteModalOverlay');
-        const modal = document.getElementById('deleteModal');
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-            overlay.classList.replace('opacity-0', 'opacity-100');
-            modal.classList.add('scale-100'); // Optional pop effect if class exists
-        }, 10);
-    }
+            document.getElementById('panelInitial').innerText = (supplier.Name || '??').substring(0, 2).toUpperCase();
+            document.getElementById('panelName').innerText = supplier.Name || '';
+            document.getElementById('panelCategory').innerText = supplier.Category || 'Uncategorized';
+            document.getElementById('viewContact').innerText = supplier.ContactPerson || '—';
+            document.getElementById('viewEmail').innerText = supplier.Email || '—';
+            document.getElementById('viewPhone').innerText = supplier.Phone || '—';
 
-    function closeDeleteModal() {
-        const overlay = document.getElementById('deleteModalOverlay');
-        overlay.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
+            document.getElementById('editId').value = supplier.SupplierId;
+            document.getElementById('editName').value = supplier.Name || '';
+            document.getElementById('editContact').value = supplier.ContactPerson || '';
+            document.getElementById('editCategory').value = supplier.Category || 'Materials';
+            document.getElementById('editEmail').value = supplier.Email || '';
+            document.getElementById('editPhone').value = supplier.Phone || '';
+
+            const editAction = '@Url.Action("Edit", "Suppliers", new { area = "Client" })?id=' + supplier.SupplierId;
+            document.getElementById('editMode').action = editAction;
+
+            document.getElementById('deleteName').innerText = supplier.Name || '';
+            const deleteAction = '@Url.Action("Delete", "Suppliers", new { area = "Client" })/' + supplier.SupplierId;
+            document.getElementById('deleteForm').action = deleteAction;
+
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            panel.classList.remove('translate-x-full');
+        };
+
+        window.closeSidePanel = function () {
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            panel.classList.add('translate-x-full');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        window.toggleEditMode = function () {
+            isEditMode = !isEditMode;
+            const viewDiv = document.getElementById('viewMode');
+            const editForm = document.getElementById('editMode');
+            const footer = document.getElementById('panelFooter');
+            const editBtn = document.getElementById('editBtn');
+
+            if (isEditMode) {
+                viewDiv.classList.add('hidden');
+                footer.classList.add('hidden');
+                editForm.classList.remove('hidden');
+                editBtn.classList.add('bg-indigo-50', 'text-indigo-600');
+                editBtn.classList.remove('text-slate-400');
+            } else {
+                viewDiv.classList.remove('hidden');
+                footer.classList.remove('hidden');
+                editForm.classList.add('hidden');
+                editBtn.classList.remove('bg-indigo-50', 'text-indigo-600');
+                editBtn.classList.add('text-slate-400');
+            }
+        };
+
+        window.openDeleteModal = function () {
+            const overlay = document.getElementById('deleteModalOverlay');
+            const modal = document.getElementById('deleteModal');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.replace('opacity-0', 'opacity-100');
+                modal.classList.add('scale-100');
+            }, 10);
+        };
+
+        window.closeDeleteModal = function () {
+            const overlay = document.getElementById('deleteModalOverlay');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+    })();
 </script>

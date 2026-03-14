@@ -272,26 +272,34 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        setTimeout(function() {
-            const skeleton = document.getElementById('po-skeleton');
+    (function () {
+        function initPurchaseOrdersPage() {
             const content = document.getElementById('po-content');
-            if(skeleton && content) {
-                skeleton.classList.add('hidden');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('po-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
                 content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+            }, 300);
+
+            const toast = document.getElementById('toastAlert');
+            if (toast) {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
             }
-        }, 300);
-
-        const toast = document.getElementById('toastAlert');
-        if (toast) {
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
         }
-    });
 
-    function openSidePanel(po) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPurchaseOrdersPage);
+        } else {
+            initPurchaseOrdersPage();
+        }
+
+        window.openSidePanel = function (po) {
         // Populate Panel
         document.getElementById('panelOrderNumber').innerText = po.OrderNumber;
         document.getElementById('panelSite').innerText = po.Site ? po.Site.SiteName : "—";
@@ -331,13 +339,14 @@
         overlay.classList.remove('hidden');
         setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
         panel.classList.remove('translate-x-full');
-    }
+        };
 
-    function closeSidePanel() {
+        window.closeSidePanel = function () {
         const panel = document.getElementById('sidePanel');
         const overlay = document.getElementById('sidePanelOverlay');
         panel.classList.add('translate-x-full');
         overlay.classList.replace('opacity-100', 'opacity-0');
         setTimeout(() => overlay.classList.add('hidden'), 300);
-    }
+        };
+    })();
 </script>

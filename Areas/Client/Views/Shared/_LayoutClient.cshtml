@@ -349,48 +349,25 @@
                             </div>
                         </div>
 
-                        <!-- Operations Accordion -->
                         <div class="pt-4">
-                            <button type="button"
-                                    class="sidebar-nav-item nav-item sb-text focus-ring w-full flex items-center gap-3 rounded-xl px-4 py-2.5 border border-transparent sentro-nav-inactive dark:border-transparent"
-                                    onclick="toggleAccordion('opsAccordion')"
-                                    aria-controls="opsAccordion"
-                                    aria-expanded="false"
-                                    data-acc-btn="opsAccordion">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                                <span class="sidebar-label sb-section whitespace-nowrap flex-1 text-left sentro-text-secondary">Operations</span>
-                                <svg id="opsChevron" class="w-4 h-4 shrink-0 transition-transform sidebar-label" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-
-                            <div id="opsAccordion" class="accordion-panel mt-1 space-y-1 pl-2">
-                                <a data-nav href="@Url.Action("Index", "Archive", new { area = "Client" })"
-                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Archive")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <span class="sidebar-label">Archive</span>
-                                </a>
-
-                                <a data-nav href="@Url.Action("Index", "Audit", new { area = "Client" })"
-                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Audit")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <span class="sidebar-label">Audit</span>
-                                </a>
-                            </div>
-
                             <a data-nav href="@Url.Action("Index", "Employees", new { area = "Client" })"
-                               class="mt-1 sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Employees")">
+                               class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Employees")">
                                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M8 7a4 4 0 108 0 4 4 0 00-8 0zm13 14v-2a4 4 0 00-3-3.87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                                 <span class="sidebar-label">Employee</span>
                             </a>
+                        </div>
+
+                        <div class="pt-4">
+                            <a data-nav href="@Url.Action("Index", "Archive", new { area = "Client" })"
+                               class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Archive")">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span class="sidebar-label">Archive</span>
+                            </a>
+                        </div>
 
                         <!-- Supplier & Procurement Accordion -->
                         <div class="pt-4">
@@ -451,7 +428,6 @@
                                 </a>
                             </div>
                         </div>
-                        </div>
 
                         <!-- Intelligence Accordion -->
                         <div class="pt-4">
@@ -486,23 +462,17 @@
                                     </svg>
                                     <span class="sidebar-label">Site Identity</span>
                                 </a>
-                                <a data-nav href="@Url.Action("Map", "Projects", new { area = "Client" })"
-                                    class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                    <span class="sidebar-label">Geolocation Hub</span>
-                                </a>
-
-                                <a data-nav href="@Url.Action("Weather", "Projects", new { area = "Client" })"
-                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Weather")">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
-                                    </svg>
-                                    <span class="sidebar-label">Site Weather</span>
-                                </a>
                             </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <a data-nav href="@Url.Action("Index", "Audit", new { area = "Client" })"
+                               class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Audit")">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span class="sidebar-label">Audit</span>
+                            </a>
                         </div>
                     }
                 </nav>
@@ -850,7 +820,7 @@
                 rm: pathStartsWith(p, '/client/risks') || pathStartsWith(p, '/client/mitigation') || pathStartsWith(p, '/client/incidents') || pathStartsWith(p, '/client/riskanalytics'),
                 ops: pathStartsWith(p, '/client/archive') || pathStartsWith(p, '/client/audit') || pathStartsWith(p, '/client/employees'),
                 sp: pathStartsWith(p, '/client/supplier') || pathStartsWith(p, '/client/suppliers') || pathStartsWith(p, '/client/purchaseorders') || pathStartsWith(p, '/client/budget') || pathStartsWith(p, '/client/expenses'),
-                intel: pathStartsWith(p, '/client/reports') || pathStartsWith(p, '/client/sites') || pathStartsWith(p, '/client/projects') || pathStartsWith(p, '/client/weather')
+                intel: pathStartsWith(p, '/client/reports') || pathStartsWith(p, '/client/sites')
             };
         }
 
@@ -920,8 +890,15 @@
                     targetPath.startsWith('/client/risks/monitoring') ||
                     targetPath.startsWith('/client/incidents') ||
                     targetPath.startsWith('/client/riskanalytics') ||
+                    targetPath.startsWith('/client/reports') ||
+                    targetPath.startsWith('/client/sites') ||
                     targetPath.startsWith('/client/archive') ||
                     targetPath.startsWith('/client/audit') ||
+                    targetPath.startsWith('/client/supplier') ||
+                    targetPath.startsWith('/client/suppliers') ||
+                    targetPath.startsWith('/client/purchaseorders') ||
+                    targetPath.startsWith('/client/budget') ||
+                    targetPath.startsWith('/client/expenses') ||
                     targetPath.startsWith('/client/employees')
                 );
                 if (spinner && useOverlaySpinner) spinner.classList.remove('hidden');
