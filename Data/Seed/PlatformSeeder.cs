@@ -17,12 +17,26 @@ public static class PlatformSeeder
 
         var plans = new[]
         {
-            new Plan { Code = "Basic", DisplayName = "Basic", AmountCentavos = 4900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 1 },
-            new Plan { Code = "Professional", DisplayName = "Professional", AmountCentavos = 14900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 2 },
-            new Plan { Code = "Enterprise", DisplayName = "Enterprise", AmountCentavos = 39900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 3 },
+            new Plan { Code = "Basic", DisplayName = "Basic", AmountCentavos = 4900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 1, MaxAdminSeats = 10 },
+            new Plan { Code = "Professional", DisplayName = "Professional", AmountCentavos = 14900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 2, MaxAdminSeats = 50 },
+            new Plan { Code = "Enterprise", DisplayName = "Enterprise", AmountCentavos = 39900, Currency = "PHP", BillingInterval = "month", IsActive = true, SortOrder = 3, MaxAdminSeats = 200 },
         };
 
-        db.Plans.AddRange(plans);
+        foreach (var p in plans)
+        {
+            var existing = await db.Plans.FirstOrDefaultAsync(x => x.Code == p.Code);
+            if (existing == null)
+            {
+                db.Plans.Add(p);
+            }
+            else
+            {
+                existing.MaxAdminSeats = p.MaxAdminSeats;
+                existing.AmountCentavos = p.AmountCentavos;
+                existing.DisplayName = p.DisplayName;
+            }
+        }
+        
         await db.SaveChangesAsync();
     }
 }

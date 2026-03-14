@@ -117,6 +117,34 @@ namespace Web_Sentro.Areas.Client.Controllers
             // For now: keep orgId = 0 for vendor-created users (as your current logic does).
             var orgId = IsVendor() ? 0 : me.OrganizationId;
 
+            // Enforce Plan Limits (Max Seats)
+            if (!IsVendor() && orgId > 0)
+            {
+                var org = await _platformDb.Organizations.AsNoTracking()
+                    .FirstOrDefaultAsync(o => o.OrganizationId == orgId);
+
+                if (org != null)
+                {
+                    // Find the plan by code (PlanName)
+                    var plan = await _platformDb.Plans.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Code == org.PlanName);
+
+                    if (plan != null && plan.MaxAdminSeats.HasValue)
+                    {
+                        // Count active users in this org
+                        var currentCount = await _platformDb.Users
+                            .CountAsync(u => u.OrganizationId == orgId && u.IsActive);
+
+                        if (currentCount >= plan.MaxAdminSeats.Value)
+                        {
+                            TempData["Alert"] = $"Plan limit reached. Your current plan ({plan.DisplayName}) allows a maximum of {plan.MaxAdminSeats.Value} active users. Please upgrade your plan to add more employees.";
+                            TempData["AlertType"] = "error";
+                            return RedirectToAction(nameof(Index));
+                        }
+                    }
+                }
+            }
+
             var user = new ApplicationUser
             {
                 UserName = email,
@@ -293,10 +321,41 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!await CanTouchUserAsync(target))
                 return Forbid();
 
-            target.IsActive = !(
+            bool intendedActive = !(
                 !string.IsNullOrWhiteSpace(newStatus) &&
                 newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
             );
+
+            if (intendedActive && !target.IsActive)
+            {
+                // We are activating an inactive user. Check Plan Limits.
+                if (!IsVendor() && target.OrganizationId > 0)
+                {
+                    var org = await _platformDb.Organizations.AsNoTracking()
+                        .FirstOrDefaultAsync(o => o.OrganizationId == target.OrganizationId);
+
+                    if (org != null)
+                    {
+                        var plan = await _platformDb.Plans.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.Code == org.PlanName);
+
+                        if (plan != null && plan.MaxAdminSeats.HasValue)
+                        {
+                            var currentCount = await _platformDb.Users
+                                .CountAsync(u => u.OrganizationId == target.OrganizationId && u.IsActive);
+
+                            if (currentCount >= plan.MaxAdminSeats.Value)
+                            {
+                                TempData["Alert"] = $"Plan limit reached. Cannot activate user. Your plan ({plan.DisplayName}) allows max {plan.MaxAdminSeats.Value} active users.";
+                                TempData["AlertType"] = "error";
+                                return RedirectToAction(nameof(Index));
+                            }
+                        }
+                    }
+                }
+            }
+
+            target.IsActive = intendedActive;
 
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)

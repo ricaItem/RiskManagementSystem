@@ -8,6 +8,9 @@ namespace WEB_Sentro.Data.Entities
         public int SubscriptionId { get; set; }
         public int OrganizationId { get; set; }
         public int PlanId { get; set; }
+        public int? PendingPlanId { get; set; }
+        public string? PendingChangeType { get; set; }
+        public DateTime? PendingChangeEffectiveAt { get; set; }
         public string Status { get; set; } = "Active";
         public DateTime CurrentPeriodStart { get; set; }
         public DateTime CurrentPeriodEnd { get; set; }
@@ -18,5 +21,6 @@ namespace WEB_Sentro.Data.Entities
 
         public Organization Organization { get; set; } = null!;
         public Plan Plan { get; set; } = null!;
+        public Plan? PendingPlan { get; set; }
     }
 }

@@ -42,12 +42,33 @@ namespace WEB_Sentro.Data
 
                 e.Property(x => x.OrgCode).IsRequired().HasMaxLength(30);
                 e.Property(x => x.OrgName).IsRequired().HasMaxLength(200);
+                e.Property(x => x.DisplayName).HasMaxLength(200);
+                e.Property(x => x.LogoPath).HasMaxLength(300);
+                e.Property(x => x.Website).HasMaxLength(200);
                 e.Property(x => x.AddressLine).HasMaxLength(200);
                 e.Property(x => x.City).HasMaxLength(80);
                 e.Property(x => x.Province).HasMaxLength(80);
                 e.Property(x => x.Country).HasMaxLength(80);
                 e.Property(x => x.PrimaryEmail).HasMaxLength(256);
                 e.Property(x => x.PrimaryPhone).HasMaxLength(50);
+                e.Property(x => x.TaxId).HasMaxLength(60);
+
+                e.Property(x => x.LegalAddressLine1).HasMaxLength(200);
+                e.Property(x => x.LegalAddressLine2).HasMaxLength(200);
+                e.Property(x => x.LegalCity).HasMaxLength(80);
+                e.Property(x => x.LegalProvince).HasMaxLength(80);
+                e.Property(x => x.LegalPostalCode).HasMaxLength(20);
+                e.Property(x => x.LegalCountry).HasMaxLength(80);
+
+                e.Property(x => x.BillingAddressLine1).HasMaxLength(200);
+                e.Property(x => x.BillingAddressLine2).HasMaxLength(200);
+                e.Property(x => x.BillingCity).HasMaxLength(80);
+                e.Property(x => x.BillingProvince).HasMaxLength(80);
+                e.Property(x => x.BillingPostalCode).HasMaxLength(20);
+                e.Property(x => x.BillingCountry).HasMaxLength(80);
+                e.Property(x => x.BillingContactName).HasMaxLength(120);
+                e.Property(x => x.BillingEmail).HasMaxLength(256);
+                e.Property(x => x.BillingPhone).HasMaxLength(50);
                 e.Property(x => x.PlanName).IsRequired().HasMaxLength(50).HasDefaultValue("Basic");
                 e.Property(x => x.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active");
                 e.Property(x => x.CreatedByUserId).HasMaxLength(450);
@@ -71,10 +92,13 @@ namespace WEB_Sentro.Data
             {
                 e.HasKey(x => x.SubscriptionId);
                 e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+                e.Property(x => x.PendingChangeType).HasMaxLength(20);
                 e.HasIndex(x => x.OrganizationId);
                 e.HasIndex(x => x.PlanId);
+                e.HasIndex(x => x.PendingPlanId);
                 e.HasOne(x => x.Organization).WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Plan).WithMany().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.PendingPlan).WithMany().HasForeignKey(x => x.PendingPlanId).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<Invoice>(e =>

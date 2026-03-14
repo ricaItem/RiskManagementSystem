@@ -18,10 +18,18 @@ namespace WEB_Sentro.Services
 
         public Task<string?> GetTenantConnectionStringAsync(int orgId)
         {
+            // 1. Try to find a specific connection string for this org (e.g. "Tenant_Org_5")
             var key = $"Tenant_Org_{orgId}";
             var cs = _configuration.GetConnectionString(key);
 
-            if (string.IsNullOrWhiteSpace(cs) && orgId <= 0)
+            // 2. If not found, fall back to the shared "TenantDb" connection string
+            if (string.IsNullOrWhiteSpace(cs))
+            {
+                cs = _configuration.GetConnectionString("TenantDb");
+            }
+
+            // 3. Last resort fallback (useful for local dev if TenantDb isn't set but Tenant_Org_1 is)
+            if (string.IsNullOrWhiteSpace(cs))
             {
                 cs = _configuration.GetConnectionString("Tenant_Org_1");
             }

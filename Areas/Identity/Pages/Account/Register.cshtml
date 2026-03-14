@@ -1270,7 +1270,7 @@
                     return;
                 }
                 const atIndex = paymentEmail ? paymentEmail.indexOf(String.fromCharCode(64)) : -1;
-                if (paymentEmail && (atIndex <= 0 || atIndex === paymentEmail.length - 1 || paymentEmail.indexOf('.') < atIndex + 2)) {
+                if (paymentEmail && (atIndex <= 0 || atIndex === paymentEmail.length - 1 || paymentEmail.indexOf('.', atIndex) < atIndex + 2)) {
                     showToast('Please enter a valid billing email address.');
                     return;
                 }
