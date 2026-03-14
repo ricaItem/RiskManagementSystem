@@ -64,18 +64,18 @@
         </div>
         <div class="md:col-span-3 lg:col-span-2">
             <select name="plan" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option value="">All Plans</option>
-                <option value="Enterprise" @(Model.PlanFilter == "Enterprise" ? "selected" : "")>Enterprise</option>
-                <option value="Professional" @(Model.PlanFilter == "Professional" ? "selected" : "")>Professional</option>
-                <option value="Basic" @(Model.PlanFilter == "Basic" ? "selected" : "")>Basic</option>
+                <!option value="">All Plans</!option>
+                <!option value="Enterprise" @(Model.PlanFilter == "Enterprise" ? "selected" : "")>Enterprise</!option>
+                <!option value="Professional" @(Model.PlanFilter == "Professional" ? "selected" : "")>Professional</!option>
+                <!option value="Basic" @(Model.PlanFilter == "Basic" ? "selected" : "")>Basic</!option>
             </select>
         </div>
         <div class="md:col-span-3 lg:col-span-2">
             <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option value="">All Status</option>
-                <option value="Active" @(Model.StatusFilter == "Active" ? "selected" : "")>Active</option>
-                <option value="Pending" @(Model.StatusFilter == "Pending" ? "selected" : "")>Pending</option>
-                <option value="Suspended" @(Model.StatusFilter == "Suspended" ? "selected" : "")>Suspended</option>
+                <!option value="">All Status</!option>
+                <!option value="Active" @(Model.StatusFilter == "Active" ? "selected" : "")>Active</!option>
+                <!option value="Pending" @(Model.StatusFilter == "Pending" ? "selected" : "")>Pending</!option>
+                <!option value="Suspended" @(Model.StatusFilter == "Suspended" ? "selected" : "")>Suspended</!option>
             </select>
         </div>
         <div class="md:col-span-12 flex justify-end">
@@ -146,7 +146,6 @@
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                     </a>
                                     <form asp-action="ToggleStatus" asp-route-id="@org.OrganizationId" method="post" class="inline">
-                                        @Html.AntiForgeryToken()
                                         <button type="submit" class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-@(org.Status == "Active" ? "rose" : "emerald")-500 hover:text-white transition-all dark:bg-slate-800" title="@(org.Status == "Active" ? "Suspend" : "Activate")">
                                             @if (org.Status == "Active") {
                                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -186,7 +185,6 @@
             </div>
 
             <form asp-action="Create" method="post" class="space-y-6">
-                @Html.AntiForgeryToken()
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-4">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400">Organization Info</label>

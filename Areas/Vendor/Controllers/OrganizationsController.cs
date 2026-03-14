@@ -135,6 +135,29 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             _db.Organizations.Add(org);
             await _db.SaveChangesAsync();
 
+            // Create Subscription (Manual Provisioning - Default 1 Year)
+            var planEntity = await _db.Plans.FirstOrDefaultAsync(p => p.Code == model.PlanName);
+            if (planEntity == null)
+            {
+                // Fallback to Basic if plan not found
+                planEntity = await _db.Plans.FirstOrDefaultAsync(p => p.Code == "Basic");
+            }
+
+            if (planEntity != null)
+            {
+                var sub = new Subscription
+                {
+                    OrganizationId = org.OrganizationId,
+                    PlanId = planEntity.PlanId,
+                    Status = "Active",
+                    CurrentPeriodStart = DateTime.UtcNow,
+                    CurrentPeriodEnd = DateTime.UtcNow.AddYears(1),
+                    StartedAt = DateTime.UtcNow
+                };
+                _db.Subscriptions.Add(sub);
+                await _db.SaveChangesAsync();
+            }
+
             // Create Admin User
             var user = new ApplicationUser();
 
