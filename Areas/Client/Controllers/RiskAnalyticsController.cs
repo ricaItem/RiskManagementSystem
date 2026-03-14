@@ -32,6 +32,13 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         public async Task<IActionResult> Index(int? dateRange, int? siteId, string? category, string? severity, string? source, string? status)
         {
+            ViewData["Title"] = "Risk Analytics";
+            return View();
+        }
+
+        public async Task<IActionResult> IndexContent(int? dateRange, int? siteId, string? category, string? severity, string? source, string? status)
+        {
+            ViewData["Title"] = "Risk Analytics";
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var effectiveOrgId = orgId ?? 1;
             var dateRangeDays = dateRange switch { 7 => 7, 90 => 90, _ => 30 };
@@ -44,7 +51,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 source,
                 status,
                 HttpContext.RequestAborted);
-            return View(model);
+            return PartialView("_IndexContent", model);
         }
 
         [HttpGet]

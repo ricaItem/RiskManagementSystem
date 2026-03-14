@@ -471,8 +471,22 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MonitoringContent(int? siteId = null)
+        {
+            ViewData["Title"] = "Risk Monitoring Hub";
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
-            if (!orgId.HasValue) return View(new RiskMonitoringViewModel());
+            if (!orgId.HasValue)
+            {
+                ViewData["EnableSimulation"] = _env.IsDevelopment() || string.Equals(_config["Monitoring:EnableSimulation"], "true", StringComparison.OrdinalIgnoreCase);
+                return PartialView("_MonitoringContent", new RiskMonitoringViewModel());
+            }
 
             await _procurementOverdueService.CheckOverduePurchaseOrdersAsync(orgId.Value, user.Id, HttpContext.RequestAborted);
 
@@ -568,7 +582,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 ForecastChips = forecastChips
             };
             ViewData["EnableSimulation"] = _env.IsDevelopment() || string.Equals(_config["Monitoring:EnableSimulation"], "true", StringComparison.OrdinalIgnoreCase);
-            return View(model);
+            return PartialView("_MonitoringContent", model);
         }
 
         [HttpPost]

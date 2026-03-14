@@ -75,33 +75,50 @@
 
 <div id="archive-content" class="hidden"></div>
 
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('@Url.Action("ArchiveContent", "Archive", new { area = "Client" })')
-                .then(response => response.text())
-                .then(html => {
-                    const contentDiv = document.getElementById('archive-content');
-                    contentDiv.innerHTML = html;
+<script>
+    function initArchivePage() {
+        const contentDiv = document.getElementById('archive-content');
+        if (!contentDiv || contentDiv.dataset.loaded === '1') return;
 
-                    // Extract and execute scripts from the fetched HTML
-                    const scripts = contentDiv.getElementsByTagName('script');
-                    for (let i = 0; i < scripts.length; i++) {
-                        const script = document.createElement('script');
-                        if (scripts[i].src) {
-                            script.src = scripts[i].src;
-                        } else {
-                            script.text = scripts[i].innerText;
-                        }
-                        document.body.appendChild(script);
+        fetch('@Url.Action("ArchiveContent", "Archive", new { area = "Client" })')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`ArchiveContent request failed: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                contentDiv.innerHTML = html;
+
+                const scripts = Array.from(contentDiv.getElementsByTagName('script'));
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    if (oldScript.src) {
+                        newScript.src = oldScript.src;
+                    } else {
+                        newScript.text = oldScript.innerText;
                     }
-
-                    document.getElementById('archive-skeleton').classList.add('hidden');
-                    contentDiv.classList.remove('hidden');
-                })
-                .catch(error => {
-                    console.error('Error fetching archive content:', error);
+                    document.body.appendChild(newScript);
                 });
-        });
-    </script>
-}
+
+                const skeleton = document.getElementById('archive-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.dataset.loaded = '1';
+            })
+            .catch(error => {
+                console.error('Error fetching archive content:', error);
+                const skeleton = document.getElementById('archive-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load Archive content. Please refresh the page.</div>';
+                contentDiv.dataset.loaded = '1';
+            });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initArchivePage);
+    } else {
+        initArchivePage();
+    }
+</script>

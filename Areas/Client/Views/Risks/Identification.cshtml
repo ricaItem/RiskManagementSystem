@@ -89,17 +89,24 @@
 
 <div id="risk-identification-content" class="hidden"></div>
 
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+<script>
+        function initRiskIdentificationPage() {
+            const contentDiv = document.getElementById('risk-identification-content');
+            if (!contentDiv) return;
+            if (contentDiv.dataset.loaded === '1') return;
+
             // Build the query string from the current URL to preserve filters
             const searchParams = new URLSearchParams(window.location.search);
             const url = '@Url.Action("IdentificationContent", "Risks", new { area = "Client" })' + '?' + searchParams.toString();
 
             fetch(url)
-                .then(response => response.text())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`IdentificationContent request failed: ${response.status}`);
+                    }
+                    return response.text();
+                })
                 .then(html => {
-                    const contentDiv = document.getElementById('risk-identification-content');
                     contentDiv.innerHTML = html;
 
                     // Execute scripts from the fetched HTML
@@ -133,6 +140,7 @@
 
                     document.getElementById('risk-identification-skeleton').classList.add('hidden');
                     contentDiv.classList.remove('hidden');
+                    contentDiv.dataset.loaded = '1';
 
                     // Pre-fill form if needed
                     @if (ViewBag.AutoOpenNewRiskModal == true)
@@ -157,7 +165,19 @@
                 })
                 .catch(error => {
                     console.error('Error fetching risk identification content:', error);
+                    const skeleton = document.getElementById('risk-identification-skeleton');
+                    if (skeleton) skeleton.classList.add('hidden');
+                    if (contentDiv) {
+                        contentDiv.classList.remove('hidden');
+                        contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load Risk Identification content. Please refresh the page.</div>';
+                        contentDiv.dataset.loaded = '1';
+                    }
                 });
-        });
-    </script>
-}
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initRiskIdentificationPage);
+        } else {
+            initRiskIdentificationPage();
+        }
+</script>

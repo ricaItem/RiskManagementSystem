@@ -7,6 +7,19 @@
 <style>
     #registerSubmit { background-color: #0B1F33 !important; color: #fff !important; }
     .dark #registerSubmit { background-color: #fff !important; color: #0f172a !important; }
+    @@keyframes auth-spin {
+        to { transform: rotate(360deg); }
+    }
+    .auth-btn-spinner {
+        display: inline-block;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 9999px;
+        animation: auth-spin .8s linear infinite;
+    }
+    .auth-btn-spinner.hidden {
+        display: none;
+    }
 </style>
 <section class="relative min-h-screen overflow-hidden bg-[#F9FAFB] dark:bg-slate-950">
     <div class="relative flex min-h-screen items-center justify-center px-4 py-12">
@@ -50,11 +63,29 @@
 
                     <div>
                         <label asp-for="Input.Password" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
-                        <input asp-for="Input.Password" autocomplete="new-password" aria-required="true" type="password"
-                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
-                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
-                                      dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                               placeholder="Create a password" />
+                        <div class="relative mt-1">
+                            <input asp-for="Input.Password" id="registerPassword" autocomplete="new-password" aria-required="true" type="password"
+                                   class="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 pr-11 text-sm text-slate-900
+                                          focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
+                                          dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                                   placeholder="Create a password" />
+                            <button type="button"
+                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    data-toggle-password
+                                    data-target="registerPassword"
+                                    aria-label="Show password">
+                                <svg data-eye-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg data-eye-closed xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.6 10.6a2 2 0 102.8 2.8" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.9 4.8A10.6 10.6 0 0112 4.5c6 0 9.75 7.5 9.75 7.5a18.9 18.9 0 01-4.1 5.1" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.2 6.2A18.9 18.9 0 002.25 12s3.75 7.5 9.75 7.5c1.8 0 3.4-.5 4.8-1.3" />
+                                </svg>
+                            </button>
+                        </div>
                         <span asp-validation-for="Input.Password" class="mt-1 block text-xs text-rose-600"></span>
 
                         <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -64,18 +95,37 @@
 
                     <div>
                         <label asp-for="Input.ConfirmPassword" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
-                        <input asp-for="Input.ConfirmPassword" autocomplete="new-password" aria-required="true" type="password"
-                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
-                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
-                                      dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                               placeholder="Confirm password" />
+                        <div class="relative mt-1">
+                            <input asp-for="Input.ConfirmPassword" id="registerConfirmPassword" autocomplete="new-password" aria-required="true" type="password"
+                                   class="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 pr-11 text-sm text-slate-900
+                                          focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
+                                          dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                                   placeholder="Confirm password" />
+                            <button type="button"
+                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    data-toggle-password
+                                    data-target="registerConfirmPassword"
+                                    aria-label="Show password">
+                                <svg data-eye-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg data-eye-closed xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.6 10.6a2 2 0 102.8 2.8" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.9 4.8A10.6 10.6 0 0112 4.5c6 0 9.75 7.5 9.75 7.5a18.9 18.9 0 01-4.1 5.1" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.2 6.2A18.9 18.9 0 002.25 12s3.75 7.5 9.75 7.5c1.8 0 3.4-.5 4.8-1.3" />
+                                </svg>
+                            </button>
+                        </div>
                         <span asp-validation-for="Input.ConfirmPassword" class="mt-1 block text-xs text-rose-600"></span>
                     </div>
 
                     <button id="registerSubmit" type="submit"
                             style="background-color: #0B1F33; color: #fff;"
-                            class="w-full rounded-xl py-3 text-sm font-semibold shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                        Create account
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 dark:focus:ring-offset-slate-900">
+                        <span id="register-submit-spinner" class="auth-btn-spinner hidden h-4 w-4" aria-hidden="true"></span>
+                        <span id="register-submit-text">Create account</span>
                     </button>
 
                     <p class="text-center text-sm text-slate-600 dark:text-slate-300">
@@ -128,4 +178,50 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            function togglePassword(button) {
+                const targetId = button.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (!input) return;
+
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+
+                const openIcon = button.querySelector('[data-eye-open]');
+                const closedIcon = button.querySelector('[data-eye-closed]');
+                if (openIcon && closedIcon) {
+                    openIcon.classList.toggle('hidden', show);
+                    closedIcon.classList.toggle('hidden', !show);
+                }
+
+                button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-toggle-password]');
+                if (!btn) return;
+                togglePassword(btn);
+            });
+
+            const registerForm = document.getElementById('registerForm');
+            const registerButton = document.getElementById('registerSubmit');
+            const registerSpinner = document.getElementById('register-submit-spinner');
+            const registerText = document.getElementById('register-submit-text');
+
+            if (registerForm && registerButton) {
+                registerForm.addEventListener('submit', function (e) {
+                    if (registerForm.dataset.submitting === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    registerForm.dataset.submitting = '1';
+                    registerButton.disabled = true;
+                    if (registerSpinner) registerSpinner.classList.remove('hidden');
+                    if (registerText) registerText.textContent = 'Creating account...';
+                });
+            }
+        })();
+    </script>
 }

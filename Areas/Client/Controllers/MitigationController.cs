@@ -38,6 +38,22 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
+            ViewBag.Filter = string.Equals(filter, "archived", StringComparison.OrdinalIgnoreCase) ? "archived" : "active";
+            return View();
+        }
+
+        public async Task<IActionResult> IndexContent(string filter = "active")
+        {
+            ViewData["Title"] = "Mitigation Planning";
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+
+            var model = await BuildIndexModelAsync(user, filter);
+            return PartialView("_IndexContent", model);
+        }
+
+        private async Task<List<MitigationRiskCardViewModel>> BuildIndexModelAsync(ApplicationUser user, string filter)
+        {
             var orgId = user.OrganizationId;
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -125,7 +141,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             }).ToList();
 
             ViewBag.Filter = isArchived ? "archived" : "active";
-            return View(model);
+            return model;
         }
 
         public async Task<IActionResult> Board(int riskId)

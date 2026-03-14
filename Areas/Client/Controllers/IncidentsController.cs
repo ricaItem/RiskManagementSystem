@@ -34,8 +34,21 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         public async Task<IActionResult> Index(int? siteId, string? status, DateTime? startDate, DateTime? endDate)
         {
+            ViewData["Title"] = "HSE Incidents";
             var orgId = await GetMyOrgIdAsync();
-            if (!orgId.HasValue) return View(new List<IncidentViewModel>());
+            if (!orgId.HasValue) return View();
+
+            return View();
+        }
+
+        public async Task<IActionResult> IndexContent(int? siteId, string? status, DateTime? startDate, DateTime? endDate)
+        {
+            ViewData["Title"] = "HSE Incidents";
+            var orgId = await GetMyOrgIdAsync();
+            if (!orgId.HasValue)
+            {
+                return PartialView("_IndexContent", new List<IncidentViewModel>());
+            }
 
             var incidents = await _incidentService.GetIncidentsAsync(orgId.Value, siteId, status, startDate, endDate);
 
@@ -63,7 +76,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
 
-            return View(model);
+            return PartialView("_IndexContent", model);
         }
 
         public async Task<IActionResult> Details(int id)

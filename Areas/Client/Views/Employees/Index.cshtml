@@ -408,17 +408,23 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    function initEmployeesPage() {
+        const content = document.getElementById('employee-content');
+        if (!content || content.dataset.loaded === '1') return;
+
         setTimeout(function() {
             const skeleton = document.getElementById('employee-skeleton');
-            const content = document.getElementById('employee-content');
-            
-            if(skeleton && content) {
-                skeleton.classList.add('hidden');
-                content.classList.remove('hidden');
-            }
+            if (skeleton) skeleton.classList.add('hidden');
+            content.classList.remove('hidden');
+            content.dataset.loaded = '1';
         }, 600);
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEmployeesPage);
+    } else {
+        initEmployeesPage();
+    }
 
     let isEditMode = false;
     const searchInput = document.getElementById('empSearch');

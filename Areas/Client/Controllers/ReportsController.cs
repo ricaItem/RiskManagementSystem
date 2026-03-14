@@ -29,9 +29,11 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public async Task<IActionResult> Index(string range = "30", string site = "All")
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null || user.OrganizationId <= 0) return Unauthorized();
+            if (user == null) return Challenge();
 
-            await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
+            var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
             var model = new ReportsViewModel
             {

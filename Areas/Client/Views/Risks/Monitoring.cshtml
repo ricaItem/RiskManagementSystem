@@ -1,546 +1,89 @@
-@model Web_Sentro.Areas.Client.Models.RiskMonitoringViewModel
 @{
     Layout = "_LayoutClient";
-    var criticalCount = Model.HighPriorityRisks.Count(r => r.Priority == "Critical");
-    var pendingCount = Model.HighPriorityRisks.Count(r => r.Priority != "Critical");
-    var p = Model.SiteRiskPosture;
-    var today = DateTime.UtcNow.Date;
-    var todayActiveAlerts = Model.SystemAlerts
-        .Where(a => a.Status == "Active" && a.TriggeredAt.Date == today)
-        .ToList();
 }
 
-<div class="animate-in fade-in min-h-screen space-y-8 duration-1000 relative">
-    <!-- Map + Site modal: true modal (backdrop covers sidebar), 2-col layout -->
-    <div id="monitoring-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-        <div id="monitoring-modal-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]" aria-hidden="true"></div>
-        <div class="relative z-[110] w-full max-w-7xl grid grid-cols-1 md:grid-cols-[1fr_320px] gap-4 items-stretch my-auto max-h-[90vh]">
-            <div id="monitoring-modal-map-slot" class="min-h-[60vh] rounded-xl overflow-hidden border border-slate-200/70 bg-white dark:border-slate-800 dark:bg-slate-900/40 shadow-xl relative">
-                <!-- Map is moved here by JS when modal opens -->
-            </div>
-            <div id="monitoring-site-panel" class="w-80 max-w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto flex flex-col">
-                <div class="p-6 flex-1">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 id="drawer-title" class="text-lg font-black text-slate-900 dark:text-white">Site Details</h2>
-                        <button type="button" id="monitoring-modal-close" onclick="closeDrawer()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus-ring-2 focus-ring-indigo-500 rounded p-1" aria-label="Close">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                    <div id="drawer-loading" class="hidden animate-pulse space-y-4">
-                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
-                        <div class="h-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
-                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
-                    </div>
-                    <div id="drawer-content" class="space-y-6">
-                        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
-                            <h4 class="text-xs font-black uppercase text-slate-500 dark:text-slate-400 mb-3">Current Conditions</h4>
-                            <div class="flex items-center gap-2 mb-2">
-                                <span id="drawer-last-sync" class="text-[10px] text-slate-500 dark:text-slate-400">Last sync: --</span>
-                                <span id="drawer-api-health" class="flex items-center gap-1 text-[10px] font-bold hidden"><span class="drawer-health-dot w-2 h-2 rounded-full"></span><span class="drawer-health-label">--</span></span>
-                            </div>
-                            <div class="flex items-end justify-between">
-                                <div>
-                                    <div id="drawer-temp" class="text-3xl font-black text-slate-900 dark:text-white">--°C</div>
-                                    <div id="drawer-condition" class="text-sm font-medium text-slate-600 dark:text-slate-300">--</div>
-                                </div>
-                                <div class="text-right">
-                                    <div id="drawer-wind" class="text-sm font-bold text-slate-700 dark:text-slate-300">-- km/h</div>
-                                    <div class="text-[10px] text-slate-500 uppercase">Wind</div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                <h5 class="text-[10px] font-bold uppercase text-slate-400 mb-2">6h Trend (wind / rain vs threshold)</h5>
-                                <svg id="drawer-trend-chart" viewBox="0 0 300 60" class="w-full h-16 stroke-2 fill-none" aria-hidden="true"></svg>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Thresholds: Wind 40 km/h, Rain 10 mm</p>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between gap-3 mb-2">
-                                <h4 class="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Active Alerts</h4>
-                                <label class="flex items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                    <input type="checkbox" id="drawer-show-resolved" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600" />
-                                    <span>Show resolved</span>
-                                </label>
-                            </div>
-                            <div class="mb-3 inline-flex rounded-full bg-slate-100 p-1 text-[10px] font-black tracking-[0.16em] text-slate-500 dark:bg-slate-800/80 dark:text-slate-300">
-                                <button type="button" data-alert-filter="today" class="drawer-filter-tab rounded-full px-3 py-1 bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white">Today</button>
-                                <button type="button" data-alert-filter="7d" class="drawer-filter-tab rounded-full px-3 py-1 text-slate-500 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/60 dark:hover:text-white">7 days</button>
-                                <button type="button" data-alert-filter="all" class="drawer-filter-tab rounded-full px-3 py-1 text-slate-500 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/60 dark:hover:text-white">All</button>
-                            </div>
-                            <div id="drawer-alerts-list" class="space-y-2"></div>
-                        </div>
-                        <div class="pt-4 flex flex-col gap-2">
-                            <form id="drawer-sync-form" method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client" })">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="siteId" id="drawer-site-id" />
-                                <button type="submit" class="w-full rounded-xl bg-slate-900 py-3 text-xs font-black uppercase tracking-widest text-white shadow-sm hover:bg-indigo-600 dark:bg-white dark:text-slate-900">Sync Now</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div id="monitoring-skeleton" class="animate-pulse min-h-screen space-y-8 p-6">
+    <div class="space-y-2">
+        <div class="h-8 w-64 rounded bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-4 w-80 rounded bg-slate-100 dark:bg-slate-800"></div>
     </div>
 
-    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Risk Monitoring
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time site conditions and risk assessment</p>
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="flex flex-wrap items-center gap-6">
+            <div class="h-10 w-56 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+            <div class="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
+            <div class="space-y-2">
+                <div class="h-3 w-20 rounded bg-slate-100 dark:bg-slate-800"></div>
+                <div class="h-7 w-24 rounded bg-slate-200 dark:bg-slate-700"></div>
+            </div>
+            <div class="h-12 w-64 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
         </div>
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-4 flex items-center gap-3">
-            @if (Model.LastSyncUtc.HasValue)
-            {
-                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Synced @Model.LastSyncUtc.Value.ToLocalTime().ToString("t")</span>
-            }
-            <span class="flex items-center gap-1.5" title="@(Model.ApiHealthOk ? "API Connected" : "API Limited")">
-                <span class="flex h-2.5 w-2.5 @(Model.ApiHealthOk ? "bg-emerald-500" : "bg-amber-500") rounded-full @(Model.ApiHealthOk ? "" : "animate-pulse")"></span>
-            </span>
-        </div>
-        <div class="relative z-10 flex flex-wrap items-center gap-8">
-            <div>
-                <label class="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">Site Selection</label>
-                <form method="get" action="@Url.Action("Monitoring", "Risks", new { area = "Client" })" id="site-form" class="inline">
-                    <select name="siteId" id="monitoring-site-select" class="rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium px-3 py-2 pr-8 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" onchange="this.form.submit()">
-                        @foreach (var s in Model.Sites)
-                        {       
-                            <option value="@s.SiteId" selected="@(s.SiteId == Model.SelectedSiteId)">@s.Name@(s.SiteName != null ? $" ({s.SiteName})" : "")</option>
-                        }
-                    </select>
-                </form>
-            </div>
-            <div class="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-            <div>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Temperature</p>
-                <p class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.Temperature.ToString("F1")°C</p>
-            </div>
-            <div class="flex items-center gap-4 rounded-lg bg-slate-50 px-4 py-2 dark:bg-slate-800/50">
-                <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Condition</p>
-                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">@Model.WeatherCondition</p>
-                </div>
-                <div class="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Wind Speed</p>
-                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">@Model.WindSpeed.ToString("F1") km/h</p>
-                </div>
-            </div>
-        </div>
-        @if (Model.ForecastChips.Any())
-        {
-            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
-                @foreach (var chip in Model.ForecastChips)
-                {
-                    <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800/50 dark:text-slate-400 dark:ring-slate-500/20">@chip.Label: @chip.Value</span>
-                }
-            </div>
-        }
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div id="monitoring-map-original-slot" class="lg:col-span-8 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900/40 h-[600px] relative">
-            <div id="monitoring-map" class="w-full h-full" data-lat="@Model.Latitude" data-lon="@Model.Longitude" data-selected-site-id="@Model.SelectedSiteId" data-sites="@(System.Text.Json.JsonSerializer.Serialize(Model.Sites.Select(s => new { siteId = s.SiteId, latitude = s.Latitude, longitude = s.Longitude })))"></div>
-            <div class="absolute top-4 left-4 flex flex-col gap-2">
-                <div class="rounded-lg border border-slate-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/80 flex flex-wrap gap-3 items-center" id="layer-toggles" role="group" aria-label="Map layers">
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-sites" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"> Sites</label>
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-geofence" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"> Geofence</label>
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"><input type="checkbox" id="layer-risks" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"> Risks</label>
-                </div>
-            </div>
-        </div>
-
+        <div class="lg:col-span-8 h-[420px] rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40"></div>
         <div class="space-y-6 lg:col-span-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-                <h3 class="mb-4 text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                        </svg>
-                    </span>
-                    System Alerts
-                </h3>
-                <div class="space-y-3">
-                    @if (todayActiveAlerts.Any())
-                    {
-                        @foreach (var a in todayActiveAlerts)
-                        {
-                            var isCritical = a.Severity == "Critical";
-                            var isHigh = a.Severity == "High";
-                            var isResolved = a.Status == "Resolved";
-                            var canAck = a.Status == "Active" && !a.AcknowledgedAtUtc.HasValue;
-                            
-                            <div class="rounded-lg border @(isCritical ? "border-rose-200 bg-rose-50 dark:border-rose-900/30 dark:bg-rose-900/10" : isHigh ? "border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/10" : "border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10") p-4 @(isResolved ? "opacity-75" : "")">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <p class="text-sm font-semibold @(isCritical ? "text-rose-700 dark:text-rose-400" : isHigh ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400")">@a.RuleName</p>
-                                            @if (isResolved)
-                                            {
-                                                <span class="inline-flex items-center rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-inset ring-slate-900/5 dark:bg-slate-900/40 dark:text-slate-400 dark:ring-slate-100/10">Resolved</span>
-                                            }
-                                        </div>
-                                        <p class="text-xs text-slate-600 dark:text-slate-300">@a.MeasuredValues</p>
-                                        <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">@a.TriggeredAt.ToLocalTime().ToString("t")</p>
-                                    </div>
-                                    <div class="@(isCritical ? "text-rose-500" : isHigh ? "text-amber-500" : "text-emerald-500")">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                @if (canAck || a.RiskId.HasValue)
-                                {
-                                    <div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-black/5 dark:border-white/5">
-                                        @if (canAck)
-                                        {
-                                            <form method="post" action="@Url.Action("AcknowledgeAlert", "Risks", new { area = "Client" })" class="inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="alertId" value="@a.AlertId" />
-                                                <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
-                                                <button type="submit" class="text-xs font-medium text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Acknowledge</button>
-                                            </form>
-                                            <span class="text-slate-300 dark:text-slate-700">|</span>
-                                            <form method="post" action="@Url.Action("ResolveAlert", "Risks", new { area = "Client" })" class="inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="alertId" value="@a.AlertId" />
-                                                <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
-                                                <button type="submit" class="text-xs font-medium text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors">Resolve</button>
-                                            </form>
-                                        }
-                                        @if (a.RiskId.HasValue)
-                                        {
-                                            <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = a.RiskId })" class="ml-auto text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">View Risk &rarr;</a>
-                                        }
-                                        else
-                                        {
-                                             <form method="post" action="@Url.Action("CreateMitigationPlanFromAlert", "Risks", new { area = "Client" })" class="ml-auto inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="alertId" value="@a.AlertId" />
-                                                <button type="submit" class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">Plan &rarr;</button>
-                                            </form>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="text-center py-8">
-                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">All clear</p>
-                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">No active system alerts for today.</p>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            @if (Model.SelectedSiteId != 0)
-            {
-                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-                    <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client" })" id="monitoring-sync-form" class="block">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="siteId" value="@Model.SelectedSiteId" />
-                        <button type="submit" class="group flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-sm font-medium text-white shadow hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 dark:focus:ring-offset-slate-900 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 text-emerald-400 transition-transform group-hover:rotate-180 dark:text-emerald-600">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            Sync Site Data
-                        </button>
-                    </form>
-                    
-                    <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Auto-sync (10m)</span>
-                        <div class="flex items-center bg-slate-100 rounded-lg p-0.5 dark:bg-slate-800" id="auto-sync-control">
-                             <button type="button" id="auto-sync-off" class="px-3 py-1 text-[10px] font-semibold rounded-md transition-all shadow-sm bg-white text-slate-700 dark:bg-slate-700 dark:text-slate-200">OFF</button>
-                             <button type="button" id="auto-sync-on" class="px-3 py-1 text-[10px] font-semibold rounded-md transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">ON</button>
-                        </div>
-                    </div>
-                </div>
-
-                @if (ViewData["EnableSimulation"] as bool? == true)
-                {
-                    <div class="grid grid-cols-2 gap-2">
-                        <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client", siteId = Model.SelectedSiteId, simulate = "wind" })">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="w-full rounded-lg border border-amber-200 bg-amber-50 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-400 dark:hover:bg-amber-900/20">Simulate Wind</button>
-                        </form>
-                        <form method="post" action="@Url.Action("MonitoringSync", "Risks", new { area = "Client", siteId = Model.SelectedSiteId, simulate = "storm" })">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="w-full rounded-lg border border-rose-200 bg-rose-50 py-2 text-xs font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/30 dark:bg-rose-900/10 dark:text-rose-400 dark:hover:bg-rose-900/20">Simulate Storm</button>
-                        </form>
-                    </div>
-                }
-            }
+            <div class="h-72 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40"></div>
+            <div class="h-32 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40"></div>
         </div>
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/20">
-            <div>
-                <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">Active Risk Feed</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time status · Weather & Operational</p>
-            </div>
-            <div class="flex gap-2">
-                @if (criticalCount > 0)
-                {
-                    <span class="inline-flex items-center rounded-md bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20">
-                        <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-                        @criticalCount Critical
-                    </span>
-                }
-                @if (pendingCount > 0)
-                {
-                    <span class="inline-flex items-center rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-600 ring-1 ring-inset ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20">
-                        <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                        @pendingCount Pending
-                    </span>
-                }
-            </div>
-        </div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800">
-            @foreach (var risk in Model.HighPriorityRisks)
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="h-14 border-b border-slate-100 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-800/20"></div>
+        <div class="space-y-3 p-5">
+            @for (var i = 0; i < 4; i++)
             {
-                <div class="group relative flex items-start gap-4 p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                    <div class="flex-shrink-0 relative">
-                        <div class="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-100/10">
-                            @(risk.Category?.Contains("Weather") == true ? "⛈️" : risk.Category == "Operational" ? "🏗️" : "📉")
-                        </div>
-                        @if (risk.Priority == "Critical")
-                        {
-                            <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>
-                            </span>
-                        }
-                    </div>
-                    
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-4 mb-1">
-                            <h4 class="text-sm font-medium text-slate-900 dark:text-white truncate pr-4">@risk.Title</h4>
-                            <span class="text-xs text-slate-400 whitespace-nowrap hidden sm:block">
-                                @(risk.DateLogged != default ? risk.DateLogged.ToLocalTime().ToString("MMM dd, HH:mm") : "")
-                            </span>
-                        </div>
-                        
-                        <div class="flex flex-wrap items-center gap-2 mb-2">
-                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                @risk.Category
-                            </span>
-                            @if (risk.SourceType == "WeatherAPI")
-                            {
-                                <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
-                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                    Auto
-                                </span>
-                            }
-                        </div>
-
-                        <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span class="truncate">@(risk.SiteName ?? risk.ProjectSite ?? "Unknown Site")</span>
-                            </div>
-                            <div class="hidden sm:flex items-center gap-1.5">
-                                <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                                <span class="truncate">By @risk.DetectedBy</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center self-center pl-2">
-                        <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = risk.Id })" 
-                           class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-400 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
-                           title="View Risk Details">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
+                <div class="h-16 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
             }
-        </div>
-        <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 dark:bg-slate-800/30 dark:border-slate-800">
-            <a href="@Url.Action("Identification", "Risks", new { area = "Client" })" class="group flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">
-                View Full Risk Archive
-                <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-            </a>
         </div>
     </div>
 </div>
 
-<style>
-    .monitoring-marker-pulse { animation: monitoring-pulse 1.5s ease-out; }
-    @@keyframes monitoring-pulse {
-        0% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.4); opacity: 0.9; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    @@media (prefers-reduced-motion: reduce) {
-        .monitoring-marker-pulse { animation: none; }
+<div id="monitoring-content" class="hidden"></div>
+
+<script>
+    function initMonitoringPage() {
+        const contentDiv = document.getElementById('monitoring-content');
+        if (!contentDiv || contentDiv.dataset.loaded === '1') return;
+
+        const searchParams = new URLSearchParams(window.location.search);
+        const url = '@Url.Action("MonitoringContent", "Risks", new { area = "Client" })' + '?' + searchParams.toString();
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error(`MonitoringContent request failed: ${response.status}`);
+                return response.text();
+            })
+            .then(html => {
+                contentDiv.innerHTML = html;
+
+                const scripts = Array.from(contentDiv.getElementsByTagName('script'));
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    if (oldScript.src) newScript.src = oldScript.src;
+                    else newScript.text = oldScript.innerHTML;
+                    document.body.appendChild(newScript);
+                });
+
+                const skeleton = document.getElementById('monitoring-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.dataset.loaded = '1';
+            })
+            .catch(error => {
+                console.error('Error loading monitoring content:', error);
+                const skeleton = document.getElementById('monitoring-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load Risk Monitoring. Please refresh the page.</div>';
+                contentDiv.dataset.loaded = '1';
+            });
     }
 
-    /* Leaflet monitoring site markers: bouncing pin + radio-wave pulse */
-    .monitoring-site-icon {
-        pointer-events: auto;
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMonitoringPage);
+    } else {
+        initMonitoringPage();
     }
-    .site-marker {
-        position: relative;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transform-origin: center bottom;
-    }
-    .site-marker .pin {
-        position: relative;
-        z-index: 10;
-        width: 14px;
-        height: 14px;
-        border-radius: 9999px;
-        background: #10b981;
-        border: 2px solid #ffffff;
-        box-shadow: 0 6px 10px rgba(15, 23, 42, 0.45);
-    }
-    .site-marker .pulse {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 18px;
-        height: 18px;
-        border-radius: 9999px;
-        border: 2px solid currentColor;
-        transform: translate(-50%, -50%) scale(0.6);
-        opacity: 0;
-        pointer-events: none;
-        z-index: 1;
-    }
-    .site-marker .pulse::before,
-    .site-marker .pulse::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        border: inherit;
-        transform: scale(0.6);
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* Severity colors */
-    .site-marker.severity-critical {
-        color: #ef4444;
-    }
-    .site-marker.severity-critical .pin {
-        background: #ef4444;
-        box-shadow: 0 8px 18px rgba(248, 113, 113, 0.65);
-    }
-    .site-marker.severity-high {
-        color: #f59e0b;
-    }
-    .site-marker.severity-high .pin {
-        background: #f59e0b;
-        box-shadow: 0 7px 14px rgba(245, 158, 11, 0.55);
-    }
-    .site-marker.severity-medium {
-        color: #22c55e;
-    }
-    .site-marker.severity-medium .pin {
-        background: #22c55e;
-    }
-    .site-marker.severity-normal {
-        color: #10b981;
-    }
-
-    /* Bounce animation */
-    @@keyframes site-marker-bounce-soft {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
-    }
-    @@keyframes site-marker-bounce-strong {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-
-    /* Pulse / radio-wave animation */
-    @@keyframes site-marker-pulse {
-        0% {
-            transform: translate(-50%, -50%) scale(0.6);
-            opacity: 0.55;
-        }
-        70% {
-            opacity: 0.08;
-        }
-        100% {
-            transform: translate(-50%, -50%) scale(2.4);
-            opacity: 0;
-        }
-    }
-
-    /* Apply animations by severity + has-alerts */
-    .site-marker.has-alerts.severity-normal .pin {
-        animation: site-marker-bounce-soft 1.8s ease-in-out infinite;
-    }
-    .site-marker.has-alerts.severity-medium .pin {
-        animation: site-marker-bounce-soft 1.6s ease-in-out infinite;
-    }
-    .site-marker.has-alerts.severity-high .pin {
-        animation: site-marker-bounce-strong 1.4s ease-in-out infinite;
-    }
-    .site-marker.has-alerts.severity-critical .pin {
-        animation: site-marker-bounce-strong 1.1s ease-in-out infinite;
-    }
-
-    .site-marker.has-alerts.severity-medium .pulse,
-    .site-marker.has-alerts.severity-high .pulse {
-        animation: site-marker-pulse 2s ease-out infinite;
-    }
-    .site-marker.has-alerts.severity-medium .pulse::before,
-    .site-marker.has-alerts.severity-high .pulse::before {
-        animation: site-marker-pulse 2.4s ease-out infinite;
-        animation-delay: 0.4s;
-    }
-    .site-marker.has-alerts.severity-medium .pulse::after {
-        display: none;
-    }
-
-    .site-marker.has-alerts.severity-critical .pulse {
-        animation: site-marker-pulse 1.6s ease-out infinite;
-    }
-    .site-marker.has-alerts.severity-critical .pulse::before {
-        animation: site-marker-pulse 1.8s ease-out infinite;
-        animation-delay: 0.35s;
-    }
-    .site-marker.has-alerts.severity-critical .pulse::after {
-        animation: site-marker-pulse 2s ease-out infinite;
-        animation-delay: 0.7s;
-    }
-
-    @@media (prefers-reduced-motion: reduce) {
-        .site-marker.has-alerts .pin,
-        .site-marker.has-alerts .pulse,
-        .site-marker.has-alerts .pulse::before,
-        .site-marker.has-alerts .pulse::after {
-            animation: none !important;
-        }
-        .site-marker.severity-critical .pulse,
-        .site-marker.severity-critical .pulse::before,
-        .site-marker.severity-critical .pulse::after {
-            opacity: 0.35;
-            transform: translate(-50%, -50%) scale(1.2);
-        }
-    }
-</style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="~/js/monitoring.js" asp-append-version="true"></script>
+</script>

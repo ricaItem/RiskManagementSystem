@@ -134,105 +134,135 @@
     <div id="audit-content"></div>
 </div>
 
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadAuditContent();
-
-            // Bind events
-            let searchTimeout;
-            document.getElementById('logSearch').addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => loadAuditContent(1), 500); // Debounce
-            });
-
-            document.getElementById('severityFilter').addEventListener('change', () => loadAuditContent(1));
-            document.getElementById('dateFilter').addEventListener('change', () => loadAuditContent(1));
-        });
-
+<script>
+    (function () {
         function loadAuditContent(page = 1) {
-            const search = document.getElementById('logSearch').value;
-            const severity = document.getElementById('severityFilter').value;
-            const date = document.getElementById('dateFilter').value; // Usually YYYY-MM-DD
+            const searchInput = document.getElementById('logSearch');
+            const severityInput = document.getElementById('severityFilter');
+            const dateInput = document.getElementById('dateFilter');
+            const contentDiv = document.getElementById('audit-content');
+            const skeleton = document.getElementById('audit-skeleton');
+            const mainContainer = document.getElementById('main-container');
 
-            // Construct URL params
+            if (!searchInput || !severityInput || !dateInput || !contentDiv || !skeleton || !mainContainer) return;
+
+            const search = searchInput.value;
+            const severity = severityInput.value;
+            const date = dateInput.value;
+
             const params = new URLSearchParams({
                 area: 'Client',
                 page: page,
                 pageSize: 10
             });
+
             if (search) params.append('search', search);
             if (severity) params.append('severity', severity);
-            
-            // Handle date filter (assuming logic in controller handles null/empty)
-            // Note: Controller expects 'from' and 'to', or logic uses default.
-            // If date filter is present, we might want to set 'from' to that date and 'to' to that date + 1 day
+
             if (date) {
                 params.append('from', date);
-                // Simple logic: if user picks a date, show logs for that day
-                // The controller logic handles filtering >= from && < to
-                // So we need to compute 'to' as date + 1 day
                 const d = new Date(date);
                 d.setDate(d.getDate() + 1);
-                params.append('to', d.toISOString().split('T')[0]); 
+                params.append('to', d.toISOString().split('T')[0]);
             }
 
             const url = '@Url.Action("AuditContent", "Audit", new { area = "Client" })?' + params.toString();
 
             fetch(url)
-                .then(response => response.text())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`AuditContent request failed: ${response.status}`);
+                    }
+                    return response.text();
+                })
                 .then(html => {
-                    const contentDiv = document.getElementById('audit-content');
                     contentDiv.innerHTML = html;
 
-                    // Hide skeleton, show main
-                    document.getElementById('audit-skeleton').classList.add('hidden');
-                    document.getElementById('main-container').classList.remove('hidden');
+                    skeleton.classList.add('hidden');
+                    mainContainer.classList.remove('hidden');
 
-                    // Convert timestamps to local time
                     document.querySelectorAll('.local-time').forEach(el => {
                         const utc = el.getAttribute('data-utc');
-                        if (utc) {
-                            const date = new Date(utc);
-                            el.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        }
+                        if (!utc) return;
+                        const localDate = new Date(utc);
+                        el.innerText = localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     });
 
                     document.querySelectorAll('.local-date').forEach(el => {
                         const utc = el.getAttribute('data-utc');
-                        if (utc) {
-                            const date = new Date(utc);
-                            el.innerText = date.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
-                        }
+                        if (!utc) return;
+                        const localDate = new Date(utc);
+                        el.innerText = localDate.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
                     });
 
-                    // Extract and execute scripts from the fetched HTML if any (though we moved most logic here)
-                    const scripts = contentDiv.getElementsByTagName('script');
-                    for (let i = 0; i < scripts.length; i++) {
+                    const scripts = Array.from(contentDiv.getElementsByTagName('script'));
+                    scripts.forEach(oldScript => {
                         const script = document.createElement('script');
-                        if (scripts[i].src) {
-                            script.src = scripts[i].src;
+                        if (oldScript.src) {
+                            script.src = oldScript.src;
                         } else {
-                            script.text = scripts[i].innerText;
+                            script.text = oldScript.innerText;
                         }
                         document.body.appendChild(script);
-                    }
+                    });
                 })
                 .catch(error => {
                     console.error('Error fetching audit content:', error);
+                    skeleton.classList.add('hidden');
+                    mainContainer.classList.remove('hidden');
+                    contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load Audit content. Please refresh the page.</div>';
                 });
         }
 
-        function resetLogs() {
-            document.getElementById('logSearch').value = "";
-            document.getElementById('severityFilter').value = "";
-            document.getElementById('dateFilter').value = "";
+        function initAuditPage() {
+            const mainContainer = document.getElementById('main-container');
+            if (!mainContainer || mainContainer.dataset.auditInitDone === '1') return;
+
+            mainContainer.dataset.auditInitDone = '1';
+
+            let searchTimeout;
+            const searchInput = document.getElementById('logSearch');
+            const severityInput = document.getElementById('severityFilter');
+            const dateInput = document.getElementById('dateFilter');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => loadAuditContent(1), 500);
+                });
+            }
+
+            if (severityInput) {
+                severityInput.addEventListener('change', () => loadAuditContent(1));
+            }
+
+            if (dateInput) {
+                dateInput.addEventListener('change', () => loadAuditContent(1));
+            }
+
             loadAuditContent(1);
         }
 
-        // Global function for pagination to call
-        window.changePage = function(page) {
+        window.resetLogs = function () {
+            const searchInput = document.getElementById('logSearch');
+            const severityInput = document.getElementById('severityFilter');
+            const dateInput = document.getElementById('dateFilter');
+
+            if (searchInput) searchInput.value = '';
+            if (severityInput) severityInput.value = '';
+            if (dateInput) dateInput.value = '';
+
+            loadAuditContent(1);
+        };
+
+        window.changePage = function (page) {
             loadAuditContent(page);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAuditPage);
+        } else {
+            initAuditPage();
         }
-    </script>
-}
+    })();
+</script>

@@ -229,9 +229,12 @@
             </button>
 
             <div class="p-6 h-full flex flex-col overflow-hidden">
-                <div class="flex items-center justify-center mb-10 shrink-0 px-2 h-16">
-                    <img src="~/images/logoo.png" alt="Logo" class="logo-img h-12 w-auto object-contain dark:brightness-0 dark:invert dark:opacity-90" />
+                <div class="flex items-center justify-center gap-2 shrink-0 px-2 h-16">
+                    <img src="~/images/logo1.png" alt="Sentro logo icon" class="logo-img h-10 w-auto object-contain" />
+                    <span class="sidebar-label text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Sentro</span>
                 </div>
+
+                <hr class="mb-8 mt-4 border-t border-slate-100 dark:border-slate-800" />
 
                 <nav class="space-y-1 pb-4 overflow-y-auto flex-1 custom-scrollbar">
 
@@ -483,8 +486,8 @@
                                     </svg>
                                     <span class="sidebar-label">Site Identity</span>
                                 </a>
-                                <a data-nav href="/Client/Projects/Map"
-                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
+                                <a data-nav href="@Url.Action("Map", "Projects", new { area = "Client" })"
+                                    class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Map")">
                                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -492,8 +495,8 @@
                                     <span class="sidebar-label">Geolocation Hub</span>
                                 </a>
 
-                                <a data-nav href="/Client/Weather"
-                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Weather")">
+                                <a data-nav href="@Url.Action("Weather", "Projects", new { area = "Client" })"
+                                   class="sidebar-nav-item nav-item sb-text focus-ring flex items-center gap-3 rounded-xl px-4 py-2.5 border @IsActive("/Client/Projects/Weather")">
                                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
                                     </svg>
@@ -533,7 +536,7 @@
                         </svg>
                     </button>
                     <div class="text-xs font-normal sentro-text-secondary truncate">
-                        <span class="sentro-text-secondary">@(User.IsInRole("Employee") ? "Employee" : "Client") Portal</span> / <span class="sentro-text-primary dark:text-slate-200 font-medium">@ViewData["Title"]</span>
+                        <span class="sentro-text-secondary">@(User.IsInRole("Employee") ? "Employee" : "Client") Portal</span> / <span id="pageTitleHeader" class="sentro-text-primary dark:text-slate-200 font-medium">@ViewData["Title"]</span>
                     </div>
                 </div>
 
@@ -608,7 +611,7 @@
                 <p class="mt-2 text-sm font-normal text-slate-500 dark:text-slate-400">Are you sure you want to end your session?</p>
             </div>
             <div class="mt-8 flex flex-col gap-3">
-                <button onclick="confirmLogout()" class="w-full rounded-2xl bg-rose-500 py-4 text-xs font-semibold uppercase tracking-widest text-white transition-all hover:bg-rose-600 focus-ring" type="button">Yes, Sign Me Out</button>
+                <button onclick="confirmLogout()" class="w-full rounded-2xl bg-rose-500 py-4 text-xs font-semibold uppercase tracking-widest text-white transition-all hover:bg-rose-600 focus-ring" type="button">Log Me Out</button>
                 <button onclick="closeLogoutModal()" class="btn-secondary w-full rounded-2xl py-4 text-xs font-medium uppercase tracking-widest transition-all dark:border-slate-800 dark:text-slate-400 focus-ring" type="button">Cancel</button>
             </div>
         </div>
@@ -679,12 +682,13 @@
                     setAccordionOpen('rmAccordion', false);
                     setAccordionOpen('opsAccordion', false);
                     setAccordionOpen('intelAccordion', false);
+                    setAccordionOpen('spAccordion', false);
                 } else {
                     sidebar.classList.remove('w-sidebar-collapsed', 'sidebar-collapsed');
                     sidebar.classList.add('w-sidebar-expanded');
                     toggleIcon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
 
-['rmAccordion', 'opsAccordion', 'intelAccordion', 'spAccordion'].forEach(id => {
+                    ['rmAccordion', 'opsAccordion', 'intelAccordion', 'spAccordion'].forEach(id => {
                         const p = document.getElementById(id);
                         if (p && p.classList.contains('is-open')) p.style.maxHeight = measurePanel(p) + 'px';
                     });
@@ -828,6 +832,68 @@
 
         const TITLE_SUFFIX = ' - Sentro Client';
 
+        function getOpenAccordionIds() {
+            return ['rmAccordion', 'opsAccordion', 'spAccordion', 'intelAccordion']
+                .filter(id => document.getElementById(id)?.classList.contains('is-open'));
+        }
+
+        function pathStartsWith(targetPath, prefix) {
+            if (!targetPath || !prefix) return false;
+            const t = targetPath.toLowerCase();
+            const p = prefix.toLowerCase();
+            return t === p || t.startsWith(p + '/');
+        }
+
+        function getSectionState(path) {
+            const p = (path || '').toLowerCase();
+            return {
+                rm: pathStartsWith(p, '/client/risks') || pathStartsWith(p, '/client/mitigation') || pathStartsWith(p, '/client/incidents') || pathStartsWith(p, '/client/riskanalytics'),
+                ops: pathStartsWith(p, '/client/archive') || pathStartsWith(p, '/client/audit') || pathStartsWith(p, '/client/employees'),
+                sp: pathStartsWith(p, '/client/supplier') || pathStartsWith(p, '/client/suppliers') || pathStartsWith(p, '/client/purchaseorders') || pathStartsWith(p, '/client/budget') || pathStartsWith(p, '/client/expenses'),
+                intel: pathStartsWith(p, '/client/reports') || pathStartsWith(p, '/client/sites') || pathStartsWith(p, '/client/projects') || pathStartsWith(p, '/client/weather')
+            };
+        }
+
+        function updateNavActiveState(path) {
+            const targetPath = (path || '').toLowerCase();
+            const activeClass = ['is-active', 'sentro-nav-active'];
+            const inactiveClass = ['sentro-nav-inactive'];
+
+            document.querySelectorAll('a[data-nav].nav-item').forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+                const linkPath = new URL(href, window.location.origin).pathname.toLowerCase();
+                const isActive = pathStartsWith(targetPath, linkPath);
+
+                if (isActive) {
+                    inactiveClass.forEach(c => link.classList.remove(c));
+                    activeClass.forEach(c => link.classList.add(c));
+                } else {
+                    activeClass.forEach(c => link.classList.remove(c));
+                    if (!link.classList.contains('sentro-nav-inactive')) link.classList.add('sentro-nav-inactive');
+                }
+            });
+        }
+
+        function syncSidebarState(path, preserveOpenIds) {
+            const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+            const state = getSectionState(path);
+            const preserved = new Set(preserveOpenIds || []);
+
+            if (isCollapsed) {
+                setAccordionOpen('rmAccordion', false);
+                setAccordionOpen('opsAccordion', false);
+                setAccordionOpen('spAccordion', false);
+                setAccordionOpen('intelAccordion', false);
+                return;
+            }
+
+            setAccordionOpen('rmAccordion', state.rm || preserved.has('rmAccordion'));
+            setAccordionOpen('opsAccordion', state.ops || preserved.has('opsAccordion'));
+            setAccordionOpen('spAccordion', state.sp || preserved.has('spAccordion'));
+            setAccordionOpen('intelAccordion', state.intel || preserved.has('intelAccordion'));
+        }
+
         function enableSoftNav() {
             const mainContent = document.getElementById('main-content');
             const pageTitleHeader = document.getElementById('pageTitleHeader');
@@ -847,7 +913,19 @@
                 e.preventDefault();
                 document.documentElement.classList.add('nav-leaving');
                 const spinner = document.getElementById('main-content-spinner');
-                if (spinner) spinner.classList.remove('hidden');
+                const targetPath = targetUrl.pathname.toLowerCase();
+                const useOverlaySpinner = !(
+                    targetPath.startsWith('/client/risks/identification') ||
+                    targetPath.startsWith('/client/mitigation') ||
+                    targetPath.startsWith('/client/risks/monitoring') ||
+                    targetPath.startsWith('/client/incidents') ||
+                    targetPath.startsWith('/client/riskanalytics') ||
+                    targetPath.startsWith('/client/archive') ||
+                    targetPath.startsWith('/client/audit') ||
+                    targetPath.startsWith('/client/employees')
+                );
+                if (spinner && useOverlaySpinner) spinner.classList.remove('hidden');
+                const openAccordions = getOpenAccordionIds();
 
                 try {
                     const res = await fetch(href, {
@@ -858,23 +936,26 @@
                     const html = await res.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const wrapper = doc.body.firstElementChild;
-                    if (!wrapper || !wrapper.hasAttribute('data-page-title')) { window.location.href = href; return; }
-                    const title = wrapper.getAttribute('data-page-title');
-                    mainContent.innerHTML = wrapper.innerHTML;
+                    const nextMainContent = doc.getElementById('main-content');
+                    if (!nextMainContent) { window.location.href = href; return; }
+
+                    const titleText = (doc.title || '').replace(TITLE_SUFFIX, '').trim() || 'Client';
+                    mainContent.innerHTML = nextMainContent.innerHTML;
                     mainContent.querySelectorAll('script').forEach(oldScript => {
                         const script = document.createElement('script');
                         if (oldScript.src) { script.src = oldScript.src; } else { script.textContent = oldScript.textContent; }
                         oldScript.parentNode.replaceChild(script, oldScript);
                     });
-                    document.title = title + TITLE_SUFFIX;
-                    if (pageTitleHeader) pageTitleHeader.textContent = title;
+                    document.title = titleText + TITLE_SUFFIX;
+                    if (pageTitleHeader) pageTitleHeader.textContent = titleText;
                     history.pushState({ partial: true }, '', href);
+                    updateNavActiveState(targetUrl.pathname);
+                    syncSidebarState(targetUrl.pathname, openAccordions);
                     document.documentElement.classList.remove('nav-leaving');
                 } catch (_) {
                     window.location.href = href;
                 } finally {
-                    if (spinner) spinner.classList.add('hidden');
+                    if (spinner && useOverlaySpinner) spinner.classList.add('hidden');
                 }
             }, true);
         }
@@ -887,21 +968,8 @@
             enableSoftNav();
 
             const path = window.location.pathname.toLowerCase();
-            const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
-
-            if (!isCollapsed) {
-                const rmActive = (path.startsWith('/client/risks') || path.startsWith('/client/mitigation'));
-                const opsActive = (path.startsWith('/client/archive') || path.startsWith('/client/audit') || path.startsWith('/client/suppliers') || path.startsWith('/client/purchaseorders') || path.startsWith('/client/expenses') || path.startsWith('/client/budget'));
-                const intelActive = (path.startsWith('/client/projects') || path.startsWith('/client/weather'));
-
-                setAccordionOpen('rmAccordion', rmActive);
-                setAccordionOpen('opsAccordion', opsActive);
-                setAccordionOpen('intelAccordion', intelActive);
-            } else {
-                setAccordionOpen('rmAccordion', false);
-                setAccordionOpen('opsAccordion', false);
-                setAccordionOpen('intelAccordion', false);
-            }
+            updateNavActiveState(path);
+            syncSidebarState(path);
         });
 
         window.addEventListener('click', function (e) {
@@ -912,7 +980,7 @@
         });
 
         window.addEventListener('resize', () => {
-            ['rmAccordion', 'opsAccordion', 'intelAccordion'].forEach(id => {
+            ['rmAccordion', 'opsAccordion', 'spAccordion', 'intelAccordion'].forEach(id => {
                 const p = document.getElementById(id);
                 if (p && p.classList.contains('is-open') && !sidebar.classList.contains('sidebar-collapsed')) {
                     p.style.maxHeight = measurePanel(p) + 'px';
