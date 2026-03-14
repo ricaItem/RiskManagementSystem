@@ -17,5 +17,7 @@ node_modules/
 *.log
 *.sqlite
 *.db
+appsettings.json
 appsettings.*.json
+!appsettings.example.json
 secrets.json

@@ -10,6 +10,74 @@
     .dark #get-started-btn { background-color: #fff !important; color: #0f172a !important; }
     #verify-continue-btn { background-color: #0B1F33 !important; color: #fff !important; }
     .dark #verify-continue-btn { background-color: #fff !important; color: #0f172a !important; }
+    #completeSetup {
+        background-color: #0B1F33 !important;
+        color: #fff !important;
+        border: 1px solid #0B1F33 !important;
+    }
+    #completeSetup:hover { background-color: #08182a !important; }
+
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 80;
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+        width: min(92vw, 34rem);
+        pointer-events: none;
+    }
+
+    .toast {
+        pointer-events: auto;
+        border-radius: 0.75rem;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        color: #991b1b;
+        box-shadow: 0 10px 25px -5px rgba(2, 6, 23, 0.16);
+        padding: 0.75rem 0.95rem;
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        animation: toast-in 0.2s ease-out;
+    }
+
+    .toast.success {
+        border-color: #a7f3d0;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+
+    .toast.info {
+        border-color: #bfdbfe;
+        background: #eff6ff;
+        color: #1e3a8a;
+    }
+
+    .toast-message {
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.35rem;
+    }
+
+    .toast-close {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        opacity: 0.65;
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+        padding: 0;
+    }
+
+    @@keyframes toast-in {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
     .payment-method.active {
         border-color: #0b1f33;
@@ -138,6 +206,8 @@
 </style>
 
 <section id="registerSection" class="relative min-h-screen overflow-hidden bg-[#F9FAFB] dark:bg-slate-950">
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
     <div id="step-1-wrapper" class="relative flex min-h-screen items-center justify-center px-4 py-12">
         <div class="mx-auto w-full max-w-md">
 
@@ -806,7 +876,7 @@
 
                             <!-- Terms -->
                             <label class="flex cursor-pointer items-start gap-3 pt-2">
-                                <input type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-slate-500 bg-white accent-slate-700" />
+                                <input id="agreeTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-slate-500 bg-white accent-slate-700" />
                                 <span class="text-sm text-slate-700 leading-relaxed">
                                     I agree to Sentro's <span class="font-semibold text-slate-900 underline underline-offset-2 cursor-pointer">terms of service</span>, <span class="font-semibold text-slate-900 underline underline-offset-2 cursor-pointer">privacy policy</span>, and <span class="font-semibold text-slate-900 underline underline-offset-2 cursor-pointer">billing terms</span>.
                                 </span>
@@ -817,7 +887,7 @@
                                 <button type="button" id="completeSetup"
                                         class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B1F33] py-3.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
                                     <span class="btn-spinner"></span>
-                                    <span class="btn-text">Pay now</span>
+                                    <span class="btn-text">Process payment</span>
                                 </button>
                             </div>
 
@@ -845,6 +915,51 @@
     (function () {
         let currentStep = 1;
         let orgCodeManuallyEdited = false;
+
+        function humanizeError(errorMessage, fallback) {
+            const text = String(errorMessage || '').trim();
+            if (!text) return fallback;
+            const lower = text.toLowerCase();
+
+            if (lower.includes('already exists')) return 'This email is already registered. Please log in instead.';
+            if (lower.includes('organization code') && lower.includes('already')) return 'That organization code is already in use. Please use a different one.';
+            if (lower.includes('invalid or expired')) return 'That code is invalid or already expired. Request a new one and try again.';
+            if (lower.includes('valid payment is required')) return 'Payment was not completed. Please choose a payment method and try again.';
+            if (lower.includes('password must be at least')) return 'Use a stronger password with at least 12 characters.';
+
+            return text;
+        }
+
+        function showToast(message, type) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toastType = type || 'error';
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + toastType;
+
+            const msg = document.createElement('div');
+            msg.className = 'toast-message';
+            msg.textContent = message;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'toast-close';
+            closeBtn.setAttribute('aria-label', 'Close message');
+            closeBtn.textContent = 'x';
+
+            closeBtn.addEventListener('click', function () {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            });
+
+            toast.appendChild(msg);
+            toast.appendChild(closeBtn);
+            container.appendChild(toast);
+
+            window.setTimeout(function () {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 4500);
+        }
 
         const stepCount = 6;
         const planMeta = {
@@ -1014,15 +1129,27 @@
                     body: JSON.stringify({ email: email })
                 });
                 const data = await r.json().catch(() => ({}));
-                if (!r.ok) { alert(data.error || 'Failed to send code.'); return false; }
+                if (!r.ok) {
+                    showToast(humanizeError(data.error, 'We could not send a verification code right now. Please try again.'));
+                    return false;
+                }
+                if (data.devCode) {
+                    showToast('Development mode: use verification code ' + data.devCode, 'info');
+                }
                 return true;
-            } catch (e) { alert('Network error. Please try again.'); return false; }
+            } catch (e) {
+                showToast('Network issue detected. Please check your connection and try again.');
+                return false;
+            }
         }
 
         async function verifyCodeAndContinue() {
             const email = (document.getElementById('flowEmail')?.value || '').trim();
             const digits = Array.from(document.querySelectorAll('.verify-digit')).map(i => i.value).join('');
-            if (digits.length !== 6) { alert('Please enter the 6-digit code.'); return false; }
+            if (digits.length !== 6) {
+                showToast('Please enter the full 6-digit verification code.');
+                return false;
+            }
             try {
                 const r = await fetch('/api/registration/verify-code', {
                     method: 'POST',
@@ -1030,9 +1157,15 @@
                     body: JSON.stringify({ email: email, code: digits })
                 });
                 const data = await r.json().catch(() => ({}));
-                if (!r.ok) { alert(data.error || 'Invalid or expired code.'); return false; }
+                if (!r.ok) {
+                    showToast(humanizeError(data.error, 'The verification code is invalid or expired.'));
+                    return false;
+                }
                 return true;
-            } catch (e) { alert('Network error. Please try again.'); return false; }
+            } catch (e) {
+                showToast('Network issue detected. Please check your connection and try again.');
+                return false;
+            }
         }
 
         document.querySelectorAll('[data-next]').forEach(btn => {
@@ -1100,11 +1233,14 @@
         if (resendCodeBtn) {
             resendCodeBtn.addEventListener('click', async function () {
                 const email = (document.getElementById('flowEmail')?.value || '').trim();
-                if (!email) { alert('Email is required.'); return; }
+                if (!email) {
+                    showToast('Please enter your email address first.');
+                    return;
+                }
                 resendCodeBtn.classList.add('processing');
                 const ok = await sendVerificationCode();
                 resendCodeBtn.classList.remove('processing');
-                if (ok) alert('A new code has been sent to your email.');
+                if (ok) showToast('A new verification code has been sent to your email.', 'success');
             });
         }
 
@@ -1121,20 +1257,48 @@
                 const loginEmail = document.getElementById('loginEmail')?.value?.trim();
                 const adminPassword = document.getElementById('adminPassword')?.value;
                 const paymentEmail = document.getElementById('paymentEmail')?.value?.trim();
-                if (!email || !orgName || !orgCode || !adminFirstName || !adminLastName || !adminPassword) {
-                    alert('Please fill in all required fields.');
+                const agreeTerms = document.getElementById('agreeTerms');
+                if (!email) { showToast('Please enter your email address in Step 1.'); return; }
+                if (!orgName) { showToast('Please enter your organization name.'); return; }
+                if (!orgCode) { showToast('Please provide your organization code.'); return; }
+                if (!adminFirstName) { showToast('Please enter the admin first name.'); return; }
+                if (!adminLastName) { showToast('Please enter the admin last name.'); return; }
+                if (!adminPassword) { showToast('Please create an admin password.'); return; }
+                if (adminPassword.length < 12) { showToast('Password must be at least 12 characters long.'); return; }
+                if (loginEmail && loginEmail !== email) {
+                    showToast('Login email should match the email entered in Step 1.');
+                    return;
+                }
+                const atIndex = paymentEmail ? paymentEmail.indexOf(String.fromCharCode(64)) : -1;
+                if (paymentEmail && (atIndex <= 0 || atIndex === paymentEmail.length - 1 || paymentEmail.indexOf('.') < atIndex + 2)) {
+                    showToast('Please enter a valid billing email address.');
+                    return;
+                }
+                if (agreeTerms && !agreeTerms.checked) {
+                    showToast('Please accept the terms to continue with payment.');
                     return;
                 }
                 const amountCentavos = plan === 'Professional' ? 14900 : plan === 'Enterprise' ? 39900 : 10000;
                 completeSetup.classList.add('processing');
                 try {
+                    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                     const intentRes = await fetch('/api/paymongo/payment-intents', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ amountCentavos: amountCentavos, paymentMethodAllowed: ['card', 'paymaya', 'gcash'] })
                     });
                     const intentData = await intentRes.json().catch(() => ({}));
-                    const paymentIntentId = intentRes.ok ? intentData.id : null;
+                    let paymentIntentId = null;
+                    if (!intentRes.ok) {
+                        if (!isLocalDev) {
+                            showToast(humanizeError(intentData.error, 'Unable to initialize payment. Please try again.'));
+                            completeSetup.classList.remove('processing');
+                            return;
+                        }
+                        showToast('PayMongo is unavailable. Continuing with local test payment mode.', 'info');
+                    } else {
+                        paymentIntentId = intentData.id;
+                    }
 
                     const completePayload = {
                         email: email,
@@ -1146,7 +1310,7 @@
                         adminLastName: adminLastName,
                         password: adminPassword,
                         paymentIntentId: paymentIntentId,
-                        useTestPayment: true
+                        useTestPayment: isLocalDev
                     };
                     const completeRes = await fetch('/api/registration/complete', {
                         method: 'POST',
@@ -1155,7 +1319,7 @@
                     });
                     const completeData = await completeRes.json().catch(() => ({}));
                     if (!completeRes.ok) {
-                        alert(completeData.error || 'Registration failed.');
+                        showToast(humanizeError(completeData.error, 'Registration failed. Please review your details and try again.'));
                         completeSetup.classList.remove('processing');
                         return;
                     }
@@ -1165,7 +1329,7 @@
                     }
                     window.location.href = '/Identity/Account/RegisterSuccess?email=' + encodeURIComponent(email) + '&plan=' + encodeURIComponent(plan) + '&amount=' + encodeURIComponent(plan === 'Professional' ? '₱149' : plan === 'Enterprise' ? '₱399' : '₱49');
                 } catch (e) {
-                    alert('Something went wrong. Please try again.');
+                    showToast('Something went wrong while processing your registration. Please try again.');
                     completeSetup.classList.remove('processing');
                 }
             });

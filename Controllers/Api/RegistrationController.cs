@@ -24,9 +24,11 @@ public class RegistrationController : ControllerBase
     private readonly IMemoryCache _cache;
     private readonly IEmailSender _emailSender;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly PlatformDbContext _db;
     private readonly IPayMongoService _payMongo;
     private readonly IWebHostEnvironment _env;
+    private readonly ILogger<RegistrationController> _logger;
     private const string VerifyCacheKeyPrefix = "reg_verify:";
     private static readonly TimeSpan VerifyCodeExpiry = TimeSpan.FromMinutes(15);
     private static readonly string[] AllowedPlans = { "Basic", "Professional", "Enterprise" };
@@ -35,16 +37,20 @@ public class RegistrationController : ControllerBase
         IMemoryCache cache,
         IEmailSender emailSender,
         UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
         PlatformDbContext db,
         IPayMongoService payMongo,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        ILogger<RegistrationController> logger)
     {
         _cache = cache;
         _emailSender = emailSender;
         _userManager = userManager;
+        _signInManager = signInManager;
         _db = db;
         _payMongo = payMongo;
         _env = env;
+        _logger = logger;
     }
 
     /// <summary>Send a 6-digit verification code to the email. Stores in cache for 15 minutes.</summary>
@@ -66,7 +72,29 @@ public class RegistrationController : ControllerBase
   <p style='color: #64748b; font-size: 14px;'>This code expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
   <p style='margin-top: 24px;'>— Sentro</p>
 </div>";
-        await _emailSender.SendEmailAsync(email, "Your Sentro verification code", html);
+        try
+        {
+            await _emailSender.SendEmailAsync(email, "Your Sentro verification code", html);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send registration verification code to {Email}", email);
+
+            if (_env.IsDevelopment())
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "SMTP is not configured. Development fallback enabled.",
+                    devCode = code
+                });
+            }
+
+            return StatusCode(500, new
+            {
+                error = "We couldn't send the verification email right now. Please try again later."
+            });
+        }
 
         return Ok(new { success = true, message = "Verification code sent." });
     }
@@ -152,10 +180,10 @@ public class RegistrationController : ControllerBase
         var periodEnd = now.AddMonths(1);
 
         Organization org;
+        Subscription subscription;
         Invoice invoice;
         ApplicationUser user;
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
         {
             org = new Organization
@@ -170,7 +198,7 @@ public class RegistrationController : ControllerBase
             _db.Organizations.Add(org);
             await _db.SaveChangesAsync(ct);
 
-            var subscription = new Subscription
+            subscription = new Subscription
             {
                 OrganizationId = org.OrganizationId,
                 PlanId = planEntity.PlanId,
@@ -212,7 +240,10 @@ public class RegistrationController : ControllerBase
             var createResult = await _userManager.CreateAsync(user, password);
             if (!createResult.Succeeded)
             {
-                await transaction.RollbackAsync(ct);
+                _db.Invoices.Remove(invoice);
+                _db.Subscriptions.Remove(subscription);
+                _db.Organizations.Remove(org);
+                await _db.SaveChangesAsync(ct);
                 return BadRequest(new { error = string.Join(" ", createResult.Errors.Select(e => e.Description)) });
             }
 
@@ -240,13 +271,20 @@ public class RegistrationController : ControllerBase
             invoice.UpdatedAt = now;
 
             await _db.SaveChangesAsync(ct);
-            await _userManager.AddToRoleAsync(user, "Admin");
-            await transaction.CommitAsync(ct);
+
+            var addRoleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            if (!addRoleResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    error = string.Join(" ", addRoleResult.Errors.Select(e => e.Description))
+                });
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            await transaction.RollbackAsync(ct);
-            throw;
+            _logger.LogError(ex, "Registration completion failed for {Email}", email);
+            return StatusCode(500, new { error = "Registration failed due to a server error. Please try again." });
         }
 
         var amountDisplay = planEntity.AmountCentavos % 100 == 0
@@ -266,7 +304,23 @@ public class RegistrationController : ControllerBase
   <p style='color: #64748b; font-size: 14px;'>You can log in at your Sentro login page with this email and your password.</p>
   <p style='margin-top: 24px;'>— Sentro</p>
 </div>";
-        await _emailSender.SendEmailAsync(email, "Your Sentro invoice and payment receipt", receiptHtml);
+        try
+        {
+            await _emailSender.SendEmailAsync(email, "Your Sentro invoice and payment receipt", receiptHtml);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Receipt email could not be sent for {Email}", email);
+        }
+
+        try
+        {
+            await _signInManager.SignInAsync(user, isPersistent: false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Auto sign-in failed after registration for {Email}", email);
+        }
 
         return Ok(new
         {
