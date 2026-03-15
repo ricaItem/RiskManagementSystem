@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
@@ -16,14 +17,28 @@ namespace Web_Sentro.Areas.Client.Controllers
     public class IncidentsController : Controller
     {
         private readonly IIncidentService _incidentService;
+        private readonly ProjectService _projectService;
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IncidentsController(IIncidentService incidentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
+        public IncidentsController(IIncidentService incidentService, ProjectService projectService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager)
         {
             _incidentService = incidentService;
+            _projectService = projectService;
             _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
+        }
+
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+            {
+                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
+                return;
+            }
+
+            await next();
         }
 
         private async Task<int?> GetMyOrgIdAsync()
@@ -63,6 +78,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Title = i.Title,
                 SiteId = i.SiteId,
                 SiteName = i.Site?.SiteName ?? "Unknown",
+                ProjectId = i.ProjectId,
+                ProjectName = i.Project?.Name,
                 Description = i.Description,
                 IncidentDate = i.IncidentDate,
                 Type = i.Type,
@@ -72,6 +89,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             }).ToList();
 
             await PopulateSiteDropdown(orgId.Value, siteId);
+            await PopulateProjectDropdown(orgId.Value);
             ViewBag.StatusFilter = status;
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
@@ -99,6 +117,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
 
             await PopulateSiteDropdown(orgId.Value);
+            await PopulateProjectDropdown(orgId.Value);
             return View(new IncidentEditViewModel { IncidentDate = DateTime.Now, Status = "Open" });
         }
 
@@ -116,6 +135,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 {
                     OrgId = orgId.Value,
                     SiteId = model.SiteId.Value,
+                    ProjectId = model.ProjectId,
                     ReportedByUserId = user!.Id,
                     Title = model.Title,
                     Description = model.Description,
@@ -149,6 +169,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             }
 
             await PopulateSiteDropdown(orgId.Value, model.SiteId);
+            await PopulateProjectDropdown(orgId.Value, model.ProjectId);
             return View(model);
         }
 
@@ -164,6 +185,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             {
                 IncidentId = incident.IncidentId,
                 SiteId = incident.SiteId,
+                ProjectId = incident.ProjectId,
                 Title = incident.Title,
                 Description = incident.Description,
                 IncidentDate = incident.IncidentDate,
@@ -176,6 +198,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             };
 
             await PopulateSiteDropdown(orgId.Value, incident.SiteId);
+            await PopulateProjectDropdown(orgId.Value, incident.ProjectId);
             return View(model);
         }
 
@@ -194,6 +217,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     IncidentId = model.IncidentId,
                     OrgId = orgId.Value,
                     SiteId = model.SiteId.Value,
+                    ProjectId = model.ProjectId,
                     ReportedByUserId = user!.Id, // Note: This might not be accurate if we want to preserve original reporter, but Service uses this for Audit log. 
                                                  // Ideally update service to take userId separately or only use it for audit.
                                                  // The service UpdateIncidentAsync doesn't overwrite ReportedByUserId, so this property is ignored on update mapping in service.
@@ -229,6 +253,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             }
 
             await PopulateSiteDropdown(orgId.Value, model.SiteId);
+            await PopulateProjectDropdown(orgId.Value, model.ProjectId);
             return View(model);
         }
 
@@ -253,6 +278,12 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await _incidentService.DeleteIncidentAsync(id, orgId.Value, user!.Id);
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task PopulateProjectDropdown(int orgId, int? selectedId = null)
+        {
+            var projects = await _projectService.GetProjectsAsync(orgId, "Active", null, null);
+            ViewBag.Projects = new SelectList(projects.Select(p => new { p.ProjectId, p.Name }), "ProjectId", "Name", selectedId);
         }
 
         private async Task PopulateSiteDropdown(int orgId, int? selectedId = null)

@@ -1,0 +1,343 @@
+@model Web_Sentro.Areas.Client.Models.PagedResult<WEB_Sentro.Data.Entities.ChangeOrder>
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Change Orders";
+    var siteFilterList = ViewBag.SiteFilterList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var statuses = ViewBag.Statuses as string[] ?? new[] { "Draft", "Pending", "Approved", "Rejected" };
+    
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+        PropertyNamingPolicy = null
+    };
+}
+
+@if (TempData["Message"] != null)
+{
+    <div id="toastAlert" class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500" role="alert">
+        <div class="bg-emerald-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="text-sm font-medium">@TempData["Message"]</span>
+        </div>
+    </div>
+}
+
+<!-- Loading Skeleton -->
+<div id="co-skeleton" class="animate-pulse min-h-screen space-y-6 p-6">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <div class="h-8 w-48 bg-slate-200 rounded-md dark:bg-slate-700"></div>
+            <div class="h-4 w-64 bg-slate-100 rounded-md mt-2 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+        <div class="h-10 w-48 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+        <div class="h-10 w-32 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+        <div class="h-10 w-24 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+            <div class="h-5 w-32 bg-slate-200 rounded dark:bg-slate-700"></div>
+        </div>
+        <div class="p-4 space-y-4">
+            @for (int i = 0; i < 5; i++)
+            {
+                <div class="flex items-center justify-between py-2">
+                    <div class="h-3 w-24 bg-slate-100 rounded dark:bg-slate-800"></div>
+                    <div class="h-3 w-32 bg-slate-100 rounded dark:bg-slate-800"></div>
+                    <div class="h-3 w-32 bg-slate-100 rounded dark:bg-slate-800"></div>
+                    <div class="h-3 w-24 bg-slate-100 rounded dark:bg-slate-800"></div>
+                    <div class="h-6 w-16 rounded-md bg-slate-100 dark:bg-slate-800"></div>
+                </div>
+                @if (i < 4) { <div class="border-b border-slate-50 dark:border-slate-800"></div> }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div id="co-content" class="hidden animate-in fade-in slide-in-from-bottom-4 min-h-screen space-y-6 duration-700">
+    
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Change Orders
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage project scope changes and approvals</p>
+        </div>
+        <div>
+            <a href="@Url.Action("Create", "ChangeOrders", new { area = "Client" })" class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                New Change Order
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" action="@Url.Action("Index", "ChangeOrders", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
+        <!-- Site Filter -->
+        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <span class="text-xs font-medium text-slate-500">Site</span>
+            <select name="siteId" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
+                <option value="">All Sites</option>
+                @foreach (var s in siteFilterList) 
+                { 
+                    <option value="@s.Value" selected="@s.Selected">@s.Text</option> 
+                }
+            </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <span class="text-xs font-medium text-slate-500">Status</span>
+            <select name="status" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                <option value="">All Statuses</option>
+                @foreach (var st in statuses) 
+                { 
+                    <option value="@st" selected="@(ViewBag.SelectedStatus as string == st)">@st</option> 
+                }
+            </select>
+        </div>
+        
+        <!-- Reset Button -->
+        <a href="@Url.Action("Index", "ChangeOrders", new { area = "Client" })" class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-500" title="Reset Filters">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+    </form>
+
+    <!-- Table Card -->
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Recent Change Orders</h3>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                @Model.TotalCount Orders
+            </span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3 font-medium">Title</th>
+                        <th class="px-6 py-3 font-medium">Site</th>
+                        <th class="px-6 py-3 font-medium">Project</th>
+                        <th class="px-6 py-3 font-medium">Created Date</th>
+                        <th class="px-6 py-3 font-medium">Status</th>
+                        <th class="px-6 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-3 dark:bg-slate-800">
+                                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">No change orders found</p>
+                                    <p class="text-xs text-slate-500 mt-1 dark:text-slate-400">Start by creating a new change order.</p>
+                                    <a href="@Url.Action("Create", "ChangeOrders", new { area = "Client" })" class="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">Create Change Order &rarr;</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.Items)
+                    {
+                        var itemJson = System.Text.Json.JsonSerializer.Serialize(item, jsonOptions);
+                        var statusColor = item.Status switch 
+                        {
+                            "Approved" => "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-900/20 dark:text-emerald-400",
+                            "Rejected" => "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-400",
+                            "Pending" => "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400",
+                            _ => "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/20 dark:text-amber-400" // Draft
+                        };
+                        
+                        <tr onclick='openSidePanel(@Html.Raw(itemJson))' class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                            <td class="px-6 py-4">
+                                <span class="font-mono text-xs font-semibold text-slate-900 dark:text-slate-200">@item.Title</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-slate-900 dark:text-slate-200">@(item.Site?.SiteName ?? "—")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-slate-600 dark:text-slate-400">@(item.Project?.Name ?? "—")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-xs text-slate-500 dark:text-slate-400">@item.CreatedAt.ToString("MMM d, yyyy")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset @statusColor">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="event.stopPropagation(); openSidePanel(@Html.Raw(itemJson))" class="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">View</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if (Model.TotalPages > 1)
+        {
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Page @Model.PageNumber of @Model.TotalPages</p>
+                <div class="flex gap-2">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a href="@Url.Action("Index", "ChangeOrders", new { area = "Client", page = Model.PageNumber - 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, status = ViewBag.SelectedStatus })" class="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">Previous</a>
+                    }
+                    else 
+                    {
+                        <span class="px-3 py-1 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-md cursor-not-allowed dark:bg-slate-800/50 dark:border-slate-700/50">Previous</span>
+                    }
+                    
+                    @if (Model.HasNextPage)
+                    {
+                        <a href="@Url.Action("Index", "ChangeOrders", new { area = "Client", page = Model.PageNumber + 1, pageSize = Model.PageSize, siteId = ViewBag.SelectedSiteId, status = ViewBag.SelectedStatus })" class="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">Next</a>
+                    }
+                    else
+                    {
+                         <span class="px-3 py-1 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-md cursor-not-allowed dark:bg-slate-800/50 dark:border-slate-700/50">Next</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Side Panel Overlay -->
+<div id="sidePanelOverlay" onclick="closeSidePanel()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300"></div>
+
+<!-- Side Panel -->
+<div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
+    <div class="h-full flex flex-col p-6">
+        
+        <!-- Panel Header -->
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h2 id="panelTitle" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
+                <div id="panelStatusBadge" class="mt-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"></div>
+            </div>
+            <button onclick="closeSidePanel()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors dark:hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" /></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+            <!-- Details -->
+            <div class="space-y-4">
+                <p id="panelDescription" class="text-sm text-slate-600 dark:text-slate-400"></p>
+                
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50 space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-xs text-slate-500 uppercase tracking-wider">Site</span>
+                        <span id="panelSite" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                    </div>
+                    <div class="border-t border-slate-200 dark:border-slate-700/50"></div>
+                    <div class="flex justify-between">
+                        <span class="text-xs text-slate-500 uppercase tracking-wider">Project</span>
+                        <span id="panelProject" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">Created Date</p>
+                        <p id="panelDate" class="text-sm font-medium text-slate-900 dark:text-white"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel Footer -->
+        <div class="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+            <a id="panelDetailsLink" href="#" class="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-semibold shadow hover:bg-slate-800 transition-colors text-center dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                View Details & Approvals
+            </a>
+            <div class="flex gap-3">
+                 <a id="panelEditLink" href="#" class="flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors text-center dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700">
+                    Edit Change Order
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        function initChangeOrdersPage() {
+            const content = document.getElementById('co-content');
+            if (!content || content.dataset.loaded === '1') return;
+
+            setTimeout(function () {
+                const skeleton = document.getElementById('co-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+                content.dataset.loaded = '1';
+            }, 300);
+
+            const toast = document.getElementById('toastAlert');
+            if (toast) {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChangeOrdersPage);
+        } else {
+            initChangeOrdersPage();
+        }
+
+        window.openSidePanel = function (co) {
+            // Populate Panel
+            document.getElementById('panelTitle').innerText = co.Title || 'Untitled';
+            document.getElementById('panelDescription').innerText = co.Description || 'No description provided.';
+            document.getElementById('panelSite').innerText = co.Site ? co.Site.SiteName : "—";
+            document.getElementById('panelProject').innerText = co.Project ? co.Project.Name : "—";
+            
+            const date = new Date(co.CreatedAt);
+            document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            
+            // Status Badge
+            const badge = document.getElementById('panelStatusBadge');
+            badge.innerText = co.Status;
+            badge.className = 'mt-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset'; // reset
+            if (co.Status === 'Approved') {
+                badge.classList.add('bg-emerald-50', 'text-emerald-700', 'ring-emerald-600/20', 'dark:bg-emerald-900/20', 'dark:text-emerald-400');
+            } else if (co.Status === 'Rejected') {
+                badge.classList.add('bg-red-50', 'text-red-700', 'ring-red-600/20', 'dark:bg-red-900/20', 'dark:text-red-400');
+            } else if (co.Status === 'Pending') {
+                badge.classList.add('bg-blue-50', 'text-blue-700', 'ring-blue-600/20', 'dark:bg-blue-900/20', 'dark:text-blue-400');
+            } else {
+                badge.classList.add('bg-amber-50', 'text-amber-700', 'ring-amber-600/20', 'dark:bg-amber-900/20', 'dark:text-amber-400');
+            }
+
+            // Links
+            document.getElementById('panelDetailsLink').href = '@Url.Action("Details", "ChangeOrders", new { area = "Client" })/' + co.ChangeOrderId;
+            document.getElementById('panelEditLink').href = '@Url.Action("Edit", "ChangeOrders", new { area = "Client" })/' + co.ChangeOrderId;
+
+            // Open
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            panel.classList.remove('translate-x-full');
+        };
+
+        window.closeSidePanel = function () {
+            const panel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('sidePanelOverlay');
+            panel.classList.add('translate-x-full');
+            overlay.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+    })();
+</script>

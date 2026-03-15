@@ -77,12 +77,17 @@ namespace WEB_Sentro.Services
 
             var list = await q
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId, r.SiteId, r.NextReviewDate, r.OverdueFlag, r.TreatmentDecision, r.RiskOwnerId, r.AccountableId })
+                .Select(r => new { r.RiskId, r.Title, r.Category, r.Priority, r.ProjectSite, r.ReportByUserId, r.CreatedAt, r.Status, r.SourceType, r.DeletedAt, r.OrgId, r.SiteId, r.ProjectId, r.NextReviewDate, r.OverdueFlag, r.TreatmentDecision, r.RiskOwnerId, r.AccountableId })
                 .ToListAsync(ct);
 
             var siteIds = list.Where(x => x.SiteId.HasValue).Select(x => x.SiteId!.Value).Distinct().ToList();
             var siteNames = siteIds.Count > 0
                 ? await db.Sites.AsNoTracking().Where(s => siteIds.Contains(s.SiteId)).Select(s => new { s.SiteId, s.SiteName }).ToDictionaryAsync(x => x.SiteId, x => x.SiteName, ct)
+                : new Dictionary<int, string>();
+
+            var projectIds = list.Where(x => x.ProjectId.HasValue).Select(x => x.ProjectId!.Value).Distinct().ToList();
+            var projectNames = projectIds.Count > 0
+                ? await db.Projects.AsNoTracking().Where(p => projectIds.Contains(p.ProjectId)).Select(p => new { p.ProjectId, p.Name }).ToDictionaryAsync(x => x.ProjectId, x => x.Name, ct)
                 : new Dictionary<int, string>();
 
             var riskIds = list.Select(x => x.RiskId).ToList();
@@ -138,6 +143,8 @@ namespace WEB_Sentro.Services
                 ProjectSite = r.ProjectSite ?? "",
                 SiteId = r.SiteId,
                 SiteName = r.SiteId.HasValue && siteNames.TryGetValue(r.SiteId.Value, out var sn) ? sn : null,
+                ProjectId = r.ProjectId,
+                ProjectName = r.ProjectId.HasValue && projectNames.TryGetValue(r.ProjectId.Value, out var pn) ? pn : null,
                 DateLogged = r.CreatedAt,
                 DateReported = r.CreatedAt,
                 Status = r.Status ?? "Draft",
@@ -175,7 +182,7 @@ namespace WEB_Sentro.Services
                 .FirstOrDefaultAsync(r => r.RiskId == riskId, ct);
         }
 
-        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", int? siteId = null, int? supplierId = null, CancellationToken ct = default)
+        public async Task<Risk> CreateRiskAsync(int orgId, string reportByUserId, string title, string? category, string? sourceType, string? projectSite, string? description, string status = "Draft", int? siteId = null, int? supplierId = null, int? projectId = null, CancellationToken ct = default)
         {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
@@ -192,6 +199,7 @@ namespace WEB_Sentro.Services
                 Priority = "Unassessed",
                 SiteId = siteId,
                 SupplierId = supplierId,
+                ProjectId = projectId,
                 CreatedAt = DateTime.UtcNow
             };
             db.Risks.Add(risk);
@@ -404,7 +412,7 @@ namespace WEB_Sentro.Services
             await db.SaveChangesAsync(ct);
         }
 
-        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, bool superAdmin, string? changedByUserId = null, CancellationToken ct = default)
+        public async Task UpdateRiskAsync(int riskId, int? orgId, string? title, string? category, string? sourceType, string? priority, string? projectSite, int? siteId, int? projectId, bool superAdmin, string? changedByUserId = null, CancellationToken ct = default)
         {
             if (!orgId.HasValue)
                 return;
@@ -422,6 +430,7 @@ namespace WEB_Sentro.Services
             if (priority != null) risk.Priority = priority;
             if (projectSite != null) risk.ProjectSite = projectSite;
             risk.SiteId = siteId;
+            risk.ProjectId = projectId;
             risk.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
             if (changedByUserId != null)

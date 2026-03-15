@@ -9,6 +9,8 @@ namespace Web_Sentro.Areas.Client.Models
         public string Priority { get; set; } = "Medium";
         public string DetectedBy { get; set; } = "";
         public string ProjectSite { get; set; } = "";
+        public int? ProjectId { get; set; }
+        public string? ProjectName { get; set; }
         /// <summary>Backward compatibility; used in list and edit.</summary>
         public DateTime DateLogged { get; set; }
         public DateTime? DateReported { get; set; }

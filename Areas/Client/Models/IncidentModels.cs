@@ -8,6 +8,8 @@ namespace Web_Sentro.Areas.Client.Models
         public string Title { get; set; } = "";
         public int SiteId { get; set; } // Added for Edit Modal
         public string SiteName { get; set; } = "";
+        public int? ProjectId { get; set; }
+        public string? ProjectName { get; set; }
         public string? Description { get; set; } // Added for Edit Modal
         public DateTime IncidentDate { get; set; }
         public string Type { get; set; } = "";
@@ -23,6 +25,8 @@ namespace Web_Sentro.Areas.Client.Models
         [Required]
         public int? SiteId { get; set; }
         
+        public int? ProjectId { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string Title { get; set; } = "";

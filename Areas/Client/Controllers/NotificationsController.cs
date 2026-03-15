@@ -49,6 +49,20 @@ namespace Web_Sentro.Areas.Client.Controllers
             var (userId, orgId) = user.Value;
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var unreadCount = await db.Notifications.CountAsync(n => n.UserId == userId && n.ReadAt == null, ct);
+            var isEmployee = User.IsInRole("Employee");
+            var myMitigationTasksCount = 0;
+            if (isEmployee)
+            {
+                myMitigationTasksCount = await db.MitigationTasks.AsNoTracking()
+                    .Where(t => t.AssignedToUserId == userId
+                        && t.Status != "Done"
+                        && t.Plan != null
+                        && t.Plan.DeletedAt == null
+                        && t.Plan.Risk.OrgId == orgId
+                        && t.Plan.Risk.DeletedAt == null)
+                    .CountAsync(ct);
+            }
+
             var list = await db.Notifications.AsNoTracking()
                 .Where(n => n.UserId == userId)
                 .OrderByDescending(n => n.CreatedAt)
@@ -63,7 +77,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 n.ReadAt,
                 ActionUrl = BuildActionUrl(n)
             }).ToList();
-            return Json(new { unreadCount, items });
+            return Json(new { unreadCount, items, isEmployee, myMitigationTasksCount });
         }
 
         [HttpPost]
@@ -109,7 +123,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (n.EntityType != "Risk" || !n.EntityId.HasValue) return null;
             var id = n.EntityId.Value;
             var t = (n.Title ?? "").ToLowerInvariant();
-            if (t.Contains("mitigation") || t.Contains("closed"))
+            if (t.Contains("mitigation") || t.Contains("closed") || t.Contains("task"))
                 return $"/Client/Mitigation/Board?riskId={id}";
             return $"/Client/Risks/Assess/{id}";
         }

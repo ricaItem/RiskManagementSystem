@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
 using WEB_Sentro.Services;
@@ -21,6 +22,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             _platformDb = platformDb;
             _userManager = userManager;
             _auditService = auditService;
+        }
+
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+            {
+                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
+                return;
+            }
+
+            await next();
         }
 
         private bool IsVendor() => User.IsInRole("SuperAdmin");

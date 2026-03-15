@@ -1,9 +1,54 @@
+@model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
 @{
     ViewData["Title"] = "My Risks";
     Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
 }
-<div class="space-y-6">
-    <h1 class="text-2xl font-black text-slate-900 dark:text-white">My <span class="text-emerald-600">Risks</span></h1>
-    <p class="text-slate-500 dark:text-slate-400">Your risks (tenant-scoped, created by you). Full list coming soon.</p>
-    <a href="/Client/Risks/Identification" class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-black text-white hover:bg-emerald-700 inline-block">Report a risk</a>
+<div class="space-y-6 animate-in fade-in duration-500">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white">My <span class="text-emerald-600">Risks</span></h1>
+            <p class="text-slate-500 dark:text-slate-400">Risks you reported to the register.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/Client/MyWork" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Back</a>
+            <a href="/Client/Risks/Identification" class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white hover:bg-emerald-700">Report a risk</a>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/70 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3">Risk</th>
+                        <th class="px-6 py-3">Category</th>
+                        <th class="px-6 py-3">Priority</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Reported</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var risk in Model)
+                        {
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                                <td class="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-white">@risk.Title</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">@risk.Category</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">@risk.Priority</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">@risk.Status</td>
+                                <td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">@risk.DateLogged.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No risks reported yet.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

@@ -7,6 +7,8 @@
     var riskId = ViewBag.RiskId as int? ?? 0;
     var planId = ViewBag.PlanId as int? ?? 0;
     var isAdmin = ViewBag.IsAdmin as bool? ?? false;
+    var canManageTasks = ViewBag.CanManageTasks as bool? ?? false;
+    var currentUserId = ViewBag.CurrentUserId as string ?? "";
     var riskTitle = ViewBag.RiskTitle as string ?? "";
 
     var totalTasks = Model.Count();
@@ -130,11 +132,14 @@
                         Assess Residual Risk
                     </a>
                 }
-                <button type="button" onclick="openNewTaskModal()"
-                        class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-900/20 hover:bg-indigo-600 hover:shadow-indigo-500/30 active:translate-y-0.5 transition-all dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-50">
-                    <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    New Task
-                </button>
+                @if (canManageTasks)
+                {
+                    <button type="button" onclick="openNewTaskModal()"
+                            class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-900/20 hover:bg-indigo-600 hover:shadow-indigo-500/30 active:translate-y-0.5 transition-all dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-50">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        New Task
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -162,9 +167,12 @@
                                     @columnTasks.Count()
                                 </span>
                             </div>
-                            <button type="button" onclick="openNewTaskModal()" class="text-slate-400 hover:text-indigo-600 transition-colors">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                            </button>
+                            @if (canManageTasks)
+                            {
+                                <button type="button" onclick="openNewTaskModal()" class="text-slate-400 hover:text-indigo-600 transition-colors">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                </button>
+                            }
                         </div>
 
                         <!-- Column Body -->
@@ -182,6 +190,7 @@
                                      data-task-id="@task.Id"
                                      data-task-title="@task.Title"
                                      data-task-status="@task.Status"
+                                     data-task-assignee-id="@task.AssignedToUserId"
                                      data-task-assignee="@task.AssignedTo"
                                      draggable="true"
                                      ondragstart="drag(event)"
@@ -193,7 +202,7 @@
                                         <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border @priorityClass">
                                             @((task.Priority ?? "Low"))
                                         </span>
-                                        @if (isAdmin) {
+                                        @if (canManageTasks) {
                                             <button type="button" onclick="event.stopPropagation(); openDeleteTaskConfirm(this)" data-task-id="@task.Id" data-task-title="@task.Title" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition-colors">
                                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                             </button>
@@ -254,6 +263,7 @@
                                 data-task-id="@task.Id"
                                 data-task-title="@task.Title"
                                 data-task-status="@task.Status"
+                                data-task-assignee-id="@task.AssignedToUserId"
                                 onclick="openTaskModal(@task.Id)">
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-bold text-slate-800 dark:text-slate-200">@task.Title</div>
@@ -449,6 +459,8 @@
         window.__deleteTaskUrl = '@Url.Action("DeleteTask", "Mitigation", new { area = "Client" })';
         window.__planId = @planId;
         window.__riskId = @riskId;
+        window.__canManageTasks = @(canManageTasks.ToString().ToLowerInvariant());
+        window.__currentUserId = '@currentUserId';
     })();
 
     // Drag and Drop Logic
@@ -463,6 +475,13 @@
         el.classList.remove('bg-slate-50', 'dark:bg-slate-800/40');
     }
     function drag(ev) {
+        if (!window.__canManageTasks) {
+            var assigneeId = ev.target.getAttribute('data-task-assignee-id') || '';
+            if (!assigneeId || assigneeId !== window.__currentUserId) {
+                ev.preventDefault();
+                return;
+            }
+        }
         window.__mitigationDragging = true;
         ev.dataTransfer.setData('text', ev.target.id);
         ev.dataTransfer.setData('taskId', ev.target.getAttribute('data-task-id') || '');
@@ -480,6 +499,10 @@
         
         card.classList.remove('opacity-50', 'rotate-2');
         var taskId = card.getAttribute('data-task-id');
+        var assigneeId = card.getAttribute('data-task-assignee-id') || '';
+        if (!window.__canManageTasks && assigneeId !== window.__currentUserId) {
+            return;
+        }
         
         // Find the correct drop container
         var columnBody = ev.target.closest('.kanban-drop') || document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
@@ -589,6 +612,11 @@
     function onCardClick(ev, taskId) {
         if (window.__mitigationDragging) return;
         if (ev.target.closest('button') || ev.target.closest('a')) return;
+        if (!window.__canManageTasks) {
+            var card = ev.currentTarget;
+            var assigneeId = card.getAttribute('data-task-assignee-id') || '';
+            if (assigneeId !== window.__currentUserId) return;
+        }
         openTaskModal(taskId);
     }
 
@@ -600,12 +628,22 @@
         fetch(window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId))
             .then(function(r) { return r.json(); })
             .then(function(data) {
+                if (!window.__canManageTasks && data.assignedToUserId !== window.__currentUserId) {
+                    closeTaskModal();
+                    return;
+                }
+
                 document.getElementById('taskModalTitle').value = data.title || '';
                 document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
                 document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
                 document.getElementById('taskModalDescription').value = data.description || '';
                 document.getElementById('taskModalProgressInput').value = data.progressPercent ?? 0;
                 document.getElementById('taskModalStatus').value = data.status || 'ToDo';
+
+                var restricted = !window.__canManageTasks;
+                document.getElementById('taskModalTitle').disabled = restricted;
+                document.getElementById('taskModalAssignedTo').disabled = restricted;
+                document.getElementById('taskModalDueDate').disabled = restricted;
             });
     }
 
@@ -653,6 +691,7 @@
 
     // New Task Modal
     function openNewTaskModal() {
+        if (!window.__canManageTasks) return;
         document.getElementById('newTaskModal').classList.remove('hidden');
         document.getElementById('newTaskTitle').value = '';
         document.getElementById('newTaskTitleError').classList.add('hidden');

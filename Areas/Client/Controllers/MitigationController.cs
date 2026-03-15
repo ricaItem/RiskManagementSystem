@@ -31,6 +31,17 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
         private bool IsAdmin() => User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+        private bool IsRiskManager() => User.IsInRole("RiskManager");
+        private bool CanManageTasks() => IsAdmin() || IsRiskManager();
+
+        private async Task<bool> IsValidAssigneeAsync(int orgId, string? assignedToUserId)
+        {
+            if (string.IsNullOrWhiteSpace(assignedToUserId)) return true;
+
+            var candidate = assignedToUserId.Trim();
+            return await _platformDb.Users.AsNoTracking()
+                .AnyAsync(u => u.Id == candidate && u.OrganizationId == orgId && u.IsActive);
+        }
 
         public async Task<IActionResult> Index(string filter = "active")
         {
@@ -192,6 +203,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Title = t.Title,
                 Status = t.Status,
                 DueDate = t.DueDate,
+                AssignedToUserId = t.AssignedToUserId,
                 AssignedTo = t.AssignedToUserId != null && userDisplayNames.TryGetValue(t.AssignedToUserId, out var name) ? name : "—",
                 Priority = t.Priority ?? "Unassessed",
                 ProgressPercent = t.ProgressPercent
@@ -207,6 +219,8 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.RiskTitle = risk.Title;
             ViewBag.OrgUsers = orgUsers;
             ViewBag.IsAdmin = IsAdmin();
+            ViewBag.CanManageTasks = CanManageTasks();
+            ViewBag.CurrentUserId = user.Id;
             return View(model);
         }
 
@@ -216,6 +230,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
+            if (!CanManageTasks()) return Json(new { ok = false });
 
             await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
             var plan = await db.MitigationPlans.Include(p => p.Risk).FirstOrDefaultAsync(p => p.PlanId == planId);
@@ -235,7 +250,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            if (!IsAdmin()) return Json(new { ok = false });
+            if (!CanManageTasks()) return Json(new { ok = false });
 
             await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
             var task = await db.MitigationTasks
@@ -269,6 +284,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
             if (task == null) return NotFound();
             if (task.Plan.Risk.OrgId != user.OrganizationId) return Forbid();
+            if (!CanManageTasks() && !string.Equals(task.AssignedToUserId, user.Id, StringComparison.OrdinalIgnoreCase)) return Forbid();
 
             var previousStatus = task.Status;
             task.Status = newStatus;
@@ -340,20 +356,51 @@ namespace Web_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
             if (task == null) return NotFound();
             if (task.Plan.Risk.OrgId != user.OrganizationId) return Forbid();
-
-            if (!string.IsNullOrWhiteSpace(title))
-                task.Title = title.Trim();
-
             var allowedStatuses = new[] { "ToDo", "InProgress", "Review", "Done" };
-            if (!string.IsNullOrWhiteSpace(status) && allowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-                task.Status = status;
+            var canManage = CanManageTasks();
+            var previousAssigneeId = task.AssignedToUserId;
+            if (!canManage && !string.Equals(task.AssignedToUserId, user.Id, StringComparison.OrdinalIgnoreCase)) return Forbid();
 
-            task.AssignedToUserId = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim();
-            task.DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null;
-            task.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            if (canManage)
+            {
+                if (!string.IsNullOrWhiteSpace(title))
+                    task.Title = title.Trim();
+
+                if (!string.IsNullOrWhiteSpace(status) && allowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                    task.Status = status;
+
+                var normalizedAssignee = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim();
+                if (!await IsValidAssigneeAsync(user.OrganizationId, normalizedAssignee))
+                    return BadRequest(new { ok = false, message = "Invalid assignee." });
+
+                task.AssignedToUserId = normalizedAssignee;
+                task.DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null;
+                task.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(status) && allowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                    task.Status = status;
+
+                task.Description = string.IsNullOrWhiteSpace(description) ? task.Description : description.Trim();
+            }
+
             task.ProgressPercent = progressPercent.HasValue ? Math.Clamp(progressPercent.Value, 0, 100) : task.ProgressPercent;
             task.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            if (canManage
+                && !string.IsNullOrWhiteSpace(task.AssignedToUserId)
+                && !string.Equals(previousAssigneeId, task.AssignedToUserId, StringComparison.OrdinalIgnoreCase))
+            {
+                await _notificationService.NotifyMitigationTaskAssignmentAsync(
+                    task.Plan.Risk.OrgId,
+                    task.Plan.Risk.RiskId,
+                    task.TaskId,
+                    task.Title,
+                    task.AssignedToUserId,
+                    user.Id);
+            }
 
             return Json(new { ok = true });
         }
@@ -364,6 +411,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
+            if (!CanManageTasks()) return Forbid();
 
             await using var db = await _tenantDbFactory.CreateAsync(user.OrganizationId);
 
@@ -374,12 +422,16 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             if (string.IsNullOrWhiteSpace(title)) return BadRequest();
 
+            var normalizedAssignee = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim();
+            if (!await IsValidAssigneeAsync(user.OrganizationId, normalizedAssignee))
+                return BadRequest(new { ok = false, message = "Invalid assignee." });
+
             var task = new MitigationTask
             {
                 PlanId = planId,
                 Title = title.Trim(),
                 Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-                AssignedToUserId = string.IsNullOrWhiteSpace(assignedToUserId) ? null : assignedToUserId.Trim(),
+                AssignedToUserId = normalizedAssignee,
                 DueDate = !string.IsNullOrWhiteSpace(dueDate) && DateTime.TryParse(dueDate, out var d) ? d : (DateTime?)null,
                 Status = "ToDo",
                 ProgressPercent = 0,
@@ -387,6 +439,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             };
             db.MitigationTasks.Add(task);
             await db.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(task.AssignedToUserId))
+            {
+                await _notificationService.NotifyMitigationTaskAssignmentAsync(
+                    plan.Risk.OrgId,
+                    plan.Risk.RiskId,
+                    task.TaskId,
+                    task.Title,
+                    task.AssignedToUserId,
+                    user.Id);
+            }
+
             _riskService.AddAuditLog(db, plan.Risk.OrgId, user.Id, "MitigationTask", task.TaskId, "TaskCreated", task.Title, HttpContext.Connection.RemoteIpAddress?.ToString());
             await db.SaveChangesAsync();
 

@@ -78,7 +78,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
             var po = await db.PurchaseOrders.AsNoTracking()
-                .Include(p => p.Site).Include(p => p.Supplier).Include(p => p.LineItems)
+                .Include(p => p.Site).Include(p => p.Supplier).Include(p => p.LineItems).ThenInclude(l => l.CostCode)
                 .FirstOrDefaultAsync(p => p.PurchaseOrderId == id && p.OrgId == orgId.Value);
             if (po == null) return NotFound();
             return View(po);
@@ -95,6 +95,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var suppliers = await db.Suppliers.AsNoTracking().Where(s => s.OrgId == orgId.Value).OrderBy(s => s.Name).ToListAsync();
             ViewBag.Sites = sites;
             ViewBag.Suppliers = suppliers;
+            ViewBag.CostCodes = await db.CostCodes.AsNoTracking().Where(c => c.OrgId == orgId.Value && c.ParentCostCodeId != null).OrderBy(c => c.Code).Select(c => new { c.CostCodeId, c.Code, c.Description }).ToListAsync();
             var nextNum = await db.PurchaseOrders.Where(p => p.OrgId == orgId.Value).CountAsync() + 1;
             ViewBag.SuggestedOrderNumber = $"PO-{DateTime.UtcNow:yyyyMMdd}-{nextNum:D4}";
             return View(new PurchaseOrder { OrderDate = DateTime.UtcNow.Date, Status = "Draft" });
@@ -107,7 +108,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
 
-            if (string.IsNullOrWhiteSpace(model?.OrderNumber)) 
+            if (model == null) return RedirectToAction(nameof(Index));
+
+            if (string.IsNullOrWhiteSpace(model.OrderNumber)) 
             { 
                 ModelState.AddModelError("OrderNumber", "Order number is required."); 
                 await PopulateCreateDropdownsAsync(orgId.Value, model); 
@@ -167,7 +170,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                             PurchaseOrderId = entity.PurchaseOrderId, 
                             Description = item.Description, 
                             Quantity = item.Quantity, 
-                            UnitCost = item.UnitCost 
+                            UnitCost = item.UnitCost,
+                            CostCodeId = item.CostCodeId
                         };
                         db.PurchaseOrderLines.Add(line);
                     }
@@ -185,6 +189,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.Sites = await db.Sites.AsNoTracking().Where(s => s.OrgId == orgId && s.Status != "Archived").OrderBy(s => s.SiteName).ToListAsync();
             ViewBag.Suppliers = await db.Suppliers.AsNoTracking().Where(s => s.OrgId == orgId).OrderBy(s => s.Name).ToListAsync();
             ViewBag.SuggestedOrderNumber = $"PO-{DateTime.UtcNow:yyyyMMdd}-{await db.PurchaseOrders.CountAsync(p => p.OrgId == orgId) + 1:D4}";
+            ViewBag.CostCodes = await db.CostCodes.AsNoTracking().Where(c => c.OrgId == orgId && c.ParentCostCodeId != null).OrderBy(c => c.Code).Select(c => new { c.CostCodeId, c.Code, c.Description }).ToListAsync();
         }
 
         public async Task<IActionResult> Edit(int id)
@@ -198,6 +203,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (po == null) return NotFound();
             ViewBag.Sites = await db.Sites.AsNoTracking().Where(s => s.OrgId == orgId.Value && s.Status != "Archived").OrderBy(s => s.SiteName).ToListAsync();
             ViewBag.Suppliers = await db.Suppliers.AsNoTracking().Where(s => s.OrgId == orgId.Value).OrderBy(s => s.Name).ToListAsync();
+            ViewBag.CostCodes = await db.CostCodes.AsNoTracking().Where(c => c.OrgId == orgId.Value && c.ParentCostCodeId != null).OrderBy(c => c.Code).Select(c => new { c.CostCodeId, c.Code, c.Description }).ToListAsync();
             return View(po);
         }
 
@@ -238,7 +244,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                             PurchaseOrderId = entity.PurchaseOrderId, 
                             Description = item.Description, 
                             Quantity = item.Quantity, 
-                            UnitCost = item.UnitCost 
+                            UnitCost = item.UnitCost,
+                            CostCodeId = item.CostCodeId
                         };
                         db.PurchaseOrderLines.Add(newLine);
                     }

@@ -72,6 +72,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("VendorOnly", p => p.RequireRole("SuperAdmin"));
     options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
+    options.AddPolicy("NonEmployee", p => p.RequireAssertion(ctx => !ctx.User.IsInRole("Employee")));
 });
 
 // --------------------
@@ -101,6 +102,7 @@ builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService
 builder.Services.AddScoped<SupplierRiskService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IIncidentService, IncidentService>();
+builder.Services.AddScoped<ProjectService>();
 builder.Services.AddHostedService<MonitoringSyncHostedService>();
 builder.Services.AddHostedService<RiskReviewReminderHostedService>();
 
@@ -139,6 +141,9 @@ using (var scope = app.Services.CreateScope())
             var tenantFactory = services.GetRequiredService<ITenantDbFactory>();
             await using var tenantDb = await tenantFactory.CreateAsync(1);
             await tenantDb.Database.MigrateAsync();
+            
+            // Seed Cost Codes
+            await WEB_Sentro.Data.Seed.CostCodeSeeder.SeedAsync(tenantDb, 1);
         }
     }
 

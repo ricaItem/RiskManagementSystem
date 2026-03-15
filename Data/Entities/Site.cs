@@ -17,10 +17,12 @@ namespace WEB_Sentro.Data.Entities
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<Risk> Risks { get; set; } = new List<Risk>();
         public ICollection<MonitoringSite> MonitoringSites { get; set; } = new List<MonitoringSite>();
         public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
         public ICollection<Incident> Incidents { get; set; } = new List<Incident>();
+        public ICollection<ChangeOrder> ChangeOrders { get; set; } = new List<ChangeOrder>();
     }
 }

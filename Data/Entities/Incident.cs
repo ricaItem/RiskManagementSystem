@@ -7,6 +7,7 @@ namespace WEB_Sentro.Data.Entities
         public int IncidentId { get; set; }
         public int OrgId { get; set; }
         public int SiteId { get; set; }
+        public int? ProjectId { get; set; }
         public string ReportedByUserId { get; set; } = null!;
         
         [Required]
@@ -41,5 +42,6 @@ namespace WEB_Sentro.Data.Entities
         public DateTime? DeletedAt { get; set; }
 
         public Site Site { get; set; } = null!;
+        public Project? Project { get; set; }
     }
 }

@@ -22,6 +22,7 @@ namespace WEB_Sentro.Services
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var query = db.Incidents.AsNoTracking()
                 .Include(i => i.Site)
+                .Include(i => i.Project)
                 .Where(i => i.OrgId == orgId);
 
             if (siteId.HasValue)
@@ -44,6 +45,7 @@ namespace WEB_Sentro.Services
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             return await db.Incidents.AsNoTracking()
                 .Include(i => i.Site)
+                .Include(i => i.Project)
                 .FirstOrDefaultAsync(i => i.IncidentId == incidentId && i.OrgId == orgId);
         }
 
@@ -78,6 +80,7 @@ namespace WEB_Sentro.Services
             existing.CorrectiveActions = incident.CorrectiveActions;
             existing.WeatherConditions = incident.WeatherConditions;
             existing.SiteId = incident.SiteId;
+            existing.ProjectId = incident.ProjectId;
             existing.UpdatedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();

@@ -85,7 +85,8 @@ namespace WEB_Sentro.Services
                             "Submitted",
                             siteId: null,
                             supplierId: po.SupplierId,
-                            ct);
+                            projectId: null,
+                            ct: ct);
                         alert.RiskId = risk.RiskId;
                         await db.SaveChangesAsync(ct);
                         _riskService.AddAuditLog(db, orgId, userId, "Risk", risk.RiskId, "AutoCreatedFromOverduePO", $"Supplier delay risk created from overdue PO {po.OrderNumber}", null);

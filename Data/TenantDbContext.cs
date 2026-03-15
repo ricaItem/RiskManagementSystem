@@ -14,6 +14,8 @@ namespace WEB_Sentro.Data
         }
 
         public DbSet<Site> Sites { get; set; } = null!;
+        public DbSet<Project> Projects { get; set; } = null!;
+        public DbSet<ProjectTask> ProjectTasks { get; set; } = null!;
         public DbSet<Risk> Risks { get; set; } = null!;
         public DbSet<RiskEvaluation> RiskEvaluations { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
@@ -38,11 +40,53 @@ namespace WEB_Sentro.Data
         public DbSet<RiskControl> RiskControls { get; set; } = null!;
         public DbSet<ProcurementAlert> ProcurementAlerts { get; set; } = null!;
         public DbSet<Incident> Incidents { get; set; } = null!;
+        public DbSet<CostCode> CostCodes { get; set; } = null!;
+        public DbSet<ChangeOrder> ChangeOrders { get; set; } = null!;
+        public DbSet<ChangeOrderLine> ChangeOrderLines { get; set; } = null!;
+        public DbSet<EmployeeNote> EmployeeNotes { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<Project>(e =>
+            {
+                e.ToTable("Projects");
+                e.HasKey(x => x.ProjectId);
+                e.Property(x => x.ProjectCode).HasMaxLength(50);
+                e.Property(x => x.Name).HasMaxLength(150);
+                e.Property(x => x.Description).HasMaxLength(1000);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.Currency).HasMaxLength(10);
+                e.Property(x => x.ManagerUserId).HasMaxLength(450);
+                e.Property(x => x.Budget).HasPrecision(18, 2);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.ProjectCode);
+                e.HasIndex(x => x.ManagerUserId);
+                e.HasIndex(x => x.DeletedAt);
+                e.HasQueryFilter(x => x.DeletedAt == null);
+                
+                e.HasOne(x => x.Site).WithMany(s => s.Projects).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<ProjectTask>(e =>
+            {
+                e.ToTable("ProjectTasks");
+                e.HasKey(x => x.ProjectTaskId);
+                e.Property(x => x.WbsCode).HasMaxLength(50);
+                e.Property(x => x.TaskCode).HasMaxLength(50);
+                e.Property(x => x.Title).HasMaxLength(150);
+                e.Property(x => x.Description).HasMaxLength(500);
+                e.Property(x => x.TaskType).HasMaxLength(20);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.AssignedToUserId).HasMaxLength(450);
+                e.Property(x => x.Budget).HasPrecision(18, 2);
+                e.HasIndex(x => x.ProjectId);
+
+                e.HasOne(x => x.Project).WithMany(p => p.Tasks).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.ParentTask).WithMany(t => t.SubTasks).HasForeignKey(x => x.ParentTaskId).OnDelete(DeleteBehavior.Restrict);
+            });
 
             builder.Entity<Site>(e =>
             {
@@ -90,6 +134,7 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => new { x.OrgId, x.OverdueFlag });
                 e.HasQueryFilter(x => x.DeletedAt == null);
                 e.HasOne(x => x.Site).WithMany(s => s.Risks).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Project).WithMany(p => p.Risks).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -229,6 +274,7 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => new { x.SiteId, x.OrderNumber });
                 e.HasIndex(x => x.Status);
                 e.HasOne(x => x.Site).WithMany(s => s.PurchaseOrders).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Project).WithMany(p => p.PurchaseOrders).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Supplier).WithMany(s => s.PurchaseOrders).HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -253,6 +299,7 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => x.Category);
                 e.HasIndex(x => x.Date);
                 e.HasOne(x => x.Site).WithMany(s => s.Expenses).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Project).WithMany(p => p.Expenses).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Risk).WithMany(r => r.Expenses).HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(x => x.PurchaseOrder).WithMany(p => p.Expenses).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.SetNull);
             });
@@ -376,7 +423,82 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => x.IncidentDate);
                 e.HasQueryFilter(x => x.DeletedAt == null);
                 e.HasOne(x => x.Site).WithMany(s => s.Incidents).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Project).WithMany(p => p.Incidents).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
             });
-        }
+
+            builder.Entity<CostCode>(e =>
+            {
+                e.ToTable("CostCodes");
+                e.HasKey(x => x.CostCodeId);
+                e.Property(x => x.Code).HasMaxLength(50).IsRequired();
+                e.Property(x => x.Description).HasMaxLength(150).IsRequired();
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.Code);
+                e.HasIndex(x => new { x.OrgId, x.Code }).IsUnique();
+                
+                e.HasOne(x => x.ParentCostCode)
+                 .WithMany(p => p.ChildCostCodes)
+                 .HasForeignKey(x => x.ParentCostCodeId)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Update PurchaseOrderLine for CostCode
+            builder.Entity<PurchaseOrderLine>(e =>
+            {
+                e.HasOne(x => x.CostCode)
+                 .WithMany(c => c.PurchaseOrderLines)
+                 .HasForeignKey(x => x.CostCodeId)
+                 .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Update Expense for CostCode
+            builder.Entity<Expense>(e =>
+            {
+                e.HasOne(x => x.CostCode)
+                 .WithMany(c => c.Expenses)
+                 .HasForeignKey(x => x.CostCodeId)
+                 .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // ChangeOrder
+            builder.Entity<ChangeOrder>(e =>
+            {
+                e.ToTable("ChangeOrders");
+                e.HasKey(x => x.ChangeOrderId);
+                e.Property(x => x.Title).HasMaxLength(150);
+                e.Property(x => x.Description).HasMaxLength(1000);
+                e.Property(x => x.Status).HasMaxLength(20);
+                e.Property(x => x.ApprovedBy).HasMaxLength(450);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.SiteId);
+                e.HasIndex(x => x.Status);
+                e.HasOne(x => x.Site).WithMany(s => s.ChangeOrders).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Project).WithMany(p => p.ChangeOrders).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ChangeOrderLine
+            builder.Entity<ChangeOrderLine>(e =>
+            {
+                e.ToTable("ChangeOrderLines");
+                e.HasKey(x => x.ChangeOrderLineId);
+                e.Property(x => x.Description).HasMaxLength(255);
+                e.Property(x => x.Amount).HasPrecision(18, 2);
+                e.HasOne(x => x.ChangeOrder).WithMany(co => co.LineItems).HasForeignKey(x => x.ChangeOrderId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.CostCode).WithMany(c => c.ChangeOrderLines).HasForeignKey(x => x.CostCodeId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<EmployeeNote>(e =>
+            {
+                e.ToTable("EmployeeNotes");
+                e.HasKey(x => x.EmployeeNoteId);
+                e.Property(x => x.UserId).HasMaxLength(450);
+                e.Property(x => x.Title).HasMaxLength(120);
+                e.Property(x => x.Body).HasMaxLength(1200);
+                e.HasIndex(x => x.OrgId);
+                e.HasIndex(x => x.UserId);
+                e.HasIndex(x => new { x.OrgId, x.UserId, x.Pinned });
+                e.HasIndex(x => x.UpdatedAt);
+            });
     }
+}
 }

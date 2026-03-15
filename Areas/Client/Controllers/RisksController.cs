@@ -27,8 +27,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IRiskVersionService _versionService;
         private readonly IProcurementOverdueService _procurementOverdueService;
         private readonly IIncidentService _incidentService;
+        private readonly ProjectService _projectService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService, ProjectService projectService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -44,6 +45,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _versionService = versionService;
             _procurementOverdueService = procurementOverdueService;
             _incidentService = incidentService;
+            _projectService = projectService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -116,11 +118,18 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var formList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "", Text = "Unassigned" } };
                 formList.AddRange(siteOptions);
                 ViewBag.SitesForRiskForm = formList;
+
+                var projects = await _projectService.GetProjectsAsync(orgId.Value, "Active", null, null);
+                var projectOptions = projects.Select(p => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = p.ProjectId.ToString(), Text = p.Name }).ToList();
+                var projectFormList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "", Text = "Unassigned" } };
+                projectFormList.AddRange(projectOptions);
+                ViewBag.ProjectsForRiskForm = projectFormList;
             }
             else
             {
                 ViewBag.SiteFilterList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
                 ViewBag.SitesForRiskForm = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                ViewBag.ProjectsForRiskForm = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
             }
             ViewBag.SelectedSiteId = siteId;
             var totalCount = list.Count;
@@ -143,7 +152,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> IdentifyNewRisk([Bind("Title,Category,ProjectSite,Description,SourceType,SiteId")] RiskIdentificationViewModel model, string? submitType)
+        public async Task<IActionResult> IdentifyNewRisk([Bind("Title,Category,ProjectSite,Description,SourceType,SiteId,ProjectId")] RiskIdentificationViewModel model, string? submitType)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -163,7 +172,9 @@ namespace Web_Sentro.Areas.Client.Controllers
                 model.ProjectSite?.Trim(),
                 model.Description?.Trim(),
                 status,
-                model.SiteId);
+                model.SiteId,
+                null, // supplierId
+                model.ProjectId);
 
             await using (var db = await _tenantDbFactory.CreateAsync(user.OrganizationId))
             {
@@ -275,7 +286,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string? Priority, string ProjectSite, string? ReportedDate, int? SiteId)
+        public async Task<IActionResult> UpdateRisk(int RiskId, string Title, string? Category, string? SourceType, string? Priority, string ProjectSite, string? ReportedDate, int? SiteId, int? ProjectId)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
@@ -287,7 +298,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (EmployeeOnly() && (risk.ReportByUserId != user.Id || risk.Status != "Draft"))
                 return Forbid();
 
-            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, IsSuperAdmin(), changedByUserId: user.Id);
+            await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, ProjectId, IsSuperAdmin(), changedByUserId: user.Id);
             TempData["SuccessMessage"] = "Risk updated successfully.";
             return RedirectToAction("Identification");
         }

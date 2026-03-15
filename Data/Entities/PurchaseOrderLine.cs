@@ -12,6 +12,9 @@ namespace WEB_Sentro.Data.Entities
         [NotMapped]
         public decimal Total => Quantity * UnitCost;
 
+        public int? CostCodeId { get; set; }
+        public CostCode? CostCode { get; set; }
+
         public PurchaseOrder PurchaseOrder { get; set; } = null!;
     }
 }

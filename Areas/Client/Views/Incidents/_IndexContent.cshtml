@@ -9,6 +9,7 @@
     };
 
     var sites = ViewBag.Sites as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+    var projects = ViewBag.Projects as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
 }
 
 @if (TempData["Message"] != null)
@@ -240,6 +241,10 @@
                     <span class="text-sm text-slate-500">Site</span>
                     <span id="panelSite" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
                 </div>
+                <div id="panelProjectContainer" class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800 hidden">
+                    <span class="text-sm text-slate-500">Project</span>
+                    <span id="panelProject" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
                 <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                     <span class="text-sm text-slate-500">Severity</span>
                     <span id="panelSeverity" class="text-sm font-bold text-slate-900 dark:text-white text-right"></span>
@@ -298,6 +303,20 @@
                             }
                         </select>
                         <span id="error-SiteId" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label for="ProjectId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Project</label>
+                        <select id="ProjectId" name="ProjectId" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="">Select project...</option>
+                            @if (projects != null)
+                            {
+                                foreach (var project in projects)
+                                {
+                                    <option value="@project.Value">@project.Text</option>
+                                }
+                            }
+                        </select>
+                        <span id="error-ProjectId" class="text-xs text-rose-500 mt-1 hidden"></span>
                     </div>
                     <div>
                         <label for="IncidentDate" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Date & Time <span class="text-rose-500">*</span></label>
@@ -381,6 +400,15 @@
         document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         
         document.getElementById('panelSite').innerText = item.SiteName;
+
+        const projectContainer = document.getElementById('panelProjectContainer');
+        if (item.ProjectName) {
+            document.getElementById('panelProject').innerText = item.ProjectName;
+            projectContainer.classList.remove('hidden');
+        } else {
+            projectContainer.classList.add('hidden');
+        }
+
         document.getElementById('panelSeverity').innerText = item.Severity;
         document.getElementById('panelStatus').innerText = item.Status;
 
@@ -445,6 +473,7 @@
         document.getElementById('IncidentId').value = item.IncidentId;
         
         if (item.SiteId) document.getElementById('SiteId').value = item.SiteId;
+        if (item.ProjectId) document.getElementById('ProjectId').value = item.ProjectId;
         
         document.getElementById('Title').value = item.Title;
         document.getElementById('Description').value = item.Description;

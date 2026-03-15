@@ -37,6 +37,7 @@ namespace WEB_Sentro.Data.Entities
         public DateTime? DeletedAt { get; set; }
 
         public Site? Site { get; set; }
+        public Project? Project { get; set; }
         public Supplier? Supplier { get; set; }
         public ICollection<RiskEvaluation> Evaluations { get; set; } = new List<RiskEvaluation>();
         public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();

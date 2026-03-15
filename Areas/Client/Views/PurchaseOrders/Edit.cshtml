@@ -4,6 +4,7 @@
     ViewData["Title"] = "Edit Purchase Order";
     var sites = ViewBag.Sites as IEnumerable<WEB_Sentro.Data.Entities.Site> ?? new List<WEB_Sentro.Data.Entities.Site>();
     var suppliers = ViewBag.Suppliers as IEnumerable<WEB_Sentro.Data.Entities.Supplier> ?? new List<WEB_Sentro.Data.Entities.Supplier>();
+    var costCodes = ViewBag.CostCodes as IEnumerable<dynamic> ?? new List<dynamic>();
 }
 
 <div class="animate-in fade-in min-h-screen flex items-center justify-center p-4 duration-500">
@@ -93,9 +94,10 @@
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700" id="linesTable">
                             <thead class="bg-slate-50 dark:bg-slate-800">
                                 <tr>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[40%]">Description</th>
-                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[20%]">Qty</th>
-                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[20%]">Unit Cost</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[20%]">Cost Code</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[30%]">Description</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Qty</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Unit Cost</th>
                                     <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Total</th>
                                     <th scope="col" class="px-4 py-3 w-[5%]"></th>
                                 </tr>
@@ -107,6 +109,15 @@
                                     {
                                         var item = Model.LineItems.ElementAt(i);
                                         <tr>
+                                            <td class="px-4 py-2">
+                                                <select name="items[@i].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                                                    <option value="">Select Code...</option>
+                                                    @foreach (var c in costCodes)
+                                                    {
+                                                        <option value="@c.CostCodeId" selected="@(item.CostCodeId == c.CostCodeId)">@c.Code - @c.Description</option>
+                                                    }
+                                                </select>
+                                            </td>
                                             <td class="px-4 py-2">
                                                 <input type="text" name="items[@i].Description" value="@item.Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
                                             </td>
@@ -150,6 +161,8 @@
 
 <script>
     (function() {
+        var costCodeOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(costCodes));
+
         // Risk Warning Logic
         var sel = document.getElementById('SupplierId');
         var warn = document.getElementById('SupplierRiskWarning');
@@ -178,7 +191,19 @@
             const index = tbody.children.length;
             const row = document.createElement('tr');
             
+            let optionsHtml = '<option value="">Select Code...</option>';
+            if (costCodeOptions && costCodeOptions.length) {
+                costCodeOptions.forEach(c => {
+                    optionsHtml += `<option value="${c.CostCodeId}">${c.Code} - ${c.Description}</option>`;
+                });
+            }
+            
             row.innerHTML = `
+                <td class="px-4 py-2">
+                    <select name="items[${index}].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                        ${optionsHtml}
+                    </select>
+                </td>
                 <td class="px-4 py-2">
                     <input type="text" name="items[${index}].Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
                 </td>
@@ -229,6 +254,9 @@
 
         window.reindexRows = function() {
             document.querySelectorAll('#linesBody tr').forEach((row, index) => {
+                const ccSelect = row.querySelector('select[name*=".CostCodeId"]');
+                if (ccSelect) ccSelect.name = `items[${index}].CostCodeId`;
+
                 row.querySelector('input[name*=".Description"]').name = `items[${index}].Description`;
                 row.querySelector('input[name*=".Quantity"]').name = `items[${index}].Quantity`;
                 row.querySelector('input[name*=".UnitCost"]').name = `items[${index}].UnitCost`;

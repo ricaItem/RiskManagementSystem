@@ -1,23 +1,45 @@
+@model WEB_Sentro.Areas.Client.Models.MyAccountViewModel
 @{
     ViewData["Title"] = "My Account";
     Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
+    var fullName = $"{Model.FirstName} {Model.LastName}".Trim();
+    if (string.IsNullOrEmpty(fullName)) { fullName = Model.Email ?? ""; }
+    var first = Model.FirstName?.Trim().FirstOrDefault();
+    var last = Model.LastName?.Trim().FirstOrDefault();
+    var initials = (first != default && last != default)
+        ? $"{first}{last}".ToUpperInvariant()
+        : (fullName.Length >= 2 ? $"{fullName[0]}{fullName[^1]}".ToUpperInvariant() : (fullName.Length == 1 ? fullName.ToUpperInvariant() : "??"));
+    var roleSubtext = Model.AccountLevelDisplay.ToUpperInvariant();
 }
 
 <div class="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-200">
+            @Model.Message
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="rounded-2xl bg-rose-100 dark:bg-rose-900/30 border border-rose-300 dark:border-rose-700 px-4 py-3 text-sm font-medium text-rose-800 dark:text-rose-200">
+            @Model.Error
+        </div>
+    }
+
     <div class="flex items-center gap-6">
         <div class="relative group">
             <div class="h-24 w-24 rounded-[2rem] bg-gradient-to-tr from-emerald-500 to-sky-500 p-1">
                 <div class="h-full w-full rounded-[1.8rem] bg-white dark:bg-slate-900 flex items-center justify-center text-3xl font-black text-slate-300">
-                    AV
+                    @initials
                 </div>
             </div>
-            <button class="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+            <button class="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform" type="button" title="Photo upload not yet available">
                 📸
             </button>
         </div>
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white">Organization Admin</h1>
-            <p class="text-sm font-bold text-emerald-600 uppercase tracking-widest">Organization Admin Access</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white">@(string.IsNullOrEmpty(fullName) ? "My Account" : fullName)</h1>
+            <p class="text-sm font-bold text-emerald-600 uppercase tracking-widest">@roleSubtext</p>
         </div>
     </div>
 
@@ -25,14 +47,19 @@
         <div class="md:col-span-8 space-y-6">
             <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                 <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Personal Details</h3>
-                <form class="grid gap-4 md:grid-cols-2">
+                <form asp-area="Client" asp-controller="Account" asp-action="UpdateProfile" method="post" class="grid gap-4 md:grid-cols-2">
+                    @Html.AntiForgeryToken()
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Full Name</label>
-                        <input type="text" value="Admin Vendor" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="profile_FirstName">First Name</label>
+                        <input type="text" id="profile_FirstName" name="FirstName" value="@Model.FirstName" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required />
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</label>
-                        <input type="email" value="admin@sentro.io" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="profile_LastName">Last Name</label>
+                        <input type="text" id="profile_LastName" name="LastName" value="@Model.LastName" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required />
+                    </div>
+                    <div class="md:col-span-2 space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="profile_Email">Email Address</label>
+                        <input type="email" id="profile_Email" name="Email" value="@Model.Email" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required />
                     </div>
                     <div class="md:col-span-2 pt-4">
                         <button type="submit" class="rounded-xl bg-slate-900 px-6 py-3 text-xs font-black text-white dark:bg-emerald-600 transition-all hover:shadow-lg hover:shadow-emerald-500/20">
@@ -44,10 +71,19 @@
 
             <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                 <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Security</h3>
-                <form class="space-y-4">
+                <form asp-area="Client" asp-controller="Account" asp-action="ChangePassword" method="post" class="space-y-4">
+                    @Html.AntiForgeryToken()
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">New Password</label>
-                        <input type="password" placeholder="••••••••" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="pwd_CurrentPassword">Current Password</label>
+                        <input type="password" id="pwd_CurrentPassword" name="CurrentPassword" placeholder="••••••••" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="pwd_NewPassword">New Password</label>
+                        <input type="password" id="pwd_NewPassword" name="NewPassword" placeholder="••••••••" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required minlength="12" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="pwd_ConfirmPassword">Confirm New Password</label>
+                        <input type="password" id="pwd_ConfirmPassword" name="ConfirmPassword" placeholder="••••••••" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" required minlength="12" />
                     </div>
                     <button type="submit" class="rounded-xl border border-slate-200 px-6 py-3 text-xs font-black text-slate-600 dark:border-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                         Change Password
@@ -59,17 +95,18 @@
         <div class="md:col-span-4 space-y-6">
             <div class="rounded-3xl bg-emerald-600 p-6 text-white shadow-xl shadow-emerald-500/20">
                 <h4 class="text-xs font-black uppercase tracking-widest opacity-80 mb-4">Account Level</h4>
-                <div class="text-xl font-black mb-2">Master Vendor</div>
+                <div class="text-xl font-black mb-2">@Model.AccountLevelDisplay</div>
                 <p class="text-[10px] font-bold opacity-90 leading-relaxed">
-                    You have global read/write access to all tenants, billing models, and system-wide security settings.
+                    @Model.AccountLevelDescription
                 </p>
                 <div class="mt-6 pt-6 border-t border-white/20">
                     <div class="text-[10px] font-black uppercase mb-1">Last Login</div>
-                    <div class="text-xs font-bold">Feb 08, 2026 • 08:52 AM</div>
+                    <div class="text-xs font-bold">@(Model.LastLoginAt.HasValue ? Model.LastLoginAt.Value.ToString("MMM dd, yyyy • hh:mm tt") : "—")</div>
                 </div>
             </div>
 
-            <form action="/Logout" method="post">
+            <form action="/Identity/Account/Logout" method="post" class="inline">
+                @Html.AntiForgeryToken()
                 <button type="submit" class="w-full rounded-2xl border-2 border-rose-100 p-4 text-xs font-black uppercase tracking-widest text-rose-500 transition-all hover:bg-rose-500 hover:text-white dark:border-rose-900/30">
                     Terminate Session
                 </button>

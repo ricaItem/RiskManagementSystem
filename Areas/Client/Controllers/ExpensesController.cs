@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
@@ -24,6 +25,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             _userManager = userManager;
             _env = env;
             _auditService = auditService;
+        }
+
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+            {
+                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
+                return;
+            }
+
+            await next();
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -53,7 +66,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             foreach (var s in sites)
                 ((List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.SiteFilterList).Add(new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})", Selected = siteId == s.SiteId });
 
-            var query = db.Expenses.AsNoTracking().Include(e => e.Site).Include(e => e.PurchaseOrder).Include(e => e.Risk)
+            var query = db.Expenses.AsNoTracking().Include(e => e.Site).Include(e => e.PurchaseOrder).Include(e => e.Risk).Include(e => e.CostCode)
                 .Where(e => e.OrgId == orgId.Value);
 
             if (siteId.HasValue) query = query.Where(e => e.SiteId == siteId.Value);
@@ -76,7 +89,13 @@ namespace Web_Sentro.Areas.Client.Controllers
             var model = new PagedResult<Expense> { Items = items, TotalCount = totalCount, PageNumber = page, PageSize = pageSize };
             ViewBag.SelectedSiteId = siteId;
             ViewBag.SelectedCategory = category;
-            ViewBag.Categories = new[] { "Labor", "Materials", "Equipment", "Mitigation" };
+            // ViewBag.Categories = new[] { "Labor", "Materials", "Equipment", "Mitigation" };
+            ViewBag.Categories = await db.Expenses.AsNoTracking()
+                .Where(e => e.OrgId == orgId.Value && e.Category != null)
+                .Select(e => e.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
 
             // Populate Dropdowns for Modal
             await PopulateExpenseDropdownsAsync(orgId.Value);
@@ -127,7 +146,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SiteId,Amount,Category,Date,RiskId,PurchaseOrderId")] Expense model, IFormFile? attachment)
+        public async Task<IActionResult> Create([Bind("SiteId,Amount,Category,Date,RiskId,PurchaseOrderId,CostCodeId")] Expense model, IFormFile? attachment)
         {
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Index));
@@ -165,12 +184,21 @@ namespace Web_Sentro.Areas.Client.Controllers
                 attachmentPath = $"/uploads/receipts/{fileName}";
             }
 
+            // Fetch CostCode to set Category for legacy purposes
+            string category = model.Category?.Trim() ?? "Other";
+            if (model.CostCodeId.HasValue)
+            {
+                var cc = await db.CostCodes.FindAsync(model.CostCodeId.Value);
+                if (cc != null) category = $"{cc.Code} {cc.Description}";
+            }
+
             var entity = new Expense
             {
                 OrgId = orgId.Value,
                 SiteId = model.SiteId,
                 Amount = model.Amount,
-                Category = model.Category?.Trim() ?? "Materials",
+                Category = category,
+                CostCodeId = model.CostCodeId,
                 Date = model.Date,
                 RiskId = model.RiskId,
                 PurchaseOrderId = model.PurchaseOrderId,
@@ -218,7 +246,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ExpenseId,SiteId,Amount,Category,Date,RiskId,PurchaseOrderId")] Expense model, IFormFile? attachment)
+        public async Task<IActionResult> Edit(int id, [Bind("ExpenseId,SiteId,Amount,Category,Date,RiskId,PurchaseOrderId,CostCodeId")] Expense model, IFormFile? attachment)
         {
             if (id != model.ExpenseId) return NotFound();
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
@@ -240,10 +268,18 @@ namespace Web_Sentro.Areas.Client.Controllers
             entity.SiteId = model.SiteId;
             entity.Amount = model.Amount;
             entity.Category = model.Category;
+            entity.CostCodeId = model.CostCodeId;
             entity.Date = model.Date;
             entity.RiskId = model.RiskId;
             entity.PurchaseOrderId = model.PurchaseOrderId;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            // Fetch CostCode to set Category for legacy purposes
+            if (model.CostCodeId.HasValue)
+            {
+                var cc = await db.CostCodes.FindAsync(model.CostCodeId.Value);
+                if (cc != null) entity.Category = $"{cc.Code} {cc.Description}";
+            }
 
             // Handle file replacement
             if (attachment != null && attachment.Length > 0)
@@ -343,6 +379,11 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Total = p.LineItems != null ? p.LineItems.Sum(l => l.Quantity * l.UnitCost) : 0m
             }).ToList();
             ViewBag.Risks = await db.Risks.AsNoTracking().Where(r => r.OrgId == orgId && r.DeletedAt == null).OrderByDescending(r => r.CreatedAt).Select(r => new { r.RiskId, r.Title }).Take(200).ToListAsync();
+            ViewBag.CostCodes = await db.CostCodes.AsNoTracking()
+                .Where(c => c.OrgId == orgId && c.ParentCostCodeId != null) // Only leaf nodes
+                .OrderBy(c => c.Code)
+                .Select(c => new { c.CostCodeId, c.Code, c.Description })
+                .ToListAsync();
         }
 
         private void SetSelectedPoTotalFromModel(int? purchaseOrderId)
