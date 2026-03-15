@@ -9,7 +9,7 @@ using WEB_Sentro.Models.Identity;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize(Policy = "AdminOrVendor")]
+    [Authorize]
     public class EmployeesController : Controller
     {
         private readonly PlatformDbContext _platformDb;
@@ -87,6 +87,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AdminOrVendor")]
         public async Task<IActionResult> Deploy(string firstName, string lastName, string email, string role, string department)
         {
             if (string.IsNullOrWhiteSpace(firstName) ||
@@ -157,7 +158,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            var tempPassword = "Temp@12345";
+            var tempPassword = "Temp@12345678";
             var createRes = await _userManager.CreateAsync(user, tempPassword);
 
             if (!createRes.Succeeded)
@@ -203,6 +204,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AdminOrVendor")]
         public async Task<IActionResult> UpdateEmployee(string id, string name, string email, string role)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -301,6 +303,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AdminOrVendor")]
         public async Task<IActionResult> UpdateStatus(string id, string newStatus, string reason)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -385,6 +388,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [Authorize(Policy = "AdminOrVendor")]
         public async Task<IActionResult> Archive()
         {
             var q = await TenantUsersQueryAsync();
