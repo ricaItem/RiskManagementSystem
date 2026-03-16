@@ -12,6 +12,7 @@ namespace WEB_Sentro.Services;
 public class ApplicationUserClaimsPrincipalFactory : UserClaimsPrincipalFactory<ApplicationUser, IdentityRole>
 {
     public const string FullNameClaimType = "FullName";
+    public const string ProfileImagePathClaimType = "ProfileImagePath";
 
     public ApplicationUserClaimsPrincipalFactory(
         UserManager<ApplicationUser> userManager,
@@ -31,6 +32,8 @@ public class ApplicationUserClaimsPrincipalFactory : UserClaimsPrincipalFactory<
         identity.AddClaim(new Claim(ClaimTypes.GivenName, user.FirstName ?? ""));
         identity.AddClaim(new Claim(ClaimTypes.Surname, user.LastName ?? ""));
         identity.AddClaim(new Claim(FullNameClaimType, fullName));
+        if (!string.IsNullOrWhiteSpace(user.ProfileImagePath))
+            identity.AddClaim(new Claim(ProfileImagePathClaimType, user.ProfileImagePath));
         return identity;
     }
 }

@@ -10,7 +10,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "ProcurementAccess")]
     public class SupplierController : Controller
     {
         private const int DefaultPageSize = 8;

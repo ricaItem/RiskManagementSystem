@@ -217,9 +217,16 @@
                                     <!-- Footer info -->
                                     <div class="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
                                         <div class="flex items-center gap-2">
-                                            <div class="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-black border border-white shadow-sm dark:bg-indigo-900/50 dark:text-indigo-300 dark:border-slate-700">
-                                                @initial
-                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(task.AssignedToProfileImagePath))
+                                            {
+                                                <img src="@task.AssignedToProfileImagePath" alt="@task.AssignedTo" class="h-6 w-6 rounded-full object-cover border border-white shadow-sm dark:border-slate-700" />
+                                            }
+                                            else
+                                            {
+                                                <div class="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-black border border-white shadow-sm dark:bg-indigo-900/50 dark:text-indigo-300 dark:border-slate-700">
+                                                    @initial
+                                                </div>
+                                            }
                                             @if (task.DueDate.HasValue)
                                             {
                                                 <div class="flex items-center gap-1 text-[10px] font-semibold text-slate-400">

@@ -182,11 +182,21 @@
 
                         <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700/50">
                             <div class="flex -space-x-2">
-                                @foreach (var name in risk.AssignedToDisplayNames.Take(3))
+                                @foreach (var assignee in risk.AssignedUsers.Take(3))
                                 {
-                                    <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-300">
-                                        @name[0]
-                                    </div>
+                                    var displayName = assignee.DisplayName ?? "";
+                                    var initial = !string.IsNullOrWhiteSpace(displayName) ? displayName.Trim()[0].ToString().ToUpperInvariant() : "?";
+
+                                    @if (!string.IsNullOrWhiteSpace(assignee.ProfileImagePath))
+                                    {
+                                        <img src="@assignee.ProfileImagePath" alt="@displayName" class="h-7 w-7 rounded-full border-2 border-white dark:border-slate-800 object-cover" />
+                                    }
+                                    else
+                                    {
+                                        <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                                            @initial
+                                        </div>
+                                    }
                                 }
                             </div>
                             

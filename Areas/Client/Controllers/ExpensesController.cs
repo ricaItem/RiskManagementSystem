@@ -11,7 +11,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "ProcurementAccess")]
     public class ExpensesController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;
@@ -25,18 +25,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             _userManager = userManager;
             _env = env;
             _auditService = auditService;
-        }
-
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
-            {
-                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
-                return;
-            }
-
-            await next();
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);

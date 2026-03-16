@@ -10,7 +10,7 @@ using WEB_Sentro.Services;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class SitesController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;
@@ -263,10 +263,12 @@ namespace WEB_Sentro.Areas.Client.Controllers
             // Identity / Assignments
             // 1. Project Manager
             string? pmName = null;
+            string? pmProfileImagePath = null;
             if (!string.IsNullOrEmpty(site.ProjectManagerUserId))
             {
                 var pm = await _platformDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == site.ProjectManagerUserId);
                 pmName = pm != null ? $"{pm.FirstName} {pm.LastName}" : "Unknown User";
+                pmProfileImagePath = pm?.ProfileImagePath;
             }
 
             // 2. Derive "Assigned Employees" from activity (Risk Owners, Incident Reporters, Task Assignees)
@@ -302,7 +304,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             {
                 var users = await _platformDb.Users.AsNoTracking()
                     .Where(u => involvedUserIds.Contains(u.Id))
-                    .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
+                    .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email, u.ProfileImagePath })
                     .ToListAsync();
 
                 foreach (var u in users)
@@ -317,6 +319,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                     {
                         UserId = u.Id,
                         Name = $"{u.FirstName} {u.LastName}",
+                        ProfileImagePath = u.ProfileImagePath,
                         Role = roles.Any() ? roles.First() : "Contributor" // Simplify to first found role
                     });
                 }
@@ -347,6 +350,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 LatestWeatherCondition = latestWeather ?? "No monitoring configured",
                 ProjectManagerUserId = site.ProjectManagerUserId,
                 ProjectManagerName = pmName,
+                ProjectManagerProfileImagePath = pmProfileImagePath,
                 AssignedEmployees = assignedUsers,
                 AllEmployees = allOrgUsers.Select(u => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
                 {
@@ -475,6 +479,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
         // Identity / Assignments
         public string? ProjectManagerUserId { get; set; }
         public string? ProjectManagerName { get; set; }
+        public string? ProjectManagerProfileImagePath { get; set; }
         public List<SiteUserViewModel> AssignedEmployees { get; set; } = new();
         public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> AllEmployees { get; set; } = new();
     }
@@ -483,6 +488,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
     {
         public string UserId { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? ProfileImagePath { get; set; }
         public string Role { get; set; } = ""; // Derived from their activity (e.g. "Risk Owner", "Safety Officer")
         public string Initials => Name.Split(' ').Select(x => x[0]).Take(2).Aggregate("", (x, y) => x + y).ToUpper();
     }

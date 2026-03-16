@@ -9,7 +9,7 @@ using WEB_Sentro.Services;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class MonitoringSitesController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;

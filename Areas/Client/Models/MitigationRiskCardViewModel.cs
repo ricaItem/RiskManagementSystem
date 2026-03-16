@@ -1,5 +1,11 @@
 namespace Web_Sentro.Areas.Client.Models
 {
+    public class MitigationAssigneeAvatarViewModel
+    {
+        public string DisplayName { get; set; } = "";
+        public string? ProfileImagePath { get; set; }
+    }
+
     public class MitigationRiskCardViewModel
     {
         public int RiskId { get; set; }
@@ -13,5 +19,6 @@ namespace Web_Sentro.Areas.Client.Models
         public int ProgressPercent { get; set; }
         /// <summary>Display names of users assigned to tasks in this plan (for avatar group).</summary>
         public List<string> AssignedToDisplayNames { get; set; } = new();
+        public List<MitigationAssigneeAvatarViewModel> AssignedUsers { get; set; } = new();
     }
 }

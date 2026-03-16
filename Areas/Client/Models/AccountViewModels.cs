@@ -12,6 +12,7 @@ namespace WEB_Sentro.Areas.Client.Models
         public string Email { get; set; } = "";
         public string AccountLevelDisplay { get; set; } = "";
         public string AccountLevelDescription { get; set; } = "";
+        public string? ProfileImagePath { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public string? Message { get; set; }
         public string? Error { get; set; }

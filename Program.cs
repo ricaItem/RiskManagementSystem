@@ -73,6 +73,14 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("VendorOnly", p => p.RequireRole("SuperAdmin"));
     options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
     options.AddPolicy("NonEmployee", p => p.RequireAssertion(ctx => !ctx.User.IsInRole("Employee")));
+
+    options.AddPolicy("SuperAdminOnly", p => p.RequireRole("SuperAdmin"));
+    options.AddPolicy("MainAdminOnly", p => p.RequireRole("SuperAdmin", "Admin"));
+    options.AddPolicy("RiskGovernance", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager"));
+    options.AddPolicy("ProcurementAccess", p => p.RequireRole("SuperAdmin", "Admin", "ProcurementOfficer"));
+    options.AddPolicy("EmployeeWorkspace", p => p.RequireRole("Employee"));
+    options.AddPolicy("RiskContributors", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager", "Employee"));
+    options.AddPolicy("ClientReports", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager"));
 });
 
 // --------------------

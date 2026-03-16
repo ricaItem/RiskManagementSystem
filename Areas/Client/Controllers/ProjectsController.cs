@@ -11,7 +11,7 @@ using WEB_Sentro.Services;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class ProjectsController : Controller
     {
         private readonly ProjectService _projectService;

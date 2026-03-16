@@ -10,7 +10,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "RiskContributors")]
     public class RisksController : Controller
     {
         private readonly RiskService _riskService;
@@ -214,7 +214,14 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            if (!IsRiskManager() && !IsAdmin())
+            var orgIdForAuth = user.OrganizationId;
+            var riskForAuth = await _riskService.GetByIdForOrgAsync(model.RiskId, orgIdForAuth, IsSuperAdmin());
+            if (riskForAuth == null) return NotFound();
+
+            var canGovern = IsRiskManager() || IsAdmin() || IsSuperAdmin();
+            var isAssignedAssessor = string.Equals(riskForAuth.RiskOwnerId, user.Id, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(riskForAuth.AccountableId, user.Id, StringComparison.OrdinalIgnoreCase);
+            if (!canGovern && !isAssignedAssessor)
                 return Forbid();
 
             var orgId = user.OrganizationId;
@@ -327,6 +334,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> Restore(int id)
         {
             var user = await GetCurrentUserAsync();
@@ -370,6 +378,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> Review(int id)
         {
             var user = await GetCurrentUserAsync();
@@ -398,6 +407,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> Approve(int id)
         {
             var user = await GetCurrentUserAsync();
@@ -438,6 +448,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> MarkReviewed(int id)
         {
             var user = await GetCurrentUserAsync();
@@ -457,6 +468,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> Reject(int id, string? RejectRemarks)
         {
             var user = await GetCurrentUserAsync();

@@ -8,6 +8,7 @@ namespace Web_Sentro.Areas.Client.Models
         public string Title { get; set; } = "";
         public string RiskTitle { get; set; } = "";
         public string AssignedTo { get; set; } = "";
+        public string? AssignedToProfileImagePath { get; set; }
         public string Priority { get; set; } = "";
         public string Status { get; set; } = "ToDo";
         public DateTime? DueDate { get; set; }

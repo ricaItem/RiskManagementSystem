@@ -11,7 +11,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "RiskContributors")]
     public class MitigationController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;
@@ -119,14 +119,18 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             var allAssigneeIds = planProgress.Values.SelectMany(p => p.AssigneeIds).Distinct().ToList();
             var userDisplayNames = new Dictionary<string, string>();
+            var userProfilePaths = new Dictionary<string, string?>();
             if (allAssigneeIds.Count > 0)
             {
                 var users = await _platformDb.Users.AsNoTracking()
                     .Where(u => allAssigneeIds.Contains(u.Id))
-                    .Select(u => new { u.Id, DisplayName = u.FirstName + " " + u.LastName })
+                    .Select(u => new { u.Id, DisplayName = u.FirstName + " " + u.LastName, u.ProfileImagePath })
                     .ToListAsync();
                 foreach (var u in users)
+                {
                     userDisplayNames[u.Id] = (u.DisplayName ?? "").Trim();
+                    userProfilePaths[u.Id] = u.ProfileImagePath;
+                }
             }
 
             var model = risks.Select(r =>
@@ -136,6 +140,15 @@ namespace Web_Sentro.Areas.Client.Controllers
                     .Where(id => userDisplayNames.TryGetValue(id, out var name) && !string.IsNullOrEmpty(name))
                     .Select(id => userDisplayNames[id])
                     .Distinct()
+                    .ToList();
+                var assignedUsers = assigneeIds
+                    .Where(id => userDisplayNames.TryGetValue(id, out var name) && !string.IsNullOrEmpty(name))
+                    .Select(id => new MitigationAssigneeAvatarViewModel
+                    {
+                        DisplayName = userDisplayNames[id],
+                        ProfileImagePath = userProfilePaths.TryGetValue(id, out var path) ? path : null
+                    })
+                    .DistinctBy(x => x.DisplayName)
                     .ToList();
                 return new MitigationRiskCardViewModel
                 {
@@ -147,7 +160,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                     CreatedAt = r.CreatedAt,
                     IsArchived = r.IsArchived,
                     ProgressPercent = percent,
-                    AssignedToDisplayNames = displayNames
+                    AssignedToDisplayNames = displayNames,
+                    AssignedUsers = assignedUsers
                 };
             }).ToList();
 
@@ -186,14 +200,18 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             var userIds = tasks.Where(t => t.AssignedToUserId != null).Select(t => t.AssignedToUserId!).Distinct().ToList();
             var userDisplayNames = new Dictionary<string, string>();
+            var userProfilePaths = new Dictionary<string, string?>();
             if (userIds.Count > 0)
             {
                 var users = await _platformDb.Users.AsNoTracking()
                     .Where(u => userIds.Contains(u.Id))
-                    .Select(u => new { u.Id, u.FirstName, u.LastName })
+                    .Select(u => new { u.Id, u.FirstName, u.LastName, u.ProfileImagePath })
                     .ToListAsync();
                 foreach (var u in users)
+                {
                     userDisplayNames[u.Id] = $"{u.FirstName} {u.LastName}".Trim();
+                    userProfilePaths[u.Id] = u.ProfileImagePath;
+                }
             }
 
             var model = tasks.Select(t => new MitigationTaskViewModel
@@ -205,6 +223,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 DueDate = t.DueDate,
                 AssignedToUserId = t.AssignedToUserId,
                 AssignedTo = t.AssignedToUserId != null && userDisplayNames.TryGetValue(t.AssignedToUserId, out var name) ? name : "—",
+                AssignedToProfileImagePath = t.AssignedToUserId != null && userProfilePaths.TryGetValue(t.AssignedToUserId, out var profilePath) ? profilePath : null,
                 Priority = t.Priority ?? "Unassessed",
                 ProgressPercent = t.ProgressPercent
             }).ToList();
@@ -226,6 +245,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> SoftDeletePlan(int planId)
         {
             var user = await GetCurrentUserAsync();
@@ -246,6 +266,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> DeleteTask(int taskId)
         {
             var user = await GetCurrentUserAsync();
@@ -407,6 +428,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RiskGovernance")]
         public async Task<IActionResult> CreateTask(int planId, string title, string? description, string? assignedToUserId, string? dueDate)
         {
             var user = await GetCurrentUserAsync();

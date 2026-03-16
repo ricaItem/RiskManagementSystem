@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "ClientReports")]
     public class RiskAnalyticsController : Controller
     {
         private readonly RiskAnalyticsService _analyticsService;

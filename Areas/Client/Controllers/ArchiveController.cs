@@ -12,7 +12,7 @@ using WEB_Sentro.Models.Identity;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize(Policy = "AdminOrVendor")]
+    [Authorize(Policy = "MainAdminOnly")]
     public class ArchiveController : Controller
     {
         // ✅ Identity is now in PlatformDbContext (shared db)

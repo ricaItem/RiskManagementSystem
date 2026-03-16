@@ -47,7 +47,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateProfile([Bind(Prefix = "Profile")] OrganizationProfileForm model, IFormFile? logoFile, CancellationToken ct)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -118,7 +118,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateAddresses([Bind(Prefix = "Addresses")] OrganizationAddressForm model, CancellationToken ct)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -175,7 +175,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpgradePlan(int planId, CancellationToken ct)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -281,7 +281,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> ScheduleDowngrade(int planId, CancellationToken ct)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -338,7 +338,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> CancelScheduledDowngrade(CancellationToken ct)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -433,6 +433,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                     UserId = member.Id,
                     FullName = $"{member.FirstName} {member.LastName}".Trim(),
                     Email = member.Email ?? string.Empty,
+                    ProfileImagePath = member.ProfileImagePath,
                     IsActive = member.IsActive,
                     CreatedAt = member.CreatedAt,
                     Roles = memberRoles.OrderBy(r => r).ToList()

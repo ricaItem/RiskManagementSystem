@@ -6,7 +6,7 @@ using WEB_Sentro.Models.Identity;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class ControlsController : Controller
     {
         private readonly ControlService _controlService;

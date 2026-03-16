@@ -10,7 +10,7 @@ using WEB_Sentro.Models.Identity;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class EmployeesController : Controller
     {
         private readonly PlatformDbContext _platformDb;
@@ -88,6 +88,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     UserId = u.Id,
                     Name = $"{u.FirstName} {u.LastName}".Trim(),
                     Email = u.Email ?? "",
+                    ProfileImagePath = u.ProfileImagePath,
                     Role = roles.FirstOrDefault() ?? "Employee",
                     Status = u.IsActive ? "Active" : "Inactive",
                     OrganizationId = u.OrganizationId,
@@ -100,7 +101,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "AdminOrVendor")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> Deploy(string firstName, string lastName, string email, string role, string department)
         {
             if (string.IsNullOrWhiteSpace(firstName) ||
@@ -217,7 +218,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "AdminOrVendor")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateEmployee(string id, string name, string email, string role)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -316,7 +317,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "AdminOrVendor")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateStatus(string id, string newStatus, string reason)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -401,7 +402,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Policy = "AdminOrVendor")]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> Archive()
         {
             var q = await TenantUsersQueryAsync();
@@ -421,6 +422,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     UserId = u.Id,
                     Name = $"{u.FirstName} {u.LastName}".Trim(),
                     Email = u.Email ?? "",
+                    ProfileImagePath = u.ProfileImagePath,
                     Role = roles.FirstOrDefault() ?? "Employee",
                     Status = u.IsActive ? "Active" : "Inactive",
                     OrganizationId = u.OrganizationId,
@@ -437,6 +439,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         public string UserId { get; set; } = "";
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
+        public string? ProfileImagePath { get; set; }
         public string Role { get; set; } = "";
         public string Status { get; set; } = "";
         public int OrganizationId { get; set; }

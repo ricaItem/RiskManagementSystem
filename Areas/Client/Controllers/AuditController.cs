@@ -8,7 +8,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class AuditController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;

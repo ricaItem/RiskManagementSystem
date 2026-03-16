@@ -13,7 +13,7 @@ using WEB_Sentro.Areas.Client.Models;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class DashboardController : Controller
     {
         private readonly IIncidentService _incidentService;

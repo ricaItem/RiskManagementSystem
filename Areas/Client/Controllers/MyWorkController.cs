@@ -11,7 +11,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize(Roles = "Employee")]
+    [Authorize(Policy = "EmployeeWorkspace")]
     public class MyWorkController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;

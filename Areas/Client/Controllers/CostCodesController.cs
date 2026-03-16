@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "ProcurementAccess")]
     public class CostCodesController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;

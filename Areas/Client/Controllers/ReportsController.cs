@@ -14,7 +14,7 @@ using WEB_Sentro.Services;
 namespace WEB_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "ClientReports")]
     public class ReportsController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;

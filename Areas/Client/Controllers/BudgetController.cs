@@ -10,7 +10,7 @@ using WEB_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class BudgetController : Controller
     {
         private readonly ITenantDbFactory _tenantDbFactory;

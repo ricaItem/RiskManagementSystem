@@ -13,7 +13,7 @@ using Web_Sentro.Areas.Client.Models;
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "RiskContributors")]
     public class IncidentsController : Controller
     {
         private readonly IIncidentService _incidentService;
@@ -27,18 +27,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             _projectService = projectService;
             _tenantDbFactory = tenantDbFactory;
             _userManager = userManager;
-        }
-
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
-            {
-                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
-                return;
-            }
-
-            await next();
         }
 
         private async Task<int?> GetMyOrgIdAsync()
