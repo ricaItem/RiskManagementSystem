@@ -12,23 +12,33 @@ namespace WEB_Sentro.Services
         private readonly PlatformDbContext _platformDb;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RiskService _riskService;
+        private readonly IGlobalSettingsService _globalSettings;
 
         public NotificationService(
             ITenantDbFactory tenantDbFactory,
             PlatformDbContext platformDb,
             UserManager<ApplicationUser> userManager,
-            RiskService riskService)
+            RiskService riskService,
+            IGlobalSettingsService globalSettings)
         {
             _tenantDbFactory = tenantDbFactory;
             _platformDb = platformDb;
             _userManager = userManager;
             _riskService = riskService;
+            _globalSettings = globalSettings;
         }
 
         public async Task NotifyRiskEventAsync(int orgId, string eventType, int? riskId, string title, string message, string? reportByUserId, CancellationToken ct = default)
         {
             var recipients = await GetRecipientsAsync(orgId, reportByUserId, ct);
             if (recipients.Count == 0) return;
+
+            var templates = await _globalSettings.GetAsync<NotificationTemplateDefaults>(GlobalSettingKeys.NotificationTemplates, ct)
+                ?? new NotificationTemplateDefaults();
+            var orgName = await _platformDb.Organizations.AsNoTracking()
+                .Where(o => o.OrganizationId == orgId)
+                .Select(o => o.OrgName)
+                .FirstOrDefaultAsync(ct) ?? "Organization";
 
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             var now = DateTime.UtcNow;
@@ -39,7 +49,7 @@ namespace WEB_Sentro.Services
                     continue;
                 }
 
-                var content = BuildRiskNotificationContent(eventType, title, message, recipient);
+                var content = BuildRiskNotificationContent(eventType, title, message, recipient, templates, orgName);
                 db.Notifications.Add(new Notification
                 {
                     OrgId = orgId,
@@ -168,10 +178,40 @@ namespace WEB_Sentro.Services
             return recipients.Values.ToList();
         }
 
-        private static (string Title, string Message) BuildRiskNotificationContent(string eventType, string title, string message, RecipientContext recipient)
+        private static (string Title, string Message) BuildRiskNotificationContent(
+            string eventType,
+            string title,
+            string message,
+            RecipientContext recipient,
+            NotificationTemplateDefaults templates,
+            string orgName)
         {
             var safeTitle = string.IsNullOrWhiteSpace(title) ? "Risk update" : title.Trim();
             var safeMessage = string.IsNullOrWhiteSpace(message) ? "A risk update is available." : message.Trim();
+
+            var riskLevel = InferRiskLevel(safeTitle, safeMessage);
+            var riskScore = InferRiskScore(safeMessage);
+
+            if (templates != null)
+            {
+                var templateTitle = ApplyTokens(
+                    templates.RiskAlertSubject,
+                    orgName,
+                    safeTitle,
+                    riskLevel,
+                    riskScore);
+                var templateMessage = ApplyTokens(
+                    templates.RiskAlertBody,
+                    orgName,
+                    safeTitle,
+                    riskLevel,
+                    riskScore);
+
+                if (!string.IsNullOrWhiteSpace(templateTitle) && !string.IsNullOrWhiteSpace(templateMessage))
+                {
+                    return (templateTitle, templateMessage);
+                }
+            }
 
             if (recipient.IsAdmin || recipient.IsRiskManager)
             {
@@ -190,6 +230,33 @@ namespace WEB_Sentro.Services
                 "ResidualAssessed" => ("Residual risk assessed", "Residual assessment is complete for your reported risk."),
                 _ => (safeTitle, safeMessage)
             };
+        }
+
+        private static string ApplyTokens(string template, string orgName, string riskTitle, string riskLevel, string riskScore)
+        {
+            if (string.IsNullOrWhiteSpace(template)) return string.Empty;
+
+            return template
+                .Replace("{{OrgName}}", orgName, StringComparison.Ordinal)
+                .Replace("{{RiskTitle}}", riskTitle, StringComparison.Ordinal)
+                .Replace("{{RiskLevel}}", riskLevel, StringComparison.Ordinal)
+                .Replace("{{RiskScore}}", riskScore, StringComparison.Ordinal)
+                .Trim();
+        }
+
+        private static string InferRiskLevel(string title, string message)
+        {
+            var value = (title + " " + message).ToLowerInvariant();
+            if (value.Contains("critical")) return "Critical";
+            if (value.Contains("high")) return "High";
+            if (value.Contains("medium")) return "Medium";
+            return "Low";
+        }
+
+        private static string InferRiskScore(string message)
+        {
+            var digits = new string((message ?? string.Empty).Where(char.IsDigit).Take(2).ToArray());
+            return string.IsNullOrWhiteSpace(digits) ? "N/A" : digits;
         }
 
         private static bool IsEmployeeRelevantRiskEvent(string eventType)

@@ -1,78 +1,303 @@
+@model WEB_Sentro.Areas.Vendor.Models.GlobalSettingsIndexViewModel
 @{
     ViewData["Title"] = "Global Settings";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
+
+    string TabClass(string tab) => Model.ActiveTab == tab
+        ? "group flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm font-semibold border-l-4 border-emerald-500 bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+        : "group flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm font-medium border-l-4 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-900/40";
+
+    string StatusPill(bool isConfigured) => isConfigured
+        ? "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+        : "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
 }
 
 <div class="space-y-6 animate-in fade-in duration-500">
+    @if (TempData["Success"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">@success</div>
+    }
+    @if (TempData["Error"] is string error && !string.IsNullOrWhiteSpace(error))
+    {
+        <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">@error</div>
+    }
+
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
             <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Global <span class="text-emerald-600">Configurations</span></h1>
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Define System-Wide Logic & Risk Models</p>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Phase 6: global defaults are wired to provisioning, notifications, and startup security</p>
         </div>
-        <button class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-black text-white dark:bg-emerald-600 transition-transform active:scale-95 shadow-lg shadow-emerald-500/20">
-            Save Changes
-        </button>
     </div>
 
-    <div class="grid gap-8 lg:grid-cols-12">
-        <div class="lg:col-span-3 space-y-2">
-            <button class="w-full text-left px-4 py-3 rounded-xl bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm font-bold text-emerald-600 shadow-sm">
-                Risk Scoring Models
-            </button>
-            <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/50 text-sm font-bold text-slate-500 transition-colors">
-                Default Workflows
-            </button>
-            <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/50 text-sm font-bold text-slate-500 transition-colors">
-                Notification Templates
-            </button>
-            <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/50 text-sm font-bold text-slate-500 transition-colors">
-                Security Policies
-            </button>
+    <div class="mt-4 rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/60 overflow-hidden">
+        <div class="grid lg:grid-cols-12 gap-0">
+            <div class="lg:col-span-3 border-b border-slate-200 bg-slate-50/70 px-3 py-4 text-xs font-black uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+                Global Settings
+            </div>
+            <div class="hidden lg:block lg:col-span-9 border-b border-l border-slate-200 px-6 py-4 dark:border-slate-800">
+            </div>
         </div>
 
-        <div class="lg:col-span-9 space-y-6">
-            <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Default Risk Scoring Model</h3>
+        <div class="grid lg:grid-cols-12 gap-0">
+            <div class="lg:col-span-3 border-r border-slate-200 bg-slate-50/60 px-3 py-4 space-y-1 dark:border-slate-800 dark:bg-slate-950/40">
+            <a asp-action="Index" asp-route-tab="risk" class="@TabClass("risk")">
+                <span>Risk Scoring Models</span>
+            </a>
+            <a asp-action="Index" asp-route-tab="workflows" class="@TabClass("workflows")">
+                <span>Default Workflows</span>
+            </a>
+            <a asp-action="Index" asp-route-tab="notifications" class="@TabClass("notifications")">
+                <span>Notification Templates</span>
+            </a>
+            <a asp-action="Index" asp-route-tab="security" class="@TabClass("security")">
+                <span>Security Policies</span>
+            </a>
+        </div>
 
-                <div class="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 mb-8">
-                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Current Formula</p>
-                    <div class="text-2xl font-mono font-bold text-slate-700 dark:text-emerald-400">
-                        Risk Score = Likelihood × Impact
+        <div class="lg:col-span-9 px-4 py-5 md:px-8 md:py-6">
+            @if (Model.ActiveTab == "risk")
+            {
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Risk Scoring Models</h3>
+                        <span class="@StatusPill(Model.HasRiskScoringConfig)">@(Model.HasRiskScoringConfig ? "Configured" : "Not Configured")</span>
                     </div>
-                </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <div class="space-y-4">
-                        <label class="block text-xs font-black uppercase tracking-widest text-slate-500">Likelihood Scale (1-5)</label>
-                        <div class="space-y-2">
-                            <input type="text" value="1 - Rare" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                            <input type="text" value="3 - Possible" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                            <input type="text" value="5 - Almost Certain" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+                    <form asp-action="SaveRiskScoring" method="post" class="space-y-5">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"></div>
+
+                        <div class="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label asp-for="RiskScoring.FormulaMode" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Formula Mode</label>
+                                <select asp-for="RiskScoring.FormulaMode" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white">
+                                    <option value="multiply">Likelihood x Impact</option>
+                                    <option value="weighted">Weighted</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label asp-for="RiskScoring.WeightedLikelihoodPercent" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Likelihood Weight %</label>
+                                <input asp-for="RiskScoring.WeightedLikelihoodPercent" type="number" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="RiskScoring.WeightedImpactPercent" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Impact Weight %</label>
+                                <input asp-for="RiskScoring.WeightedImpactPercent" type="number" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="space-y-4">
-                        <label class="block text-xs font-black uppercase tracking-widest text-slate-500">Impact Scale (1-5)</label>
-                        <div class="space-y-2">
-                            <input type="text" value="1 - Negligible" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                            <input type="text" value="3 - Moderate" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                            <input type="text" value="5 - Catastrophic" class="w-full rounded-xl border-slate-200 bg-white p-3 text-xs font-bold dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">System Thresholds</h3>
-                <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="text-xs font-bold text-slate-700 dark:text-white">Auto-Suspend Delinquent Tenants</p>
-                        <p class="text-[10px] text-slate-400">Suspend access if invoice is 30 days overdue.</p>
-                    </div>
-                    <div class="h-6 w-11 rounded-full bg-emerald-500 relative cursor-pointer">
-                        <div class="absolute right-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm"></div>
-                    </div>
+                        <div class="grid gap-6 md:grid-cols-2">
+                            <div class="space-y-2">
+                                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Likelihood Scale Labels (1-5)</p>
+                                <input asp-for="RiskScoring.LikelihoodLabel1" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.LikelihoodLabel2" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.LikelihoodLabel3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.LikelihoodLabel4" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.LikelihoodLabel5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Impact Scale Labels (1-5)</p>
+                                <input asp-for="RiskScoring.ImpactLabel1" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.ImpactLabel2" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.ImpactLabel3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.ImpactLabel4" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="RiskScoring.ImpactLabel5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label asp-for="RiskScoring.LowMaxScore" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Low Max Score</label>
+                                <input asp-for="RiskScoring.LowMaxScore" type="number" min="1" max="24" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="RiskScoring.MediumMaxScore" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Medium Max Score</label>
+                                <input asp-for="RiskScoring.MediumMaxScore" type="number" min="2" max="24" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="RiskScoring.HighMaxScore" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">High Max Score</label>
+                                <input asp-for="RiskScoring.HighMaxScore" type="number" min="3" max="24" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Applies to new organizations only.</p>
+                            <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-black text-white transition-transform active:scale-95 dark:bg-emerald-600">Save Risk Scoring</button>
+                        </div>
+                    </form>
                 </div>
-            </div>
+            }
+
+            @if (Model.ActiveTab == "workflows")
+            {
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Default Workflows</h3>
+                        <span class="@StatusPill(Model.HasDefaultWorkflowConfig)">@(Model.HasDefaultWorkflowConfig ? "Configured" : "Not Configured")</span>
+                    </div>
+
+                    <form asp-action="SaveWorkflows" method="post" class="space-y-5">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"></div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require approval for High risk
+                                <input asp-for="WorkflowDefaults.RequireApprovalForHighRisk" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require approval for Critical risk
+                                <input asp-for="WorkflowDefaults.RequireApprovalForCriticalRisk" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label asp-for="WorkflowDefaults.InitialResponseSlaHours" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Initial Response SLA (hours)</label>
+                                <input asp-for="WorkflowDefaults.InitialResponseSlaHours" type="number" min="1" max="720" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="WorkflowDefaults.EscalationAfterHours" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Escalation After (hours)</label>
+                                <input asp-for="WorkflowDefaults.EscalationAfterHours" type="number" min="1" max="1440" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Auto assign to default role
+                                <input asp-for="WorkflowDefaults.AutoAssignToRole" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Notify on escalation
+                                <input asp-for="WorkflowDefaults.NotifyOnEscalation" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                        </div>
+
+                        <div>
+                            <label asp-for="WorkflowDefaults.DefaultAssigneeRole" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Default Assignee Role</label>
+                            <select asp-for="WorkflowDefaults.DefaultAssigneeRole" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white">
+                                <option value="RiskManager">Risk Manager</option>
+                                <option value="Admin">Admin</option>
+                                <option value="ProcurementOfficer">Procurement Officer</option>
+                                <option value="Employee">Employee</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Applies to new organizations only.</p>
+                            <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-black text-white transition-transform active:scale-95 dark:bg-emerald-600">Save Workflow Defaults</button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            @if (Model.ActiveTab == "notifications")
+            {
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Notification Templates</h3>
+                        <span class="@StatusPill(Model.HasNotificationTemplatesConfig)">@(Model.HasNotificationTemplatesConfig ? "Configured" : "Not Configured")</span>
+                    </div>
+
+                    <form asp-action="SaveNotificationTemplates" method="post" class="space-y-5">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"></div>
+
+                        <div class="space-y-3">
+                            <p class="text-xs font-black uppercase tracking-widest text-slate-500">Invoice Due</p>
+                            <div class="space-y-3 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/40">
+                                <input asp-for="NotificationTemplates.InvoiceDueSubject" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <textarea asp-for="NotificationTemplates.InvoiceDueBody" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <p class="text-xs font-black uppercase tracking-widest text-slate-500">Renewal Reminder</p>
+                            <div class="space-y-3 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/40">
+                                <input asp-for="NotificationTemplates.RenewalReminderSubject" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <textarea asp-for="NotificationTemplates.RenewalReminderBody" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <p class="text-xs font-black uppercase tracking-widest text-slate-500">Risk Alert</p>
+                            <div class="space-y-3 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/40">
+                                <input asp-for="NotificationTemplates.RiskAlertSubject" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <textarea asp-for="NotificationTemplates.RiskAlertBody" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 dark:bg-slate-950/60 dark:text-slate-300">
+                            Required tokens are validated on save (for example: {{OrgName}}, {{InvoiceNumber}}, {{DueDate}}, {{AmountDue}}, {{PlanName}}, {{RenewalDate}}, {{RiskLevel}}, {{RiskTitle}}, {{RiskScore}}).
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Applies to new organizations only.</p>
+                            <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-black text-white transition-transform active:scale-95 dark:bg-emerald-600">Save Notification Templates</button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            @if (Model.ActiveTab == "security")
+            {
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Security Policies</h3>
+                        <span class="@StatusPill(Model.HasSecurityPoliciesConfig)">@(Model.HasSecurityPoliciesConfig ? "Configured" : "Not Configured")</span>
+                    </div>
+
+                    <form asp-action="SaveSecurityPolicies" method="post" class="space-y-5">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"></div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label asp-for="SecurityPolicies.SessionTimeoutMinutes" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Session Timeout (minutes)</label>
+                                <input asp-for="SecurityPolicies.SessionTimeoutMinutes" type="number" min="5" max="480" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="SecurityPolicies.PasswordMinLength" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Password Min Length</label>
+                                <input asp-for="SecurityPolicies.PasswordMinLength" type="number" min="8" max="64" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label asp-for="SecurityPolicies.LockoutMaxFailedAccessAttempts" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Max Failed Access Attempts</label>
+                                <input asp-for="SecurityPolicies.LockoutMaxFailedAccessAttempts" type="number" min="3" max="20" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                            <div>
+                                <label asp-for="SecurityPolicies.LockoutWindowMinutes" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Lockout Window (minutes)</label>
+                                <input asp-for="SecurityPolicies.LockoutWindowMinutes" type="number" min="1" max="1440" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require uppercase
+                                <input asp-for="SecurityPolicies.RequireUppercase" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require lowercase
+                                <input asp-for="SecurityPolicies.RequireLowercase" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require digit
+                                <input asp-for="SecurityPolicies.RequireDigit" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Require special character
+                                <input asp-for="SecurityPolicies.RequireNonAlphanumeric" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Applies to new organizations only.</p>
+                            <button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-black text-white transition-transform active:scale-95 dark:bg-emerald-600">Save Security Policies</button>
+                        </div>
+                    </form>
+                </div>
+            }
         </div>
     </div>
 </div>

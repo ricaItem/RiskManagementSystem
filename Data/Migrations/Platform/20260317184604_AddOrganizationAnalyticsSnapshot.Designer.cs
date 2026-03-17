@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WEB_Sentro.Data;
 
@@ -11,9 +12,11 @@ using WEB_Sentro.Data;
 namespace WEB_Sentro.Data.Migrations.Platform
 {
     [DbContext(typeof(PlatformDbContext))]
-    partial class PlatformDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317184604_AddOrganizationAnalyticsSnapshot")]
+    partial class AddOrganizationAnalyticsSnapshot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -607,38 +610,6 @@ namespace WEB_Sentro.Data.Migrations.Platform
                         .IsUnique();
 
                     b.ToTable("Plans");
-                });
-
-            modelBuilder.Entity("WEB_Sentro.Data.Entities.PlatformSetting", b =>
-                {
-                    b.Property<int>("PlatformSettingId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PlatformSettingId"));
-
-                    b.Property<string>("JsonValue")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("PlatformSettingId");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("PlatformSettings");
                 });
 
             modelBuilder.Entity("WEB_Sentro.Data.Entities.Subscription", b =>

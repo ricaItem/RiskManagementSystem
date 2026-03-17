@@ -1,116 +1,186 @@
+@model WEB_Sentro.Areas.Vendor.Models.AnalyticsIndexViewModel
 @{
     ViewData["Title"] = "System Usage & Analytics";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
 }
 
-<div class="space-y-6 animate-in fade-in duration-500">
+@functions {
+    private static string ChangeClass(decimal value) => value > 0 ? "text-emerald-600" : value < 0 ? "text-rose-500" : "text-slate-500";
+    private static string ChangePrefix(decimal value) => value > 0 ? "+" : "";
+
+    private static string SegmentBadgeClass(string segment)
+    {
+        if (segment == "At risk") return "bg-rose-50 text-rose-700 border-rose-200";
+        if (segment == "Inactive") return "bg-slate-100 text-slate-700 border-slate-200";
+        if (segment == "Growing") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+        return "bg-sky-50 text-sky-700 border-sky-200";
+    }
+
+    private static string SparklinePoints(List<int> points)
+    {
+        var values = (points ?? new List<int>()).ToList();
+        if (values.Count == 0) values = new List<int> { 0, 0, 0, 0, 0, 0 };
+        var max = Math.Max(1, values.Max());
+        var step = values.Count == 1 ? 0 : 100.0 / (values.Count - 1);
+        var pairs = new List<string>();
+
+        for (var i = 0; i < values.Count; i++)
+        {
+            var x = Math.Round(i * step, 2);
+            var y = Math.Round(24 - (values[i] * 24.0 / max), 2);
+            pairs.Add($"{x},{y}");
+        }
+
+        return string.Join(" ", pairs);
+    }
+}
+
+<div class="space-y-5 animate-in fade-in duration-500">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Platform <span class="text-emerald-600">Analytics</span></h1>
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Resource Consumption & Engagement Metrics</p>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Usage <span class="text-emerald-600">Analytics</span></h1>
+            <p class="text-xs text-slate-500">@Model.RangeLabel</p>
         </div>
-        <select class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold dark:border-slate-800 dark:bg-slate-900 dark:text-white">
-            <option>Last 30 Days</option>
-            <option>Last 90 Days</option>
-            <option>This Year</option>
-        </select>
-    </div>
-
-    <div class="grid gap-6 md:grid-cols-3">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">API Requests (Monthly)</p>
-            <div class="flex items-end gap-2">
-                <span class="text-3xl font-black text-slate-900 dark:text-white">1.2M</span>
-                <span class="text-xs font-bold text-emerald-500 mb-1">↑ 12%</span>
-            </div>
-            <div class="mt-4 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div class="h-full bg-emerald-500" style="width: 65%"></div>
-            </div>
-        </div>
-
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Total Cloud Storage</p>
-            <div class="flex items-end gap-2">
-                <span class="text-3xl font-black text-slate-900 dark:text-white">842 GB</span>
-                <span class="text-xs font-bold text-slate-400 mb-1">of 2TB</span>
-            </div>
-            <div class="mt-4 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div class="h-full bg-sky-500" style="width: 42%"></div>
-            </div>
-        </div>
-
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Active Modules</p>
-            <div class="flex items-end gap-2">
-                <span class="text-3xl font-black text-slate-900 dark:text-white">8/12</span>
-                <span class="text-xs font-bold text-amber-500 mb-1">4 Unused</span>
-            </div>
-            <div class="mt-4 flex gap-1">
-                @for (int i = 0; i < 12; i++)
-                {
-                    <div class="h-2 flex-1 rounded-full @(i < 8 ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800")"></div>
-                }
-            </div>
+        <div class="flex gap-2">
+            <a href="@Url.Action("Index", new { range = "30d", q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = 1, pageSize = Model.PageSize })" class="rounded-lg px-3 py-1.5 text-xs font-semibold @(Model.RangeLabel == "Last 30 Days" ? "bg-emerald-600 text-white" : "bg-white text-slate-600 border border-slate-200")">30D</a>
+            <a href="@Url.Action("Index", new { range = "90d", q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = 1, pageSize = Model.PageSize })" class="rounded-lg px-3 py-1.5 text-xs font-semibold @(Model.RangeLabel == "Last 90 Days" ? "bg-emerald-600 text-white" : "bg-white text-slate-600 border border-slate-200")">90D</a>
+            <a href="@Url.Action("Index", new { range = "1y", q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = 1, pageSize = Model.PageSize })" class="rounded-lg px-3 py-1.5 text-xs font-semibold @(Model.RangeLabel == "Last 12 Months" ? "bg-emerald-600 text-white" : "bg-white text-slate-600 border border-slate-200")">1Y</a>
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-        <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Module Engagement</h3>
-            <div class="space-y-5">
-                @{
-                    var modules = new[] {
-                                new { Name = "Risk Assessment", Load = 92 },
-                                new { Name = "Incident Reporting", Load = 78 },
-                                new { Name = "Procurement Risk", Load = 45 },
-                                new { Name = "Audit Logs", Load = 30 }
-                                };
-                }
-                @foreach (var m in modules)
-                {
-                    <div class="group">
-                        <div class="flex justify-between text-xs font-bold mb-2">
-                            <span class="text-slate-600 dark:text-slate-400">@m.Name</span>
-                            <span class="text-slate-900 dark:text-white">@m.Load%</span>
-                        </div>
-                        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full">
-                            <div class="h-full bg-emerald-500 rounded-full transition-all group-hover:bg-emerald-400" style="width: @m.Load%"></div>
-                        </div>
-                    </div>
-                }
+    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <form method="get" class="grid gap-3 md:grid-cols-5">
+            <input type="hidden" name="range" value="@Model.RangeKey" />
+            <input type="hidden" name="page" value="1" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            <div class="md:col-span-2">
+                <label for="q" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Search</label>
+                <input id="q" name="q" value="@Model.SearchQuery" placeholder="Organization, plan, status" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none" />
             </div>
-        </div>
+            <div>
+                <label for="risk" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Risk</label>
+                <select id="risk" name="risk" data-current="@Model.RiskFilter" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none">
+                    <option value="all">All</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+            <div>
+                <label for="sort" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sort</label>
+                <select id="sort" name="sort" data-current="@Model.SortBy" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none">
+                    <option value="events_desc">Activity</option>
+                    <option value="health_desc">Health</option>
+                    <option value="segment_desc">Segment</option>
+                    <option value="activity_change_desc">Activity change</option>
+                    <option value="users_change_desc">Users change</option>
+                    <option value="adoption_change_desc">Adoption change</option>
+                    <option value="org_asc">Organization</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white">Apply</button>
+                <a href="@Url.Action("Index", new { range = Model.RangeKey, page = 1, pageSize = Model.PageSize })" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600">Reset</a>
+            </div>
+        </form>
+    </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900/50">
-            <div class="p-6 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Top Users by Activity</h3>
-            </div>
-            <table class="w-full text-left">
-                <thead class="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:bg-slate-800/30">
-                    <tr>
-                        <th class="px-6 py-3">Firm Name</th>
-                        <th class="px-6 py-3">Actions</th>
-                        <th class="px-6 py-3">Trend</th>
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <p class="text-[11px] text-slate-500">Activity trend</p>
+            <p class="mt-1 text-2xl font-black @ChangeClass(Model.ActivityChangePercent)">@ChangePrefix(Model.ActivityChangePercent)@Model.ActivityChangePercent.ToString("0.0")%</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <p class="text-[11px] text-slate-500">User engagement</p>
+            <p class="mt-1 text-2xl font-black @ChangeClass(Model.UserEngagementChangePercent)">@ChangePrefix(Model.UserEngagementChangePercent)@Model.UserEngagementChangePercent.ToString("0.0")%</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <p class="text-[11px] text-slate-500">At-risk organizations</p>
+            <p class="mt-1 text-2xl font-black text-rose-500">@Model.AtRiskOrganizationsCount</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <p class="text-[11px] text-slate-500">Growing organizations</p>
+            <p class="mt-1 text-2xl font-black text-emerald-600">@Model.GrowingOrganizationsCount</p>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <h3 class="text-sm font-bold text-slate-900">Organization usage overview</h3>
+            <a href="@Url.Action("Index", new { range = Model.RangeKey, q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = Model.CurrentPage, pageSize = Model.PageSize, exportCsv = true })" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">Export CSV</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-[11px] font-semibold text-slate-500">
+                        <th class="px-4 py-3">Organization</th>
+                        <th class="px-4 py-3">Segment</th>
+                        <th class="px-4 py-3">Activity</th>
+                        <th class="px-4 py-3">Users</th>
+                        <th class="px-4 py-3">Adoption</th>
+                        <th class="px-4 py-3">Health</th>
+                        <th class="px-4 py-3">Last activity</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 text-xs font-bold dark:divide-slate-800">
-                    <tr class="dark:text-slate-300">
-                        <td class="px-6 py-4">BuildCraft Solutions</td>
-                        <td class="px-6 py-4">42,901</td>
-                        <td class="px-6 py-4 text-emerald-500">↑ 8%</td>
-                    </tr>
-                    <tr class="dark:text-slate-300">
-                        <td class="px-6 py-4">Skyline Heights</td>
-                        <td class="px-6 py-4">12,400</td>
-                        <td class="px-6 py-4 text-rose-500">↓ 3%</td>
-                    </tr>
-                    <tr class="dark:text-slate-300">
-                        <td class="px-6 py-4">Terraform Infra</td>
-                        <td class="px-6 py-4">2,105</td>
-                        <td class="px-6 py-4 text-slate-400">Stable</td>
-                    </tr>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var row in Model.TopOrganizations)
+                    {
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-slate-900">@row.OrganizationName</div>
+                                <div class="text-xs text-slate-500">@row.PlanName</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider @SegmentBadgeClass(row.SegmentLabel)">@row.SegmentLabel</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    <svg width="84" height="22" viewBox="0 0 100 24" class="shrink-0 overflow-visible">
+                                        <polyline fill="none" stroke="#10b981" stroke-width="2" points="@SparklinePoints(row.ActivityTrendPoints)" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-semibold text-slate-900">@row.EventCountInRange events</div>
+                                        <div class="text-xs @ChangeClass(row.ActivityChangePercent)">@ChangePrefix(row.ActivityChangePercent)@row.ActivityChangePercent.ToString("0.0")%</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-slate-900">@row.UserCount users</div>
+                                <div class="text-xs @ChangeClass(row.UserChangePercent)">@ChangePrefix(row.UserChangePercent)@row.UserChangePercent.ToString("0.0")% logins</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-slate-900">@row.FeatureAdoptionPercent%</div>
+                                <div class="text-xs @ChangeClass(row.AdoptionChangePercent)">@ChangePrefix(row.AdoptionChangePercent)@row.AdoptionChangePercent.ToString("0.0")%</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold @(row.HealthScore < 55 ? "text-rose-600" : row.HealthScore < 80 ? "text-amber-600" : "text-emerald-600")">@row.HealthScore</div>
+                                <div class="text-xs text-slate-500">@row.ChurnRiskLabel risk</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">@row.LastActivityDisplay</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
+
+    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+        <div>Showing @Model.TopOrganizations.Count of @Model.TotalCount results</div>
+        <div class="flex items-center gap-2">
+            <a class="rounded-md border border-slate-200 px-3 py-1.5 @(Model.CurrentPage <= 1 ? "pointer-events-none opacity-50" : "")"
+               href="@Url.Action("Index", new { range = Model.RangeKey, q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = Math.Max(1, Model.CurrentPage - 1), pageSize = Model.PageSize })">Prev</a>
+            <span>Page @Model.CurrentPage / @Model.TotalPages</span>
+            <a class="rounded-md border border-slate-200 px-3 py-1.5 @(Model.CurrentPage >= Model.TotalPages ? "pointer-events-none opacity-50" : "")"
+               href="@Url.Action("Index", new { range = Model.RangeKey, q = Model.SearchQuery, risk = Model.RiskFilter, sort = Model.SortBy, page = Math.Min(Model.TotalPages, Model.CurrentPage + 1), pageSize = Model.PageSize })">Next</a>
+        </div>
+    </div>
 </div>
+
+<script>
+    (() => {
+        const risk = document.getElementById('risk');
+        const sort = document.getElementById('sort');
+        if (risk && risk.dataset.current) risk.value = risk.dataset.current;
+        if (sort && sort.dataset.current) sort.value = sort.dataset.current;
+    })();
+</script>

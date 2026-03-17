@@ -4,38 +4,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Areas.Vendor.Models;
 using WEB_Sentro.Data;
-using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
+using WEB_Sentro.Services;
 
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
     [Area("Vendor")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Policy = "SuperAdminOnly")]
     public class OrganizationsController : Controller
     {
         private readonly PlatformDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IUserStore<ApplicationUser> _userStore;
-        private readonly IUserEmailStore<ApplicationUser> _emailStore;
+        private readonly IAuditService _auditService;
+        private readonly IOrganizationGovernanceService _governanceService;
 
         public OrganizationsController(
             PlatformDbContext db,
             UserManager<ApplicationUser> userManager,
-            IUserStore<ApplicationUser> userStore)
+            IAuditService auditService,
+            IOrganizationGovernanceService governanceService)
         {
             _db = db;
             _userManager = userManager;
-            _userStore = userStore;
-            _emailStore = GetEmailStore();
+            _auditService = auditService;
+            _governanceService = governanceService;
         }
 
-        private IUserEmailStore<ApplicationUser> GetEmailStore()
+        private async Task<string> GetActorIdAsync()
         {
-            if (!_userManager.SupportsUserEmail)
-            {
-                throw new NotSupportedException("The default UI requires a user store with email support.");
-            }
-            return (IUserEmailStore<ApplicationUser>)_userStore;
+            var me = await _userManager.GetUserAsync(User);
+            return me?.Id ?? "system";
         }
 
         public async Task<IActionResult> Index(string? search, string? plan, string? status, CancellationToken ct = default)
@@ -72,6 +70,16 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             var orgs = await query.OrderBy(o => o.OrgName).ToListAsync(ct);
             var activeTenants = await _db.Organizations.CountAsync(o => o.Status == "Active", ct);
 
+            var orgIds = orgs.Select(o => o.OrganizationId).ToList();
+            var subscriptions = await _db.Subscriptions.AsNoTracking()
+                .Include(s => s.Plan)
+                .Where(s => orgIds.Contains(s.OrganizationId))
+                .OrderByDescending(s => s.CreatedAt)
+                .ToListAsync(ct);
+            var latestSubscriptionByOrg = subscriptions
+                .GroupBy(s => s.OrganizationId)
+                .ToDictionary(g => g.Key, g => g.First());
+
             var rows = orgs.Select(o => new OrganizationRowViewModel
             {
                 OrganizationId = o.OrganizationId,
@@ -81,7 +89,19 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 AdminCount = adminCountLookup.GetValueOrDefault(o.OrganizationId, 0),
                 RiskLoad = null,
                 Status = o.Status,
-                StatusColor = o.Status == "Active" ? "emerald" : o.Status == "Pending" ? "amber" : "rose"
+                StatusColor = string.Equals(o.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                    ? "emerald"
+                    : string.Equals(o.Status, "Pending", StringComparison.OrdinalIgnoreCase)
+                        ? "amber"
+                        : string.Equals(o.Status, "Suspended", StringComparison.OrdinalIgnoreCase)
+                            ? "rose"
+                            : "slate",
+                SubscriptionStatus = latestSubscriptionByOrg.TryGetValue(o.OrganizationId, out var sub)
+                    ? sub.Status
+                    : "No Subscription",
+                NextBillingDisplay = latestSubscriptionByOrg.TryGetValue(o.OrganizationId, out var billingSub)
+                    ? billingSub.CurrentPeriodEnd.ToString("yyyy-MM-dd")
+                    : "-"
             }).ToList();
 
             var model = new OrganizationsIndexViewModel
@@ -109,82 +129,43 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // check if email exists
-            var existingUser = await _userManager.FindByEmailAsync(model.AdminEmail);
-            if (existingUser != null)
-            {
-                TempData["Error"] = $"User with email {model.AdminEmail} already exists.";
-                return RedirectToAction(nameof(Index));
-            }
+            var result = await _governanceService.ProvisionOrganizationAsync(
+                model,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                HttpContext.RequestAborted);
 
-            // Create Organization
-            // Generate a simple OrgCode based on name
-            var orgCode = new string(model.OrgName.Where(char.IsLetterOrDigit).Take(4).ToArray()).ToUpperInvariant()
-                          + new Random().Next(100, 999).ToString();
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
 
-            var org = new Organization
-            {
-                OrgName = model.OrgName,
-                OrgCode = orgCode,
-                PlanName = model.PlanName,
-                Status = "Active", // Default to active on creation
-                CreatedAt = DateTime.UtcNow,
-                PrimaryEmail = model.AdminEmail
-            };
+            return RedirectToAction(nameof(Index));
+        }
 
-            _db.Organizations.Add(org);
-            await _db.SaveChangesAsync();
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateSubscriptionPlan(int organizationId, string planCode, CancellationToken ct = default)
+        {
+            var result = await _governanceService.UpdateSubscriptionPlanAsync(
+                organizationId,
+                planCode,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                ct);
 
-            // Create Subscription (Manual Provisioning - Default 1 Year)
-            var planEntity = await _db.Plans.FirstOrDefaultAsync(p => p.Code == model.PlanName);
-            if (planEntity == null)
-            {
-                // Fallback to Basic if plan not found
-                planEntity = await _db.Plans.FirstOrDefaultAsync(p => p.Code == "Basic");
-            }
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
 
-            if (planEntity != null)
-            {
-                var sub = new Subscription
-                {
-                    OrganizationId = org.OrganizationId,
-                    PlanId = planEntity.PlanId,
-                    Status = "Active",
-                    CurrentPeriodStart = DateTime.UtcNow,
-                    CurrentPeriodEnd = DateTime.UtcNow.AddYears(1),
-                    StartedAt = DateTime.UtcNow
-                };
-                _db.Subscriptions.Add(sub);
-                await _db.SaveChangesAsync();
-            }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleSubscriptionStatus(int organizationId, CancellationToken ct = default)
+        {
+            var result = await _governanceService.ToggleSubscriptionStatusAsync(
+                organizationId,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                ct);
 
-            // Create Admin User
-            var user = new ApplicationUser();
-
-            await _userStore.SetUserNameAsync(user, model.AdminEmail, CancellationToken.None);
-            await _emailStore.SetEmailAsync(user, model.AdminEmail, CancellationToken.None);
-
-            user.FirstName = "Admin"; // Placeholder
-            user.LastName = model.OrgName; // Placeholder
-            user.OrganizationId = org.OrganizationId;
-            user.IsActive = true;
-            user.EmailConfirmed = true; // Auto confirm for manually provisioned accounts
-
-            var result = await _userManager.CreateAsync(user, model.AdminPassword);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, "Admin");
-                TempData["Success"] = $"Organization '{model.OrgName}' provisioned successfully.";
-            }
-            else
-            {
-                // Rollback org creation if user creation fails
-                _db.Organizations.Remove(org);
-                await _db.SaveChangesAsync();
-
-                TempData["Error"] = "Failed to create admin user: " + string.Join(", ", result.Errors.Select(e => e.Description));
-            }
-
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
 
@@ -237,6 +218,15 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             org.UpdatedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
+            await _auditService.LogAsync(
+                org.OrganizationId,
+                await GetActorIdAsync(),
+                "Organization",
+                org.OrganizationId,
+                "OrganizationUpdated",
+                $"Updated organization profile for {org.OrgName}",
+                "Info",
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             TempData["Success"] = "Organization updated successfully.";
 
             return RedirectToAction(nameof(Index));
@@ -246,18 +236,13 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)
         {
-            var org = await _db.Organizations.FindAsync(id);
-            if (org == null) return NotFound();
+            var result = await _governanceService.ToggleOrganizationStatusAsync(
+                id,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                HttpContext.RequestAborted);
 
-            if (org.Status == "Active")
-                org.Status = "Suspended";
-            else
-                org.Status = "Active";
-
-            org.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-
-            TempData["Success"] = $"Organization status changed to {org.Status}.";
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
 
@@ -265,25 +250,14 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-             var org = await _db.Organizations.FindAsync(id);
-             if (org == null) return NotFound();
+            var result = await _governanceService.ArchiveOrganizationAsync(
+                id,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                HttpContext.RequestAborted);
 
-             // Soft delete? Or hard delete?
-             // Usually soft delete is better, but schema might not have IsDeleted.
-             // Checking Organization entity... it doesn't seem to have IsDeleted. 
-             // But status can be "Suspended". Let's assume Delete means really remove or mark as some archived status.
-             // For now, let's just set Status to "Archived" if valid, or just delete if it's a test data.
-             // Given the request "Soft Delete", let's use a status or see if we can add a property.
-             // The entity doesn't have IsDeleted.
-             // Let's check `Organization.cs` again...
-             // It has Status. I can use "Archived" status as Soft Delete.
-
-             org.Status = "Archived";
-             org.UpdatedAt = DateTime.UtcNow;
-             await _db.SaveChangesAsync();
-             
-             TempData["Success"] = "Organization archived.";
-             return RedirectToAction(nameof(Index));
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
         }
     }
 }

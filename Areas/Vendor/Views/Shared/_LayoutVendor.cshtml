@@ -74,6 +74,44 @@
             justify-content: center;
             width: 100%;
         }
+
+        .nav-leaving #main-content {
+            opacity: .65;
+            transition: opacity 140ms ease;
+        }
+
+        .content-spinner {
+            position: absolute;
+            top: 4rem;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            background: rgba(248, 250, 252, 0.55);
+            backdrop-filter: blur(1px);
+        }
+
+        .dark .content-spinner {
+            background: rgba(2, 6, 23, 0.45);
+        }
+
+        .content-spinner .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #059669;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
     <script src="~/js/theme.js"></script>
 </head>
@@ -126,6 +164,16 @@
                         <span class="sidebar-label whitespace-nowrap">Usage & Analytics</span>
                     </a>
 
+                    <a data-nav href="/Vendor/Logs" title="Logs" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Logs")">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4V7M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
+                        <span class="sidebar-label whitespace-nowrap">System Logs</span>
+                    </a>
+
+                    <a data-nav href="/Vendor/Health" title="Health" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Health")">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                        <span class="sidebar-label whitespace-nowrap">Availability</span>
+                    </a>
+
                     <div class="sidebar-label pt-6 pb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400 px-4 whitespace-nowrap">Management</div>
 
                     <a data-nav href="/Vendor/Organizations" title="Organizations" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Organizations")">
@@ -143,6 +191,11 @@
                     <a data-nav href="/Vendor/Billing" title="Billing" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Billing")">
                         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                         <span class="sidebar-label whitespace-nowrap">Billing & Plans</span>
+                    </a>
+
+                    <a data-nav href="/Vendor/Revenue" title="Revenue" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Revenue")">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 7h7v7" /></svg>
+                        <span class="sidebar-label whitespace-nowrap">Revenue Analytics</span>
                     </a>
 
                     <a data-nav href="/Vendor/Settings" title="Settings" class="sidebar-nav-item flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all @IsActive("/Vendor/Settings")">
@@ -173,7 +226,7 @@
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                     </button>
-                    <div class="text-xs font-normal text-slate-500 uppercase tracking-widest truncate">
+                    <div id="pageTitleHeader" class="text-xs font-normal text-slate-500 uppercase tracking-widest truncate">
                         <span class="text-slate-400">Super Admin</span> / <span class="text-slate-700 dark:text-slate-200 font-medium">@ViewData["Title"]</span>
                     </div>
                 </div>
@@ -205,6 +258,12 @@
 
             <div id="main-content" class="p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 @RenderBody()
+            </div>
+            <div id="main-content-spinner" class="content-spinner hidden" aria-hidden="true">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="spinner"></div>
+                    <span class="text-sm text-slate-500 dark:text-slate-400">Loading</span>
+                </div>
             </div>
         </main>
     </div>
@@ -280,44 +339,93 @@
         }
 
         const TITLE_SUFFIX_VENDOR = ' - Sentro Vendor';
+
+        function pathStartsWith(targetPath, prefix) {
+            if (!targetPath || !prefix) return false;
+            const t = targetPath.toLowerCase();
+            const p = prefix.toLowerCase();
+            return t === p || t.startsWith(p + '/');
+        }
+
+        function updateNavActiveState(path) {
+            const targetPath = (path || '').toLowerCase();
+            const activeClasses = ['bg-emerald-500/10', 'text-emerald-600', 'border-emerald-500/20'];
+            const inactiveClasses = ['text-slate-500', 'hover:bg-slate-100', 'dark:hover:bg-slate-800', 'border-transparent'];
+
+            document.querySelectorAll('a[data-nav].sidebar-nav-item').forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+
+                const linkPath = new URL(href, window.location.origin).pathname.toLowerCase();
+                const isActive = pathStartsWith(targetPath, linkPath);
+
+                if (isActive) {
+                    inactiveClasses.forEach(c => link.classList.remove(c));
+                    activeClasses.forEach(c => link.classList.add(c));
+                } else {
+                    activeClasses.forEach(c => link.classList.remove(c));
+                    inactiveClasses.forEach(c => link.classList.add(c));
+                }
+            });
+        }
+
         function enableSoftNav() {
             const mainContent = document.getElementById('main-content');
             const pageTitleHeader = document.getElementById('pageTitleHeader');
+            const mainContentSpinner = document.getElementById('main-content-spinner');
+            let isNavigating = false;
             if (!mainContent) return;
             document.addEventListener('click', async (e) => {
                 const a = e.target.closest('a[data-nav]');
                 if (!a) return;
                 if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                if (isNavigating) { e.preventDefault(); return; }
                 const href = a.getAttribute('href');
                 if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
                 const current = window.location.pathname + window.location.search;
                 const targetUrl = new URL(href, window.location.origin);
                 if (current === targetUrl.pathname + targetUrl.search) { e.preventDefault(); return; }
                 e.preventDefault();
+                isNavigating = true;
+                document.documentElement.classList.add('nav-leaving');
+                if (mainContentSpinner) mainContentSpinner.classList.remove('hidden');
+                a.classList.add('opacity-70', 'pointer-events-none', 'cursor-wait');
                 try {
                     const res = await fetch(href, { headers: { 'X-Partial-Content': 'main' }, credentials: 'same-origin' });
                     if (!res.ok) { window.location.href = href; return; }
                     const html = await res.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const wrapper = doc.body.firstElementChild;
-                    if (!wrapper || !wrapper.hasAttribute('data-page-title')) { window.location.href = href; return; }
-                    const title = wrapper.getAttribute('data-page-title');
-                    mainContent.innerHTML = wrapper.innerHTML;
+                    const nextMainContent = doc.getElementById('main-content');
+                    if (!nextMainContent) { window.location.href = href; return; }
+
+                    const titleText = (doc.title || '').replace(TITLE_SUFFIX_VENDOR, '').trim() || 'Vendor';
+                    mainContent.innerHTML = nextMainContent.innerHTML;
                     mainContent.querySelectorAll('script').forEach(oldScript => {
                         const script = document.createElement('script');
                         if (oldScript.src) { script.src = oldScript.src; } else { script.textContent = oldScript.textContent; }
                         oldScript.parentNode.replaceChild(script, oldScript);
                     });
-                    document.title = title + TITLE_SUFFIX_VENDOR;
-                    if (pageTitleHeader) pageTitleHeader.textContent = title;
+                    document.title = titleText + TITLE_SUFFIX_VENDOR;
+                    if (pageTitleHeader) {
+                        pageTitleHeader.innerHTML = `<span class="text-slate-400">Super Admin</span> / <span class="text-slate-700 dark:text-slate-200 font-medium">${titleText}</span>`;
+                    }
                     history.pushState({ partial: true }, '', href);
+                    updateNavActiveState(targetUrl.pathname);
                 } catch (_) {
                     window.location.href = href;
+                } finally {
+                    isNavigating = false;
+                    a.classList.remove('opacity-70', 'pointer-events-none', 'cursor-wait');
+                    document.documentElement.classList.remove('nav-leaving');
+                    if (mainContentSpinner) mainContentSpinner.classList.add('hidden');
                 }
             }, true);
         }
         window.addEventListener('popstate', function () { window.location.reload(); });
-        document.addEventListener('DOMContentLoaded', enableSoftNav);
+        document.addEventListener('DOMContentLoaded', () => {
+            enableSoftNav();
+            updateNavActiveState(window.location.pathname);
+        });
 
         window.addEventListener('click', function(e) {
             const btn = document.getElementById('userDropdownBtn');

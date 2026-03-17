@@ -15,6 +15,8 @@ namespace WEB_Sentro.Data
         public DbSet<Subscription> Subscriptions { get; set; } = null!;
         public DbSet<Invoice> Invoices { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
+        public DbSet<OrganizationAnalyticsSnapshot> OrganizationAnalyticsSnapshots { get; set; } = null!;
+        public DbSet<PlatformSetting> PlatformSettings { get; set; } = null!;
 
         public PlatformDbContext(DbContextOptions<PlatformDbContext> options)
             : base(options)
@@ -129,6 +131,41 @@ namespace WEB_Sentro.Data
                 e.HasIndex(x => x.InvoiceId);
                 e.HasOne(x => x.Organization).WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Invoice).WithMany().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<OrganizationAnalyticsSnapshot>(e =>
+            {
+                e.HasKey(x => x.SnapshotId);
+
+                e.Property(x => x.RangeKey).IsRequired().HasMaxLength(10);
+                e.Property(x => x.OrganizationName).IsRequired().HasMaxLength(200);
+                e.Property(x => x.PlanName).IsRequired().HasMaxLength(100);
+                e.Property(x => x.SubscriptionStatus).IsRequired().HasMaxLength(20);
+                e.Property(x => x.ChurnRiskLabel).IsRequired().HasMaxLength(20);
+                e.Property(x => x.SegmentLabel).IsRequired().HasMaxLength(20);
+                e.Property(x => x.TrendLabel).IsRequired().HasMaxLength(30);
+                e.Property(x => x.ActivityTrendJson).IsRequired().HasMaxLength(400);
+                e.Property(x => x.RenewalDateDisplay).IsRequired().HasMaxLength(20);
+
+                e.Property(x => x.ActivityChangePercent).HasColumnType("decimal(9,2)");
+                e.Property(x => x.UserChangePercent).HasColumnType("decimal(9,2)");
+                e.Property(x => x.AdoptionChangePercent).HasColumnType("decimal(9,2)");
+                e.Property(x => x.ErrorRatePercent).HasColumnType("decimal(9,2)");
+
+                e.HasIndex(x => new { x.OrganizationId, x.RangeKey }).IsUnique();
+                e.HasIndex(x => new { x.RangeKey, x.OrganizationName });
+                e.HasIndex(x => new { x.RangeKey, x.ChurnRiskLabel });
+                e.HasIndex(x => new { x.RangeKey, x.HealthScore });
+                e.HasIndex(x => new { x.RangeKey, x.EventCountInRange });
+                e.HasIndex(x => x.SnapshotAtUtc);
+            });
+
+            builder.Entity<PlatformSetting>(e =>
+            {
+                e.HasKey(x => x.PlatformSettingId);
+                e.Property(x => x.Key).IsRequired().HasMaxLength(120);
+                e.Property(x => x.UpdatedByUserId).HasMaxLength(450);
+                e.HasIndex(x => x.Key).IsUnique();
             });
         }
     }

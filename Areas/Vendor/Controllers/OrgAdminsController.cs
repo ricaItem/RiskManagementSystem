@@ -1,20 +1,33 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Areas.Vendor.Models;
 using WEB_Sentro.Data;
+using WEB_Sentro.Models.Identity;
+using WEB_Sentro.Services;
 
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
     [Area("Vendor")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Policy = "SuperAdminOnly")]
     public class OrgAdminsController : Controller
     {
         private readonly PlatformDbContext _db;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IOrganizationGovernanceService _governanceService;
 
-        public OrgAdminsController(PlatformDbContext db)
+        public OrgAdminsController(PlatformDbContext db, UserManager<ApplicationUser> userManager, IOrganizationGovernanceService governanceService)
         {
             _db = db;
+            _userManager = userManager;
+            _governanceService = governanceService;
+        }
+
+        private async Task<string> GetActorIdAsync()
+        {
+            var me = await _userManager.GetUserAsync(User);
+            return me?.Id ?? "system";
         }
 
         public async Task<IActionResult> Index(string? search, int? orgId, CancellationToken ct = default)
@@ -72,6 +85,50 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             };
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(int organizationId, string fullName, string email, CancellationToken ct = default)
+        {
+            var result = await _governanceService.CreateOrgAdminAsync(
+                organizationId,
+                fullName,
+                email,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                ct);
+
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleStatus(string userId, CancellationToken ct = default)
+        {
+            var result = await _governanceService.ToggleOrgAdminStatusAsync(
+                userId,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                ct);
+
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(string userId)
+        {
+            var result = await _governanceService.SendOrgAdminPasswordResetAsync(
+                userId,
+                await GetActorIdAsync(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                HttpContext.RequestAborted);
+
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
         }
 
         private static string FormatRelativeTime(DateTime value)

@@ -12,8 +12,6 @@ public static class PlatformSeeder
     public static async Task SeedPlansAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<PlatformDbContext>();
-        if (await db.Plans.AnyAsync())
-            return;
 
         var plans = new[]
         {

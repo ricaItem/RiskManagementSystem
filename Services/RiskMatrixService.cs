@@ -8,12 +8,14 @@ namespace WEB_Sentro.Services
     public class RiskMatrixService : IRiskMatrixService
     {
         private readonly ITenantDbFactory _tenantDbFactory;
+        private readonly IGlobalSettingsService _globalSettings;
         private static readonly ConcurrentDictionary<int, (RiskMatrixConfigDto Config, DateTime CachedAt)> _cache = new();
         private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(10);
 
-        public RiskMatrixService(ITenantDbFactory tenantDbFactory)
+        public RiskMatrixService(ITenantDbFactory tenantDbFactory, IGlobalSettingsService globalSettings)
         {
             _tenantDbFactory = tenantDbFactory;
+            _globalSettings = globalSettings;
         }
 
         public async Task<RiskMatrixConfigDto?> GetActiveConfigAsync(int orgId, CancellationToken ct = default)
@@ -113,6 +115,13 @@ namespace WEB_Sentro.Services
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             if (await db.RiskMatrixConfigs.AnyAsync(c => c.OrgId == orgId, ct)) return;
 
+            var defaults = await _globalSettings.GetAsync<RiskScoringDefaults>(GlobalSettingKeys.RiskScoring, ct)
+                ?? new RiskScoringDefaults();
+
+            var lowMax = Math.Clamp(defaults.LowMaxScore, 1, 24);
+            var mediumMax = Math.Clamp(defaults.MediumMaxScore, lowMax + 1, 24);
+            var highMax = Math.Clamp(defaults.HighMaxScore, mediumMax + 1, 24);
+
             var now = DateTime.UtcNow;
             var config = new RiskMatrixConfig
             {
@@ -128,7 +137,13 @@ namespace WEB_Sentro.Services
                 for (var i = 1; i <= 5; i++)
                     db.RiskMatrixCells.Add(new RiskMatrixCell { RiskMatrixConfigId = config.RiskMatrixConfigId, Likelihood = l, Impact = i, Score = l * i });
 
-            var bands = new[] { (1, 6, "Low", 365), (7, 14, "Medium", 180), (15, 19, "High", 90), (20, 25, "Critical", 30) };
+            var bands = new[]
+            {
+                (1, lowMax, "Low", 365),
+                (lowMax + 1, mediumMax, "Medium", 180),
+                (mediumMax + 1, highMax, "High", 90),
+                (highMax + 1, 25, "Critical", 30)
+            };
             foreach (var (min, max, name, freq) in bands)
                 db.RiskAppetiteBands.Add(new RiskAppetiteBand { RiskMatrixConfigId = config.RiskMatrixConfigId, MinScore = min, MaxScore = max, BandName = name, ReviewFrequencyDays = freq });
 

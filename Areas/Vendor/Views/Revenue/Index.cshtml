@@ -1,0 +1,113 @@
+@model WEB_Sentro.Areas.Vendor.Models.RevenueIndexViewModel
+@{
+    ViewData["Title"] = "Revenue Intelligence";
+    Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
+    long maxCollected = Model.Trend.Count == 0 ? 1 : Math.Max(1, Model.Trend.Max(x => x.CollectedCentavos));
+}
+
+@functions {
+    private static string Currency(long centavos)
+    {
+        return centavos % 100 == 0 ? $"PHP {centavos / 100:N0}" : $"PHP {centavos / 100.0:N2}";
+    }
+}
+
+<div class="space-y-6 animate-in fade-in duration-500">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Platform <span class="text-emerald-600">Revenue Intelligence</span></h1>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Strict MRR = Active subscriptions only</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="?range=7d" class="rounded-xl border px-3 py-2 text-xs font-bold @(Model.SelectedRange == "7d" ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-500")">7D</a>
+            <a href="?range=30d" class="rounded-xl border px-3 py-2 text-xs font-bold @(Model.SelectedRange == "30d" ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-500")">30D</a>
+            <a href="?range=90d" class="rounded-xl border px-3 py-2 text-xs font-bold @(Model.SelectedRange == "90d" ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-500")">90D</a>
+            <a href="?range=12m" class="rounded-xl border px-3 py-2 text-xs font-bold @(Model.SelectedRange == "12m" ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-500")">12M</a>
+            <a asp-action="ExportTopOrganizationsCsv" asp-route-range="@Model.SelectedRange" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Export Top Org CSV</a>
+            <a asp-action="ExportAgingCsv" asp-route-range="@Model.SelectedRange" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Export A/R Aging CSV</a>
+        </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60"><p class="text-[10px] uppercase tracking-wider text-slate-400">Gross Collected</p><p class="text-2xl font-black text-slate-900 dark:text-white">@Model.GrossCollectedDisplay</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60"><p class="text-[10px] uppercase tracking-wider text-slate-400">MRR</p><p class="text-2xl font-black text-emerald-600">@Model.MrrDisplay</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60"><p class="text-[10px] uppercase tracking-wider text-slate-400">ARR</p><p class="text-2xl font-black text-sky-600">@Model.ArrDisplay</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60"><p class="text-[10px] uppercase tracking-wider text-slate-400">Outstanding A/R</p><p class="text-2xl font-black text-amber-600">@Model.OutstandingArDisplay</p></div>
+        <div class="rounded-2xl border border-rose-200 bg-rose-50/70 p-5 dark:border-rose-900/50 dark:bg-rose-900/15"><p class="text-[10px] uppercase tracking-wider text-rose-500">At-Risk MRR</p><p class="text-2xl font-black text-rose-600">@Model.AtRiskMrrDisplay</p></div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-3">
+        <div class="xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Collected Trend</h3>
+            <div class="mt-5 grid grid-cols-@(Math.Max(1, Model.Trend.Count)) gap-2">
+                @foreach (var p in Model.Trend)
+                {
+                    var pct = (int)Math.Round((p.CollectedCentavos * 100.0) / maxCollected);
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="h-28 w-full rounded-lg bg-slate-100 p-1 dark:bg-slate-800/70">
+                            <div class="w-full rounded-md bg-emerald-500" style="height:@Math.Max(4, pct)% ; margin-top:@(100 - Math.Max(4, pct))%"></div>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-500">@p.Label</p>
+                    </div>
+                }
+            </div>
+            <div class="mt-4 flex flex-wrap gap-4 text-xs">
+                <span class="font-semibold text-slate-600">Expansion MRR: <span class="text-emerald-600">@Model.ExpansionMrrDisplay</span></span>
+                <span class="font-semibold text-slate-600">Churned MRR: <span class="text-rose-600">@Model.ChurnedMrrDisplay</span></span>
+                <span class="font-semibold text-slate-600">Active Subs: <span class="text-slate-900 dark:text-slate-100">@Model.ActiveSubscriptionsCount</span></span>
+                <span class="font-semibold text-slate-600">Renewal Risk (30d): <span class="text-amber-600">@Model.RenewalRiskCount</span></span>
+            </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">A/R Aging</h3>
+                <a asp-action="ExportAgingCsv" asp-route-range="@Model.SelectedRange" class="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700">Export CSV</a>
+            </div>
+            <div class="mt-4 space-y-3">
+                @foreach (var bucket in Model.Aging)
+                {
+                    <div class="rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">@bucket.Bucket</p>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white">@Currency(bucket.AmountCentavos)</p>
+                        <p class="text-[10px] text-slate-500">@bucket.InvoiceCount invoice(s)</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Plan Mix (Active)</h3>
+            <div class="mt-4 space-y-3">
+                @foreach (var row in Model.PlanMix)
+                {
+                    <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                        <div>
+                            <p class="text-sm font-bold text-slate-900 dark:text-white">@row.PlanName</p>
+                            <p class="text-[10px] text-slate-500">@row.SubscriptionCount active subscriptions</p>
+                        </div>
+                        <p class="text-sm font-black text-emerald-600">@Currency(row.MrrCentavos)</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Top Organizations by Collection</h3>
+                <a asp-action="ExportTopOrganizationsCsv" asp-route-range="@Model.SelectedRange" class="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700">Export CSV</a>
+            </div>
+            <div class="mt-4 space-y-3">
+                @foreach (var row in Model.TopOrganizations)
+                {
+                    <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                        <p class="text-sm font-bold text-slate-900 dark:text-white">@row.OrganizationName</p>
+                        <p class="text-sm font-black text-slate-700 dark:text-slate-100">@Currency(row.CollectedCentavos)</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

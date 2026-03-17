@@ -22,4 +22,6 @@ public class OrganizationRowViewModel
     public int? RiskLoad { get; set; }
     public string Status { get; set; } = null!;
     public string StatusColor { get; set; } = "emerald";
+    public string SubscriptionStatus { get; set; } = "No Subscription";
+    public string NextBillingDisplay { get; set; } = "-";
 }

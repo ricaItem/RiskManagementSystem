@@ -1,5 +1,11 @@
 @using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
+@using WEB_Sentro.Data
+@using WEB_Sentro.Models.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject PlatformDbContext PlatformDb
 @{
     var displayName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Client User";
     var parts = displayName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -16,6 +22,20 @@
     var canMainAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
     var canRiskGovernance = canMainAdmin || User.IsInRole("RiskManager");
     var canProcurement = canMainAdmin || User.IsInRole("ProcurementOfficer");
+
+    var isOrgSuspended = false;
+    if (User.Identity?.IsAuthenticated ?? false)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        if (currentUser?.OrganizationId > 0)
+        {
+            var organizationStatus = await PlatformDb.Organizations.AsNoTracking()
+                .Where(o => o.OrganizationId == currentUser.OrganizationId)
+                .Select(o => o.Status)
+                .FirstOrDefaultAsync();
+            isOrgSuspended = string.Equals(organizationStatus, "Suspended", StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -619,6 +639,13 @@
             </header>
 
             <div id="main-content" class="p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500 sentro-bg-page dark:bg-slate-900">
+                @if (isOrgSuspended)
+                {
+                    <div class="mb-5 rounded-2xl border border-amber-300 bg-amber-50/95 p-4 text-amber-900 shadow-sm dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200">
+                        <p class="text-xs font-semibold uppercase tracking-wider">Read-only mode</p>
+                        <p class="mt-1 text-sm font-medium">Your organization is suspended. You can still view data, but create/update/delete actions are disabled until reactivation.</p>
+                    </div>
+                }
                 @RenderBody()
             </div>
             <div id="main-content-spinner" class="content-spinner hidden" aria-hidden="true"><div class="flex flex-col items-center gap-2"><div class="spinner"></div><span class="text-sm text-slate-500 dark:text-slate-400">Loading</span></div></div>

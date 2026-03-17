@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WEB_Sentro.Data;
+using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
 using WEB_Sentro.Services;
 using WEB_Sentro.Services.PayMongo;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using WEB_Sentro.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +18,8 @@ var builder = WebApplication.CreateBuilder(args);
 var platformConnectionString = builder.Configuration.GetConnectionString("PlatformDb")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'PlatformDb' (or legacy 'DefaultConnection') not found.");
+
+var securityDefaults = LoadSecurityDefaults(platformConnectionString);
 
 builder.Services.AddDbContext<PlatformDbContext>(options =>
     options.UseSqlServer(platformConnectionString, sql =>
@@ -41,11 +46,13 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequiredLength = 12;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireDigit = true;
-    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = securityDefaults?.PasswordMinLength ?? 12;
+    options.Password.RequireUppercase = securityDefaults?.RequireUppercase ?? true;
+    options.Password.RequireLowercase = securityDefaults?.RequireLowercase ?? true;
+    options.Password.RequireDigit = securityDefaults?.RequireDigit ?? true;
+    options.Password.RequireNonAlphanumeric = securityDefaults?.RequireNonAlphanumeric ?? true;
+    options.Lockout.MaxFailedAccessAttempts = securityDefaults?.LockoutMaxFailedAccessAttempts ?? 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(securityDefaults?.LockoutWindowMinutes ?? 15);
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<PlatformDbContext>()
@@ -57,7 +64,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Identity/Account/Logout";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(securityDefaults?.SessionTimeoutMinutes ?? 60);
     options.SlidingExpiration = true;
 
     options.Events.OnSigningIn = context =>
@@ -109,12 +116,22 @@ builder.Services.AddScoped<MonitoringHubService>();
 builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService>();
 builder.Services.AddScoped<SupplierRiskService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IGlobalSettingsService, GlobalSettingsService>();
+builder.Services.AddScoped<IOrganizationGovernanceService, OrganizationGovernanceService>();
+builder.Services.AddScoped<IRevenueAnalyticsService, RevenueAnalyticsService>();
 builder.Services.AddScoped<IIncidentService, IncidentService>();
 builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<OrganizationAnalyticsSnapshotRefreshService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<MonitoringSyncHostedService>();
 builder.Services.AddHostedService<RiskReviewReminderHostedService>();
+builder.Services.AddHostedService<OrganizationAnalyticsSnapshotHostedService>();
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<OrganizationWriteAccessFilter>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.AddService<OrganizationWriteAccessFilter>();
+});
 builder.Services.AddRazorPages();
 
 //SMTP --start--
@@ -188,3 +205,31 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 app.Run();
+
+static SecurityPolicyDefaults? LoadSecurityDefaults(string connectionString)
+{
+    try
+    {
+        var dbOptions = new DbContextOptionsBuilder<PlatformDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        using var db = new PlatformDbContext(dbOptions);
+        var json = db.PlatformSettings
+            .AsNoTracking()
+            .Where(x => x.Key == GlobalSettingKeys.SecurityPolicies)
+            .Select(x => x.JsonValue)
+            .FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<SecurityPolicyDefaults>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    }
+    catch
+    {
+        return null;
+    }
+}
