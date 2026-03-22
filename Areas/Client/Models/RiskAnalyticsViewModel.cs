@@ -63,6 +63,14 @@ namespace WEB_Sentro.Areas.Client.Models
         public decimal? CostForecastAmount { get; set; }
         public List<ClosureBySeverityRowViewModel> ClosureBySeverity { get; set; } = new();
         public List<EarlyWarningRowViewModel> EarlyWarnings { get; set; } = new();
+
+        // New properties for enhancements
+        public double ExpectedIncidentsNextWeek { get; set; }
+        public double WeekOverWeekTrendPercent { get; set; }
+        public double DynamicRiskScore { get; set; }
+        public string RiskLevel { get; set; } = "Low"; // Low, Medium, High
+        public string RiskLevelExplanation { get; set; } = "";
+        public string TrendDirection { get; set; } = "Stable"; // Up, Down, Stable
     }
 
     public class ClosureBySeverityRowViewModel

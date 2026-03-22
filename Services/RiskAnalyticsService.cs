@@ -104,16 +104,17 @@ namespace WEB_Sentro.Services
             var closedWithDate = risks.Where(r => (r.Status == "Closed_Invalid" || r.Status == "Closed_Controlled") && r.UpdatedAt.HasValue).ToList();
             
             // Fix: Active Delta should be Net Change (New - Closed) in period, as we lack historical snapshots
-            var closedInPeriod = closedWithDate.Count(r => r.UpdatedAt >= periodStart);
+            var closedInPeriodList = closedWithDate.Where(r => r.UpdatedAt >= periodStart).ToList();
+            var closedInPeriod = closedInPeriodList.Count;
             var activeDelta = createdInPeriod - closedInPeriod;
             var activeDeltaText = activeDelta > 0 ? $"+{activeDelta} net flow" : $"{activeDelta} net flow";
             
             var createdDelta = previousCreated > 0 ? (int)Math.Round((createdInPeriod - previousCreated) / (double)previousCreated * 100) : 0;
 
             var avgTimeToCloseDays = 0;
-            if (closedWithDate.Any())
+            if (closedInPeriodList.Any())
             {
-                var days = closedWithDate.Select(r => (r.UpdatedAt!.Value - r.CreatedAt).TotalDays).Where(d => d >= 0).ToList();
+                var days = closedInPeriodList.Select(r => (r.UpdatedAt!.Value - r.CreatedAt).TotalDays).Where(d => d >= 0).ToList();
                 avgTimeToCloseDays = days.Any() ? (int)Math.Round(days.Average()) : 0;
             }
 
@@ -255,28 +256,95 @@ namespace WEB_Sentro.Services
                 ? (int?)Math.Min(100, 10 + weatherTriggered * 5)
                 : null;
             var costForecast = risks.SelectMany(r => r.Expenses).Where(e => e.Date >= now.Date && e.Date <= now.AddDays(30)).Sum(e => e.Amount);
-            if (costForecast == 0)
-                costForecast = risks.SelectMany(r => r.Expenses).Sum(e => e.Amount);
 
             var closureBySeverity = new List<string> { "Critical", "High", "Medium" }.Select(sev =>
             {
-                var ofSeverity = closedWithDate.Where(r => string.Equals(r.Priority, sev, StringComparison.OrdinalIgnoreCase)).ToList();
+                var ofSeverity = closedInPeriodList.Where(r => string.Equals(r.Priority, sev, StringComparison.OrdinalIgnoreCase)).ToList();
                 var days = ofSeverity.Where(r => r.UpdatedAt.HasValue).Select(r => (int)(r.UpdatedAt!.Value - r.CreatedAt).TotalDays).ToList();
                 var avgDays = days.Any() ? (int?)days.Average() : null;
                 var eta = avgDays.HasValue ? $"{avgDays}–{avgDays + 5} days" : null;
                 return new ClosureBySeverityRowViewModel { Severity = sev, AvgCloseDays = avgDays, EtaWindow = eta };
             }).ToList();
 
+            // 1 & 2. Expected incidents next week & Week-Over-Week Trend
+            var incidentRisks = risks.Where(r => r.Category != null && (r.Category.Contains("Incident", StringComparison.OrdinalIgnoreCase) || r.Category.Contains("Near Miss", StringComparison.OrdinalIgnoreCase))).ToList();
+            var currentWeekRisksCount = incidentRisks.Count(r => r.CreatedAt >= now.AddDays(-7));
+            var previousWeekRisksCount = incidentRisks.Count(r => r.CreatedAt >= now.AddDays(-14) && r.CreatedAt < now.AddDays(-7));
+            var twoWeeksAgoRisksCount = incidentRisks.Count(r => r.CreatedAt >= now.AddDays(-21) && r.CreatedAt < now.AddDays(-14));
+            var threeWeeksAgoRisksCount = incidentRisks.Count(r => r.CreatedAt >= now.AddDays(-28) && r.CreatedAt < now.AddDays(-21));
+
+            var movingAverage = (currentWeekRisksCount + previousWeekRisksCount + twoWeeksAgoRisksCount + threeWeeksAgoRisksCount) / 4.0;
+            var expectedIncidentsNextWeek = Math.Round(movingAverage, 1);
+            
+            var weekOverWeekTrendPercent = previousWeekRisksCount == 0 ? (currentWeekRisksCount > 0 ? 100.0 : 0.0) : Math.Round(((double)(currentWeekRisksCount - previousWeekRisksCount) / previousWeekRisksCount) * 100.0, 1);
+            var trendDirection = weekOverWeekTrendPercent > 0 ? "Upward" : (weekOverWeekTrendPercent < 0 ? "Downward" : "Stable");
+
+            // 3. Dynamic Risk Score (Weighted: Critical=5, High=3, Medium=2, Weather=2, Recent=1)
+            double totalRiskWeight = 0;
+            var activeRisksToScore = openRisks;
+            foreach (var r in activeRisksToScore)
+            {
+                double riskWeight = 0;
+                if (r.Priority == "Critical") riskWeight += 5;
+                else if (r.Priority == "High") riskWeight += 3;
+                else if (r.Priority == "Medium") riskWeight += 2;
+                else riskWeight += 1; // Low
+
+                if (r.Category != null && r.Category.Contains("Incident", StringComparison.OrdinalIgnoreCase)) riskWeight += 3;
+                if (r.Category != null && r.Category.Contains("Near Miss", StringComparison.OrdinalIgnoreCase)) riskWeight += 2;
+                if (r.SourceType != null && r.SourceType.Contains("Weather", StringComparison.OrdinalIgnoreCase)) riskWeight += 2;
+
+                totalRiskWeight += riskWeight;
+            }
+            
+            // Normalize Dynamic Score (0-100 scale based on average active risk weight)
+            // Max weight for a single risk is 10. Avg weight * 10 gives a 0-100 index.
+            double dynamicRiskScore = activeRisksToScore.Any() ? Math.Min(100, Math.Round((totalRiskWeight / activeRisksToScore.Count) * 10, 1)) : 0;
+
+            // 7. Dashboard elements: Risk Level
+            string riskLevel = "Low";
+            string riskLevelExplanation = "Risk profile is generally stable.";
+            if (dynamicRiskScore > 75)
+            {
+                riskLevel = "High";
+                riskLevelExplanation = "Elevated intensity of severe risks and active incidents detected.";
+            }
+            else if (dynamicRiskScore > 40)
+            {
+                riskLevel = "Medium";
+                riskLevelExplanation = "Moderate activity. Watch for developing trends.";
+            }
+
+            // 4. Rule-based alerts (e.g. increase by 20% or multiple events in same location)
             var earlyWarnings = new List<EarlyWarningRowViewModel>();
+            if (weekOverWeekTrendPercent >= 20.0 && currentWeekRisksCount >= 2)
+            {
+                earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Weekly incidents increased by >20%", StatusPill = "Urgent", IsWarning = true });
+            }
+
             var repeatedAlerts = risks.Count(r => r.SourceType == "WeatherAPI" && r.CreatedAt >= now.AddDays(-7)) >= 2;
-            earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Repeated alerts detected", StatusPill = repeatedAlerts ? "Pending" : null, IsWarning = repeatedAlerts });
-            var scoreTrendRisks = risksWithEvals.Where(r => r.Evaluations.Count >= 2).ToList();
-            var scoreIncreasing = scoreTrendRisks.Any(r =>
+            earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Repeated weather alerts detected", StatusPill = repeatedAlerts ? "Pending" : null, IsWarning = repeatedAlerts });
+            
+            // Multiple events in same location alert
+            var locationAlerts = currentWeekRisksCount > 0 
+                ? incidentRisks.Where(r => r.CreatedAt >= now.AddDays(-7) && r.SiteId.HasValue)
+                       .GroupBy(r => r.SiteId)
+                       .Any(g => g.Count() >= 3)
+                : false;
+            if (locationAlerts)
+            {
+                earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Multiple events in the same location", StatusPill = "Pending", IsWarning = true });
+            }
+
+            var recentScoreTrendRisks = risksWithEvals.Where(r => r.Evaluations.Count >= 2 && !IsClosedForChart(r)).ToList();
+            var increasingScoreCount = recentScoreTrendRisks.Count(r =>
             {
                 var evals = r.Evaluations.OrderBy(e => e.EvaluatedAt).ToList();
-                return evals[1].RiskScore > evals[0].RiskScore;
+                return evals.Last().RiskScore > evals[^2].RiskScore;
             });
-            earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Score trend increasing", StatusPill = scoreIncreasing ? "Pending" : null, IsWarning = scoreIncreasing });
+            var scoreIncreasingAlert = increasingScoreCount >= 3 || (recentScoreTrendRisks.Count > 0 && (increasingScoreCount / (double)openRisks.Count) > 0.15);
+            earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Multiple active risks increasing in severity", StatusPill = scoreIncreasingAlert ? "Pending" : null, IsWarning = scoreIncreasingAlert });
+
             var noMitigation = openRisks.Count(r => r.MitigationPlan == null && (r.Priority == "Critical" || r.Priority == "High"));
             earlyWarnings.Add(new EarlyWarningRowViewModel { Title = "Mitigation not started", StatusPill = noMitigation > 0 ? "Pending" : null, IsWarning = noMitigation > 0 });
 
@@ -321,7 +389,13 @@ namespace WEB_Sentro.Services
                     MomentumStatus = momentumStatus,
                     CostForecastAmount = costForecast > 0 ? costForecast : null,
                     ClosureBySeverity = closureBySeverity,
-                    EarlyWarnings = earlyWarnings
+                    EarlyWarnings = earlyWarnings,
+                    ExpectedIncidentsNextWeek = expectedIncidentsNextWeek,
+                    WeekOverWeekTrendPercent = weekOverWeekTrendPercent,
+                    DynamicRiskScore = dynamicRiskScore,
+                    RiskLevel = riskLevel,
+                    RiskLevelExplanation = riskLevelExplanation,
+                    TrendDirection = trendDirection
                 },
                 SiteRankings = siteRankings,
                 TopRisks = topRiskViewModels

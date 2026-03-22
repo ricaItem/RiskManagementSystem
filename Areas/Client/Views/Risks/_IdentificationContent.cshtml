@@ -594,26 +594,26 @@
                                 <input type="hidden" name="id" id="approveRiskId" />
                                 <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-500 shadow-sm transition-colors">Approve</button>
                             </form>
-                            <form id="viewRejectForm" action="@Url.Action("Reject", "Risks", new { area = "Client" })" method="post" onsubmit="return promptReject()">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" id="rejectRiskId" />
-                                <input type="hidden" name="RejectRemarks" id="rejectRemarks" />
-                                <button type="submit" class="rounded-xl border border-rose-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 shadow-sm transition-colors dark:border-rose-900 dark:bg-rose-900/10 dark:text-rose-400">Reject</button>
-                            </form>
-                        </div>
-                         <div id="viewReviewActions" class="hidden">
-                            <form id="viewReviewForm" action="@Url.Action("Review", "Risks", new { area = "Client" })" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" id="reviewRiskId" />
-                                <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500 shadow-sm transition-colors">Mark Reviewed</button>
-                            </form>
                         </div>
                     }
                 </div>
                 <div class="flex gap-3">
                      <button type="button" id="viewEditBtn" onclick="enableEditRisk()" class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Edit</button>
-                     <a id="viewAssessBtn" href="#" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg hover:bg-indigo-600 transition-colors dark:bg-white dark:text-slate-900">Assess Risk</a>
-                     <a id="viewMitigateBtn" href="#" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg hover:bg-indigo-600 transition-colors dark:bg-white dark:text-slate-900">Mitigation Plan</a>
+                     
+                     @if (isRiskManager || isAdmin)
+                     {
+                         <div id="viewRejectActions" class="hidden">
+                             <form id="viewRejectForm" action="@Url.Action("Reject", "Risks", new { area = "Client" })" method="post" onsubmit="return promptReject()">
+                                 @Html.AntiForgeryToken()
+                                 <input type="hidden" name="id" id="rejectRiskId" />
+                                 <input type="hidden" name="RejectRemarks" id="rejectRemarks" />
+                                 <button type="submit" class="rounded-xl border border-rose-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 shadow-sm transition-colors dark:border-rose-900 dark:bg-rose-900/10 dark:text-rose-400">Reject</button>
+                             </form>
+                         </div>
+                     }
+
+                     <a id="viewAssessBtn" href="#" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-colors dark:bg-white"><span class="text-white dark:text-slate-900">Assess Risk</span></a>
+                     <a id="viewMitigateBtn" href="#" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-colors dark:bg-white"><span class="text-white dark:text-slate-900">Mitigation Plan</span></a>
                 </div>
             </div>
         </div>
@@ -691,14 +691,16 @@
         const mitigateBtn = document.getElementById('viewMitigateBtn');
         const editBtn = document.getElementById('viewEditBtn');
         const adminActions = document.getElementById('viewAdminActions');
-        const reviewActions = document.getElementById('viewReviewActions');
+        const rejectActions = document.getElementById('viewRejectActions');
         
         // Reset visibility
         assessBtn.classList.add('hidden');
+        assessBtn.classList.remove('inline-flex', 'items-center', 'justify-center');
         mitigateBtn.classList.add('hidden');
+        mitigateBtn.classList.remove('inline-flex', 'items-center', 'justify-center');
         editBtn.classList.add('hidden');
         adminActions.classList.add('hidden');
-        reviewActions.classList.add('hidden');
+        if(rejectActions) rejectActions.classList.add('hidden');
 
         // Logic
         const status = riskData.RawStatus;
@@ -709,11 +711,13 @@
         // Assessment Link
         assessBtn.href = '@Url.Action("Assess", "Risks", new { area = "Client" })/' + riskData.Id;
         assessBtn.classList.remove('hidden'); // Always allow assessment if viewed? Or restrict? Assuming mostly visible for flow.
+        assessBtn.classList.add('inline-flex', 'items-center', 'justify-center');
 
         // Mitigation Link
         if (status === 'MitigationRequired' || status === 'Monitoring') {
              mitigateBtn.href = '@Url.Action("Board", "Mitigation", new { area = "Client" })?riskId=' + riskData.Id;
              mitigateBtn.classList.remove('hidden');
+             mitigateBtn.classList.add('inline-flex', 'items-center', 'justify-center');
              // Keep assess button visible for re-assessment (residual risk)
         }
 
@@ -725,14 +729,15 @@
         }
 
         // Approval / Review Flow
-        if (status === 'For_Review' && (isManager || isAdmin)) {
-             document.getElementById('reviewRiskId').value = riskData.Id;
-             reviewActions.classList.remove('hidden');
+        if ((status === 'For_Review' || status === 'Submitted') && (isManager || isAdmin)) {
+             if (document.getElementById('rejectRiskId')) document.getElementById('rejectRiskId').value = riskData.Id;
+             if (rejectActions) rejectActions.classList.remove('hidden');
         }
         if (status === 'Reviewed' && (isManager || isAdmin)) {
              document.getElementById('approveRiskId').value = riskData.Id;
-             document.getElementById('rejectRiskId').value = riskData.Id;
+             if (document.getElementById('rejectRiskId')) document.getElementById('rejectRiskId').value = riskData.Id;
              adminActions.classList.remove('hidden');
+             if (rejectActions) rejectActions.classList.remove('hidden');
         }
 
         // Reset to Details Tab
@@ -767,8 +772,7 @@
         // Re-show edit button if applicable
         // ideally re-run the openViewModal logic but simpler to just show if it was shown before
         // for now, strict reload of modal state isn't critical, just hiding the form
-        if (document.getElementById('viewAdminActions').classList.contains('hidden') && 
-            document.getElementById('viewReviewActions').classList.contains('hidden')) {
+        if (document.getElementById('viewAdminActions').classList.contains('hidden')) {
              document.getElementById('viewEditBtn').classList.remove('hidden');
         }
     }
