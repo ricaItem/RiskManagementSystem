@@ -314,7 +314,26 @@
             if(m.id !== 'actionMenu-' + id) m.classList.add('hidden');
         });
         const menu = document.getElementById('actionMenu-' + id);
-        menu.classList.toggle('hidden');
+        if (!menu) return;
+        
+        if (menu.classList.contains('hidden')) {
+            // Append to body to avoid overflow clipping
+            document.body.appendChild(menu);
+            
+            // Show first to get width
+            menu.classList.remove('hidden');
+            
+            // Calculate position
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = rect.bottom + 'px';
+            menu.style.left = (rect.right - menu.offsetWidth) + 'px';
+            menu.style.right = 'auto';
+            menu.style.marginTop = '4px';
+            menu.style.zIndex = '9999';
+        } else {
+            menu.classList.add('hidden');
+        }
     }
 
     // Close menus on click outside
@@ -322,5 +341,13 @@
         if (!e.target.closest('button[onclick^="toggleActionMenu"]') && !e.target.closest('.action-menu')) {
             document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
         }
+    });
+
+    // Reposition menus on scroll or resize
+    window.addEventListener('scroll', () => {
+        document.querySelectorAll('.action-menu:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    }, true);
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('.action-menu:not(.hidden)').forEach(m => m.classList.add('hidden'));
     });
 </script>

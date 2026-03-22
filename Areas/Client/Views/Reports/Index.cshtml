@@ -34,158 +34,254 @@
 
 <div id="reports-content" class="hidden animate-in fade-in slide-in-from-bottom-4 min-h-screen space-y-8 duration-700">
 
-    @* Header Section *@
-    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end border-b border-slate-200 pb-6 dark:border-slate-800">
+    @* ---------- Header ---------- *@
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
-            <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Executive Reports
             </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Comprehensive analysis of financial, safety, and operational performance.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Comprehensive analysis of financial, safety, and operational performance.</p>
         </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400 dark:text-slate-500">Last updated: Just now</span>
+            <a id="btnExportPdf" href="@Url.Action("ExportPdf", "Reports", new { Area = "Client", range = Model.DateRange == "Last 30 Days" ? "30" : Model.DateRange == "Last Quarter" ? "90" : "YTD", site = Model.Site })" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all inline-block">
+                Export PDF
+            </a>
+        </div>
+    </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-            @* Date Range Picker *@
-            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800 transition-all hover:border-indigo-500/50">
-                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <select class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
-                    <option>Last 30 Days</option>
-                    <option>Last Quarter</option>
-                    <option>Year to Date</option>
+    @* ---------- Filters Card ---------- *@
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden">
+        <div class="flex flex-wrap items-end gap-6">
+            <div class="space-y-1.5">
+                <label for="rangeFilter" class="text-xs font-medium text-slate-500 dark:text-slate-400">Time Period</label>
+                <select id="rangeFilter" name="range" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[140px]">
+                    <option value="30" selected="@(Model.DateRange == "Last 30 Days")">Last 30 Days</option>
+                    <option value="90" selected="@(Model.DateRange == "Last Quarter")">Last Quarter</option>
+                    <option value="YTD" selected="@(Model.DateRange == "Year to Date")">Year to Date</option>
                 </select>
             </div>
-
-            @* Export Button *@
-            <button class="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Export PDF
-            </button>
-        </div>
-    </div>
-
-    @* KPI Cards *@
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        @* Financial KPI *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg class="h-16 w-16 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Spend</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">$@Model.TotalSpend.ToString("N0")</h3>
-            <div class="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                <span class="rounded-full bg-emerald-100 px-2 py-0.5 dark:bg-emerald-900/30">On Budget (@Model.BudgetUtilization%)</span>
-            </div>
-        </div>
-
-        @* Safety KPI *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden group hover:border-rose-500/30 transition-all">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg class="h-16 w-16 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            </div>
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Safety Incidents</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.TotalIncidents</h3>
-            <div class="mt-4 flex items-center gap-2 text-xs font-medium text-rose-600 dark:text-rose-400">
-                <span class="rounded-full bg-rose-100 px-2 py-0.5 dark:bg-rose-900/30">@Model.OpenIncidents Open Cases</span>
-            </div>
-        </div>
-
-        @* Supplier Risk KPI *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden group hover:border-amber-500/30 transition-all">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg class="h-16 w-16 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Supplier Risk</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.CriticalSuppliers</h3>
-            <div class="mt-4 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400">
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 dark:bg-amber-900/30">Critical Partners</span>
-            </div>
-        </div>
-
-        @* Compliance KPI *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 relative overflow-hidden group hover:border-indigo-500/30 transition-all">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg class="h-16 w-16 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Compliance Score</p>
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">@Model.AuditComplianceScore.ToString("0.0")%</h3>
-            <div class="mt-4 flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                <span class="rounded-full bg-indigo-100 px-2 py-0.5 dark:bg-indigo-900/30">Audit Ready</span>
+            
+            <div class="space-y-1.5">
+                <label for="siteFilter" class="text-xs font-medium text-slate-500 dark:text-slate-400">Site</label>
+                <select id="siteFilter" name="site" class="block w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 min-w-[160px]">
+                    <option value="All" selected="@(Model.Site == "All")">All Sites</option>
+                    <option value="Site Alpha" selected="@(Model.Site == "Site Alpha")">Site Alpha</option>
+                    <option value="Site Beta" selected="@(Model.Site == "Site Beta")">Site Beta</option>
+                </select>
             </div>
         </div>
     </div>
 
-    @* Charts Grid *@
-    <div class="grid gap-6 lg:grid-cols-2">
-        
-        @* Financial Spend Chart *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-            <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Spend Analysis</h3>
-                    <p class="text-xs text-slate-500 mt-1">Expenses breakdown by category</p>
-                </div>
-            </div>
-            <div class="h-64 relative">
-                <canvas id="financialChart"></canvas>
-            </div>
-        </div>
-
-        @* Spend Trend Chart *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-             <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Burn Rate</h3>
-                    <p class="text-xs text-slate-500 mt-1">Monthly expenditure velocity</p>
-                </div>
-            </div>
-            <div class="h-64 relative">
-                <canvas id="burnRateChart"></canvas>
-            </div>
-        </div>
-
-        @* Safety Incident Trend *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-             <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Safety Pulse</h3>
-                    <p class="text-xs text-slate-500 mt-1">Incident frequency over time</p>
-                </div>
-            </div>
-            <div class="h-64 relative">
-                <canvas id="safetyChart"></canvas>
-            </div>
-        </div>
-
-        @* Supplier Risk Doughnut *@
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-             <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Partner Health</h3>
-                    <p class="text-xs text-slate-500 mt-1">Supplier risk categorization</p>
-                </div>
-            </div>
-            <div class="h-64 relative flex justify-center">
-                <canvas id="supplierChart"></canvas>
-            </div>
-        </div>
-
-        @* Compliance Velocity (Full Width) *@
-        <div class="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
-             <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Compliance Velocity</h3>
-                    <p class="text-xs text-slate-500 mt-1">Rate of audit issue resolution</p>
-                </div>
-            </div>
-            <div class="h-64 relative">
-                <canvas id="complianceChart"></canvas>
-            </div>
-        </div>
-
+    <div id="reports-dashboard-data">
+        @await Html.PartialAsync("_ReportsContent", Model)
     </div>
  </div>
 
 <script>
     (function () {
+        let activeCharts = {};
+
+        function initCharts() {
+            if (typeof Chart === 'undefined') {
+                setTimeout(initCharts, 200);
+                return;
+            }
+
+            // Destroy existing charts to avoid overlaps
+            Object.values(activeCharts).forEach(chart => chart.destroy());
+            activeCharts = {};
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 8,
+                            usePointStyle: true,
+                            font: { size: 11, family: "'Inter', sans-serif" },
+                            padding: 20,
+                            color: '#64748b'
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { color: '#94a3b8', font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(148, 163, 184, 0.1)', borderDash: [5, 5] },
+                        border: { display: false },
+                        ticks: { color: '#94a3b8', font: { size: 10 } }
+                    }
+                }
+            };
+
+            const data = window.reportsChartData || {};
+
+            // 1. Financial Chart (Bar)
+            const financialChartEl = document.getElementById('financialChart');
+            if (financialChartEl && data.financialLabels) {
+                activeCharts['financial'] = new Chart(financialChartEl, {
+                    type: 'bar',
+                    data: {
+                        labels: data.financialLabels,
+                        datasets: [{
+                            label: 'Spend ($)',
+                            data: data.financialData,
+                            backgroundColor: data.financialColors,
+                            borderRadius: 6,
+                            barThickness: 24
+                        }]
+                    },
+                    options: commonOptions
+                });
+            }
+
+            // 2. Burn Rate Chart (Line)
+            const burnChartEl = document.getElementById('burnRateChart');
+            const burnCtx = burnChartEl ? burnChartEl.getContext('2d') : null;
+            if (burnCtx && data.burnLabels) {
+                const burnGradient = burnCtx.createLinearGradient(0, 0, 0, 300);
+                burnGradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)'); // Indigo
+                burnGradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+                activeCharts['burn'] = new Chart(burnCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.burnLabels,
+                        datasets: [{
+                            label: 'Monthly Burn',
+                            data: data.burnData,
+                            borderColor: '#6366f1',
+                            borderWidth: 3,
+                            backgroundColor: burnGradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: commonOptions
+                });
+            }
+
+            // 3. Safety Chart (Line)
+            const safetyChartEl = document.getElementById('safetyChart');
+            const safetyCtx = safetyChartEl ? safetyChartEl.getContext('2d') : null;
+            if (safetyCtx) {
+                activeCharts['safety'] = new Chart(safetyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Incidents',
+                            data: [2, 0, 3, 1],
+                            borderColor: '#f43f5e',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: commonOptions
+                });
+            }
+
+            // 4. Supplier Chart (Doughnut)
+            const supplierChartEl = document.getElementById('supplierChart');
+            if (supplierChartEl && data.supplierLabels) {
+                activeCharts['supplier'] = new Chart(supplierChartEl, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.supplierLabels,
+                        datasets: [{
+                            data: data.supplierData,
+                            backgroundColor: data.supplierColors,
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        cutout: '75%',
+                        scales: { x: { display: false }, y: { display: false } }
+                    }
+                });
+            }
+
+            // 5. Compliance Chart (Area)
+            const complianceChartEl = document.getElementById('complianceChart');
+            const compCtx = complianceChartEl ? complianceChartEl.getContext('2d') : null;
+            if (compCtx) {
+                const compGradient = compCtx.createLinearGradient(0, 0, 0, 300);
+                compGradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); // Emerald
+                compGradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+                activeCharts['compliance'] = new Chart(compCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                        datasets: [{
+                            label: 'Audit Issues',
+                            data: [12, 8, 5, 2],
+                            borderColor: '#10b981',
+                            borderWidth: 3,
+                            backgroundColor: compGradient,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: commonOptions
+                });
+            }
+        }
+
+        function reloadData() {
+            const site = document.getElementById('siteFilter').value;
+            const range = document.getElementById('rangeFilter').value;
+            const container = document.getElementById('reports-dashboard-data');
+
+            // Update Export PDF link
+            const exportBtn = document.getElementById('btnExportPdf');
+            const url = new URL(exportBtn.href);
+            url.searchParams.set('range', range);
+            url.searchParams.set('site', site);
+            exportBtn.href = url.toString();
+
+            // Fetch new data
+            container.classList.add('opacity-50', 'pointer-events-none');
+            
+            fetch(`?range=${encodeURIComponent(range)}&site=${encodeURIComponent(site)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.text())
+            .then(html => {
+                // Execute inline scripts to update window.reportsChartData
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const scripts = tempDiv.querySelectorAll('script');
+                
+                container.innerHTML = html;
+                
+                scripts.forEach(script => {
+                    if(script.innerText) {
+                        eval(script.innerText);
+                    }
+                });
+
+                container.classList.remove('opacity-50', 'pointer-events-none');
+                initCharts();
+            })
+            .catch(err => {
+                console.error('Failed to load report data', err);
+                container.classList.remove('opacity-50', 'pointer-events-none');
+            });
+        }
+
         function initExecutiveReportsPage() {
             const content = document.getElementById('reports-content');
             if (!content || content.dataset.loaded === '1') return;
@@ -195,151 +291,11 @@
                 if (skeleton) skeleton.classList.add('hidden');
                 content.classList.remove('hidden');
 
-                if (typeof Chart === 'undefined') {
-                    setTimeout(initExecutiveReportsPage, 200);
-                    return;
-                }
-
-        // Shared Chart Options
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 8,
-                        usePointStyle: true,
-                        font: { size: 11, family: "'Inter', sans-serif" },
-                        padding: 20,
-                        color: '#64748b'
-                    }
-                }
-            },
-            scales: {
-                x: { 
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: { color: '#94a3b8', font: { size: 10 } }
-                },
-                y: {
-                    grid: { color: 'rgba(148, 163, 184, 0.1)', borderDash: [5, 5] },
-                    border: { display: false },
-                    ticks: { color: '#94a3b8', font: { size: 10 } }
-                }
-            }
-        };
-
-        // 1. Financial Chart (Bar)
-        const financialChartEl = document.getElementById('financialChart');
-        if (financialChartEl) new Chart(financialChartEl, {
-            type: 'bar',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Label))),
-                datasets: [{
-                    label: 'Spend ($)',
-                    data: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Value))),
-                    backgroundColor: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Color))),
-                    borderRadius: 6,
-                    barThickness: 24
-                }]
-            },
-            options: commonOptions
-        });
-
-        // 2. Burn Rate Chart (Line)
-        const burnChartEl = document.getElementById('burnRateChart');
-        const burnCtx = burnChartEl ? burnChartEl.getContext('2d') : null;
-        if (burnCtx) {
-        const burnGradient = burnCtx.createLinearGradient(0, 0, 0, 300);
-        burnGradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)'); // Indigo
-        burnGradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-        new Chart(burnCtx, {
-            type: 'line',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.MonthlySpendTrend.Select(x => x.Label))),
-                datasets: [{
-                    label: 'Monthly Burn',
-                    data: @Html.Raw(Json.Serialize(Model.MonthlySpendTrend.Select(x => x.Value))),
-                    borderColor: '#6366f1',
-                    borderWidth: 3,
-                    backgroundColor: burnGradient,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: commonOptions
-        });
-        }
-
-        // 3. Safety Chart (Line)
-        const safetyChartEl = document.getElementById('safetyChart');
-        const safetyCtx = safetyChartEl ? safetyChartEl.getContext('2d') : null;
-        if (safetyCtx) new Chart(safetyCtx, {
-            type: 'line',
-            data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                datasets: [{
-                    label: 'Incidents',
-                    data: [2, 0, 3, 1],
-                    borderColor: '#f43f5e', // Rose-500
-                    borderWidth: 3,
-                    tension: 0.4,
-                    pointRadius: 4
-                }]
-            },
-            options: commonOptions
-        });
-
-        // 4. Supplier Chart (Doughnut)
-        const supplierChartEl = document.getElementById('supplierChart');
-        if (supplierChartEl) new Chart(supplierChartEl, {
-            type: 'doughnut',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Label))),
-                datasets: [{
-                    data: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Value))),
-                    backgroundColor: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Color))),
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                ...commonOptions,
-                cutout: '75%',
-                scales: { x: { display: false }, y: { display: false } } // Hide scales for doughnut
-            }
-        });
-
-        // 5. Compliance Chart (Area)
-        const complianceChartEl = document.getElementById('complianceChart');
-        const compCtx = complianceChartEl ? complianceChartEl.getContext('2d') : null;
-        if (compCtx) {
-        const compGradient = compCtx.createLinearGradient(0, 0, 0, 300);
-        compGradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); // Emerald
-        compGradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
-
-        new Chart(compCtx, {
-            type: 'line',
-            data: {
-                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                datasets: [{
-                    label: 'Audit Issues',
-                    data: [12, 8, 5, 2],
-                    borderColor: '#10b981',
-                    borderWidth: 3,
-                    backgroundColor: compGradient,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: commonOptions
-        });
-        }
+                initCharts();
                 content.dataset.loaded = '1';
+                
+                document.getElementById('siteFilter').addEventListener('change', reloadData);
+                document.getElementById('rangeFilter').addEventListener('change', reloadData);
             }, 300);
         }
 

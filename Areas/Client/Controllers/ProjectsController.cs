@@ -18,13 +18,15 @@ namespace WEB_Sentro.Areas.Client.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITenantDbFactory _tenantDbFactory;
         private readonly PlatformDbContext _platformDb;
+        private readonly IOpenWeatherService _openWeather;
 
-        public ProjectsController(ProjectService projectService, UserManager<ApplicationUser> userManager, ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb)
+        public ProjectsController(ProjectService projectService, UserManager<ApplicationUser> userManager, ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb, IOpenWeatherService openWeather)
         {
             _projectService = projectService;
             _userManager = userManager;
             _tenantDbFactory = tenantDbFactory;
             _platformDb = platformDb;
+            _openWeather = openWeather;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -197,6 +199,26 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 if (manager != null) managerName = $"{manager.FirstName} {manager.LastName}";
             }
 
+            // Fetch Weather
+            string weatherCondition = "Unknown";
+            string temperature = "--";
+            if (project.Site != null && project.Site.Latitude.HasValue && project.Site.Longitude.HasValue)
+            {
+                try
+                {
+                    var weather = await _openWeather.GetWeatherAsync((double)project.Site.Latitude.Value, (double)project.Site.Longitude.Value);
+                    if (weather != null && weather.ApiOk)
+                    {
+                        weatherCondition = weather.Condition ?? "Clear";
+                        temperature = $"{weather.TempC:0}°C";
+                    }
+                }
+                catch
+                {
+                    // Ignore weather fetch errors silently
+                }
+            }
+
             // Stats
             dynamic stats = await _projectService.GetProjectStatsAsync(orgId.Value, id);
             
@@ -214,6 +236,8 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 SiteName = project.Site?.SiteName,
                 SiteId = project.SiteId,
                 ManagerName = managerName,
+                CurrentWeather = weatherCondition,
+                CurrentTemperature = temperature,
                 
                 // Stats from service
                 HighRiskCount = stats.HighRiskCount,
@@ -509,6 +533,8 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public string? SiteName { get; set; }
         public int? SiteId { get; set; }
         public string? ManagerName { get; set; }
+        public string? CurrentWeather { get; set; }
+        public string? CurrentTemperature { get; set; }
         
         // Stats
         public int HighRiskCount { get; set; }

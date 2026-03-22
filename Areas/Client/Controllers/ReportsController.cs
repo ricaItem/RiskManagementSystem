@@ -6,10 +6,14 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using System.IO;
 using WEB_Sentro.Data;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Areas.Client.Models;
 using WEB_Sentro.Services;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace WEB_Sentro.Areas.Client.Controllers
 {
@@ -32,7 +36,139 @@ namespace WEB_Sentro.Areas.Client.Controllers
             if (user == null) return Challenge();
 
             var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
+            
+            // Handle AJAX request for partial update
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var partialModel = await GetReportDataAsync(orgId, range, site);
+                return PartialView("_ReportsContent", partialModel);
+            }
 
+            var model = await GetReportDataAsync(orgId, range, site);
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportPdf(string range = "30", string site = "All")
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
+            var data = await GetReportDataAsync(orgId, range, site);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(11));
+
+                    page.Header().Element(compose => ComposeHeader(compose, data));
+                    page.Content().Element(compose => ComposeContent(compose, data));
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Page ");
+                        x.CurrentPageNumber();
+                        x.Span(" of ");
+                        x.TotalPages();
+                    });
+                });
+            });
+
+            var pdfStream = new MemoryStream();
+            document.GeneratePdf(pdfStream);
+            pdfStream.Position = 0;
+
+            return File(pdfStream, "application/pdf", $"ExecutiveReport_{DateTime.UtcNow:yyyyMMdd}.pdf");
+        }
+
+        private void ComposeHeader(IContainer container, ReportsViewModel data)
+        {
+            container.Row(row =>
+            {
+                row.RelativeItem().Column(column =>
+                {
+                    column.Item().Text("Executive Report").FontSize(20).SemiBold().FontColor(Colors.Blue.Darken2);
+                    column.Item().Text($"Date Range: {data.DateRange}").FontSize(12).FontColor(Colors.Grey.Darken2);
+                    column.Item().Text($"Site: {data.Site}").FontSize(12).FontColor(Colors.Grey.Darken2);
+                });
+                row.ConstantItem(100).AlignRight().Text($"{DateTime.UtcNow:MMM dd, yyyy}").FontSize(10);
+            });
+        }
+
+        private void ComposeContent(IContainer container, ReportsViewModel data)
+        {
+            container.PaddingVertical(1, Unit.Centimetre).Column(column =>
+            {
+                column.Spacing(20);
+
+                // Financials
+                column.Item().Text("Financial Summary").FontSize(16).SemiBold();
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Total Spend").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"${data.TotalSpend:N0}").FontSize(14).SemiBold();
+                    });
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Budget Utilization").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.BudgetUtilization:0.0}%").FontSize(14).SemiBold();
+                    });
+                });
+
+                // Safety
+                column.Item().Text("Safety Overview").FontSize(16).SemiBold();
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Total Incidents").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.TotalIncidents}").FontSize(14).SemiBold();
+                    });
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Open Incidents").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.OpenIncidents}").FontSize(14).SemiBold();
+                    });
+                });
+                
+                // Suppliers
+                column.Item().Text("Supplier Risk").FontSize(16).SemiBold();
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Total Suppliers").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.TotalSuppliers}").FontSize(14).SemiBold();
+                    });
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Critical Risk Suppliers").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.CriticalSuppliers}").FontSize(14).SemiBold();
+                    });
+                });
+
+                // Compliance
+                column.Item().Text("Compliance").FontSize(16).SemiBold();
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Audit Compliance Score").FontSize(10).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text($"{data.AuditComplianceScore:0.0}%").FontSize(14).SemiBold();
+                    });
+                });
+            });
+        }
+
+        private async Task<ReportsViewModel> GetReportDataAsync(int orgId, string range, string site)
+        {
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
 
             var model = new ReportsViewModel
@@ -50,7 +186,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             var expensesQuery = db.Expenses.AsQueryable();
             var siteQuery = db.Sites.AsQueryable();
 
-            if (site != "All")
+            if (site != "All" && !string.IsNullOrEmpty(site))
             {
                 expensesQuery = expensesQuery.Where(e => e.Site.SiteName == site);
                 siteQuery = siteQuery.Where(s => s.SiteName == site);
@@ -180,7 +316,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 new ChartDataPoint { Label = "Q4", Value = 2 }
             };
 
-            return View(model);
+            return model;
         }
     }
 }

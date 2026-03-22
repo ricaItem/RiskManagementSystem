@@ -83,6 +83,15 @@
                         <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         @(Model.SiteName ?? "No Site Assigned")
                     </span>
+                    @if (!string.IsNullOrEmpty(Model.CurrentWeather) && Model.CurrentWeather != "Unknown")
+                    {
+                        <span class="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 px-3 py-1 rounded-full border border-sky-100 dark:border-sky-800/50" title="Current Site Weather">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                            </svg>
+                            @Model.CurrentTemperature · @Model.CurrentWeather
+                        </span>
+                    }
                 </div>
             </div>
             <div class="flex gap-3">

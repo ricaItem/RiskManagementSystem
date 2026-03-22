@@ -1,0 +1,177 @@
+@model WEB_Sentro.Areas.Client.Models.ReportsViewModel
+
+<main id="content-main" class="space-y-8 mt-8">
+    @* ---------- KPI Cards ---------- *@
+    <section aria-label="Key metrics">
+        <div class="mb-3 flex items-center justify-between gap-2">
+            <details class="analytics-insight group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    What this means
+                </summary>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-2xl">Key metrics at a glance: overall spend, budget utilization, safety performance, supplier risk levels, and audit readiness for the selected period and site.</p>
+            </details>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            @* Financial KPI *@
+            <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40">
+                <dt class="truncate text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Spend</dt>
+                <dd class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">$@Model.TotalSpend.ToString("N0")</span>
+                    <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        @Model.BudgetUtilization.ToString("0.0")% Utilized
+                    </span>
+                </dd>
+            </div>
+
+            @* Safety KPI *@
+            <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40">
+                <dt class="truncate text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Safety Incidents</dt>
+                <dd class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.TotalIncidents</span>
+                    <span class="text-xs font-medium text-rose-600 dark:text-rose-400">
+                        @Model.OpenIncidents Open
+                    </span>
+                </dd>
+            </div>
+
+            @* Supplier Risk KPI *@
+            <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40">
+                <dt class="truncate text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Critical Partners</dt>
+                <dd class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.CriticalSuppliers</span>
+                    <span class="text-xs font-medium text-amber-600 dark:text-amber-400">
+                        At Risk
+                    </span>
+                </dd>
+            </div>
+
+            @* Compliance KPI *@
+            <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40">
+                <dt class="truncate text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Compliance Score</dt>
+                <dd class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@Model.AuditComplianceScore.ToString("0.0")%</span>
+                    <span class="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                        Audit Ready
+                    </span>
+                </dd>
+            </div>
+        </div>
+    </section>
+
+    @* ---------- Charts Section ---------- *@
+    <section aria-label="Financial Charts" class="grid gap-6 lg:grid-cols-12">
+        @* Spend Trend Chart *@
+        <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Burn Rate</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Monthly expenditure velocity</p>
+                </div>
+                <details class="analytics-insight">
+                    <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        What this means
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-xl">This chart displays the velocity of expenditure over the recent months. Helps in anticipating budget depletion before it hits critical levels.</p>
+                </details>
+            </div>
+            <div class="h-72 w-full">
+                <canvas id="burnRateChart"></canvas>
+            </div>
+        </div>
+
+        @* Financial Spend Chart *@
+        <div class="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Spend Analysis</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Expenses breakdown by category</p>
+                </div>
+                <details class="analytics-insight">
+                    <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        What this means
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Identifies which cost categories are consuming the largest share of the budget.</p>
+                </details>
+            </div>
+            <div class="h-72 w-full">
+                <canvas id="financialChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section aria-label="Operational Charts" class="grid gap-6 lg:grid-cols-12">
+        @* Compliance Velocity *@
+        <div class="lg:col-span-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Compliance Velocity</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Rate of audit issue resolution</p>
+                </div>
+                <details class="analytics-insight">
+                    <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        What this means
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-xl">Tracks the number of audit issues reported across quarters. A downward trend indicates an improving compliance posture and quicker resolution times.</p>
+                </details>
+            </div>
+            <div class="h-72 w-full">
+                <canvas id="complianceChart"></canvas>
+            </div>
+        </div>
+
+        @* Supplier Risk Doughnut *@
+        <div class="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Partner Health</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Supplier risk categorization</p>
+                </div>
+            </div>
+            <div class="h-72 w-full flex justify-center pb-8">
+                <canvas id="supplierChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    @* Safety Incident Trend (Full width if needed, or keeping it uniform) *@
+    <section aria-label="Safety Insights">
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Safety Pulse</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Incident frequency over time</p>
+                </div>
+                <details class="analytics-insight">
+                    <summary class="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 [&::-webkit-details-marker]:hidden inline-flex items-center gap-1">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        What this means
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 max-w-xl">Frequency of health and safety incidents reported weekly. Immediate spikes warrant urgent safety reviews and training reinforcement.</p>
+                </details>
+            </div>
+            <div class="h-72 w-full">
+                <canvas id="safetyChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    window.reportsChartData = {
+        financialLabels: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Label))),
+        financialData: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Value))),
+        financialColors: @Html.Raw(Json.Serialize(Model.SpendByCategory.Select(x => x.Color))),
+        
+        burnLabels: @Html.Raw(Json.Serialize(Model.MonthlySpendTrend.Select(x => x.Label))),
+        burnData: @Html.Raw(Json.Serialize(Model.MonthlySpendTrend.Select(x => x.Value))),
+
+        supplierLabels: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Label))),
+        supplierData: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Value))),
+        supplierColors: @Html.Raw(Json.Serialize(Model.SupplierRiskDistribution.Select(x => x.Color)))
+    };
+</script>

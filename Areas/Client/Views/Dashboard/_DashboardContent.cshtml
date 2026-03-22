@@ -207,6 +207,82 @@
             </div>
         </div>
     </div>
+
+    <!-- Phase 5: Actionable Intelligence -->
+    <div class="grid gap-6 lg:grid-cols-1">
+        <div class="proj-card p-6 md:p-8 border-l-4 border-l-rose-500">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-lg font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Stale Risks Escalation
+                    </h3>
+                    <p class="mt-1 text-xs font-medium text-slate-400">High & Critical risks with no activity in over 14 days.</p>
+                </div>
+                @if (Model.StaleRisks != null && Model.StaleRisks.Any())
+                {
+                    <span class="rounded-full bg-rose-50 px-3 py-1 text-[10px] font-black tracking-widest text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 uppercase">Attention Required</span>
+                }
+            </div>
+
+            @if (Model.StaleRisks != null && Model.StaleRisks.Any())
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase tracking-widest text-slate-400">
+                                <th class="pb-3 font-semibold">Risk Title</th>
+                                <th class="pb-3 font-semibold">Project</th>
+                                <th class="pb-3 font-semibold">Severity</th>
+                                <th class="pb-3 font-semibold">Time Stale</th>
+                                <th class="pb-3 text-right font-semibold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            @foreach (var stale in Model.StaleRisks)
+                            {
+                                <tr class="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                                    <td class="py-3 pr-4 font-bold text-slate-700 dark:text-slate-200">@stale.Title</td>
+                                    <td class="py-3 pr-4 text-slate-500 dark:text-slate-400">@stale.ProjectName</td>
+                                    <td class="py-3 pr-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium @(stale.Severity == "Critical" ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400" : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400")">
+                                            @stale.Severity
+                                        </span>
+                                    </td>
+                                    <td class="py-3 pr-4">
+                                        <div class="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-semibold text-xs">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            @stale.DaysStale Days
+                                        </div>
+                                    </td>
+                                    <td class="py-3 text-right">
+                                        <a href="@Url.Action("Details", "Risks", new { area = "Client", id = stale.RiskId })" class="inline-flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-white shadow-sm ring-1 ring-inset ring-slate-200 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all opacity-0 group-hover:opacity-100">
+                                            Update
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="flex flex-col items-center justify-center py-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div class="rounded-full bg-emerald-100 dark:bg-emerald-900/20 p-3 mb-3 text-emerald-600 dark:text-emerald-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">All Caught Up!</h4>
+                    <p class="text-xs font-medium text-slate-500 mt-1 max-w-sm">There are no high or critical risks that have been stagnant for more than 14 days.</p>
+                </div>
+            }
+        </div>
+    </div>
+
 </div>
 
 <script>

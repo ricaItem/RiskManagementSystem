@@ -161,6 +161,44 @@ namespace WEB_Sentro.Areas.Client.Controllers
                  }).ToList();
             }
 
+            // 6.5. Stale Risks (Open, High/Critical, unmodified in 14 days)
+            var staleThreshold = DateTime.UtcNow.AddDays(-14);
+            var staleQuery = db.Risks.AsNoTracking()
+                .Include(r => r.Project)
+                .Where(r => r.OrgId == orgId && r.Status == "Open" && (r.Priority == "High" || r.Priority == "Critical"))
+                .Where(r => (r.UpdatedAt ?? r.CreatedAt) < staleThreshold);
+
+            if (siteId.HasValue)
+                staleQuery = staleQuery.Where(r => r.SiteId == siteId.Value);
+
+            var staleRisks = await staleQuery.OrderBy(r => r.UpdatedAt ?? r.CreatedAt).Take(5).ToListAsync();
+            model.StaleRisks = staleRisks.Select(r => new WEB_Sentro.Areas.Client.Models.StaleRiskDto
+            {
+                RiskId = r.RiskId,
+                Title = r.Title,
+                Severity = r.Priority ?? "High",
+                DaysStale = (DateTime.UtcNow - (r.UpdatedAt ?? r.CreatedAt)).Days,
+                ProjectName = r.Project?.Name ?? "General Site"
+            }).ToList();
+
+            // 6.6. Weather Alerts (Recent WeatherAPI risks)
+            var weatherAlertsQuery = db.Risks.AsNoTracking()
+                .Include(r => r.Site)
+                .Where(r => r.OrgId == orgId && r.SourceType == "WeatherAPI" && r.CreatedAt >= DateTime.UtcNow.AddHours(-48));
+
+            if (siteId.HasValue)
+                weatherAlertsQuery = weatherAlertsQuery.Where(r => r.SiteId == siteId.Value);
+
+            var recentWeather = await weatherAlertsQuery.OrderByDescending(r => r.CreatedAt).Take(3).ToListAsync();
+            model.WeatherAlerts = recentWeather.Select(r => new WEB_Sentro.Areas.Client.Models.WeatherAlertDto
+            {
+                RiskId = r.RiskId,
+                Title = r.Title,
+                Condition = r.Category ?? "Weather",
+                TriggeredAt = r.CreatedAt,
+                SiteName = r.Site?.SiteName ?? "General Site"
+            }).ToList();
+
             // 7. Department Efficiency (Static)
             model.DepartmentEfficiencies = new List<WEB_Sentro.Areas.Client.Models.DepartmentEfficiency>
             {

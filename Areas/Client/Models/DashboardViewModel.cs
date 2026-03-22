@@ -18,6 +18,26 @@ namespace WEB_Sentro.Areas.Client.Models
         public List<RiskCategoryData> RiskCategories { get; set; } = new();
         public List<SupplierAlert> SupplierAlerts { get; set; } = new();
         public List<DepartmentEfficiency> DepartmentEfficiencies { get; set; } = new();
+        public List<StaleRiskDto> StaleRisks { get; set; } = new();
+        public List<WeatherAlertDto> WeatherAlerts { get; set; } = new();
+    }
+
+    public class StaleRiskDto
+    {
+        public int RiskId { get; set; }
+        public string Title { get; set; }
+        public string Severity { get; set; }
+        public int DaysStale { get; set; }
+        public string ProjectName { get; set; }
+    }
+
+    public class WeatherAlertDto
+    {
+        public int RiskId { get; set; }
+        public string Title { get; set; }
+        public string Condition { get; set; }
+        public DateTime TriggeredAt { get; set; }
+        public string SiteName { get; set; }
     }
 
     public class RiskTrendData
