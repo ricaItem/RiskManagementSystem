@@ -15,8 +15,8 @@
 
         <!-- Filter Bar Skeleton -->
         <div class="flex flex-wrap items-center gap-3">
-            <div class="h-10 w-48 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
-            <div class="h-10 w-32 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+            <div class="h-10 w-72 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+            <div class="h-10 w-40 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
             <!-- Button Skeleton -->
             <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
         </div>
@@ -102,17 +102,19 @@
 
 <div id="dashboard-content" class="hidden"></div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Chart.defaults.font.family = "'Inter', sans-serif";
-            Chart.defaults.color = '#64748b';
+<script>
+    (function() {
+        function initDashboard() {
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.font.family = "'Inter', sans-serif";
+                Chart.defaults.color = '#64748b';
+            }
 
             window.loadDashboardContent = function(url) {
                 if (!url) url = '@Url.Action("DashboardContent", "Dashboard", new { area = "Client" })';
                 
                 const contentDiv = document.getElementById('dashboard-content');
+                if (!contentDiv) return;
                 
                 if (contentDiv.innerHTML.trim() === '') {
                      document.getElementById('dashboard-skeleton').classList.remove('hidden');
@@ -142,7 +144,7 @@
                             if (oldScript.src) {
                                 script.src = oldScript.src;
                             } else {
-                                script.text = oldScript.innerText;
+                                script.text = oldScript.textContent;
                             }
                             document.body.appendChild(script);
                         });
@@ -157,6 +159,12 @@
             };
 
             loadDashboardContent();
-        });
-    </script>
-}
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboard);
+        } else {
+            initDashboard();
+        }
+    })();
+</script>

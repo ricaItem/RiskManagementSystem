@@ -456,9 +456,8 @@
     }
 }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    (function() {
         const isDark = document.documentElement.classList.contains('dark');
         const textColor = isDark ? '#94a3b8' : '#64748b';
         const gridColor = isDark ? '#334155' : '#e2e8f0';
@@ -600,5 +599,5 @@
         if (btnPrint) {
             btnPrint.addEventListener('click', () => window.print());
         }
-    });
+    })();
 </script>

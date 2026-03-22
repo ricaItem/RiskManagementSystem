@@ -1,7 +1,7 @@
-@model WEB_Sentro.Areas.Client.Controllers.ProjectCreateViewModel
+@model WEB_Sentro.Areas.Client.Controllers.ProjectEditViewModel
 @{
     Layout = "_LayoutClient";
-    ViewData["Title"] = "New Project";
+    ViewData["Title"] = "Edit Project";
 }
 
 <style>
@@ -35,11 +35,12 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Portfolio
         </a>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800">Create New Project</h1>
-        <p class="mt-1 text-sm font-medium text-slate-400">Initialize a new construction zone, assign a site and project manager.</p>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800">Edit Project</h1>
+        <p class="mt-1 text-sm font-medium text-slate-400">Update project details, status, and assignments.</p>
     </div>
 
-    <form method="post" asp-action="Create" class="space-y-8">
+    <form method="post" asp-action="Edit" class="space-y-8">
+        <input type="hidden" asp-for="ProjectId" />
         <div class="proj-card p-6 md:p-8">
             <h2 class="text-lg font-extrabold tracking-tight text-slate-800 mb-6">Project Details</h2>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -56,10 +57,13 @@
                 </div>
 
                 <div>
-                    <label asp-for="Status" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Initial Status</label>
+                    <label asp-for="Status" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Status</label>
                     <select asp-for="Status" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                         <option value="Draft">Draft</option>
                         <option value="Active">Active</option>
+                        <option value="OnHold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
 
@@ -116,8 +120,8 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-4">
-            <a href="@Url.Action("Index", "Projects", new { area = "Client" })" class="rounded-full bg-white border border-slate-200 px-6 py-3 text-xs font-bold text-slate-600 transition-all hover:bg-slate-50 active:scale-95">Cancel</a>
-            <button type="submit" class="rounded-full bg-blue-600 px-8 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:scale-95">Create Project</button>
+            <a href="@Url.Action("Details", "Projects", new { area = "Client", id = Model.ProjectId })" class="rounded-full bg-white border border-slate-200 px-6 py-3 text-xs font-bold text-slate-600 transition-all hover:bg-slate-50 active:scale-95">Cancel</a>
+            <button type="submit" class="rounded-full bg-blue-600 px-8 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:scale-95">Save Changes</button>
         </div>
     </form>
 </div>

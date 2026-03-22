@@ -201,7 +201,7 @@
                         if (oldScript.src) {
                             script.src = oldScript.src;
                         } else {
-                            script.text = oldScript.innerText;
+                            script.text = oldScript.textContent;
                         }
                         document.body.appendChild(script);
                     });

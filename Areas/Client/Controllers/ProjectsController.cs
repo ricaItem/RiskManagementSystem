@@ -242,6 +242,84 @@ namespace WEB_Sentro.Areas.Client.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var orgId = await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return RedirectToAction(nameof(Index));
+
+            var project = await _projectService.GetProjectByIdAsync(orgId.Value, id);
+            if (project == null) return NotFound();
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
+            var sites = await db.Sites.AsNoTracking()
+                .Where(s => s.OrgId == orgId.Value && s.Status == "Active")
+                .OrderBy(s => s.SiteName)
+                .Select(s => new SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})" })
+                .ToListAsync();
+
+            var managers = await _platformDb.Users.AsNoTracking()
+                .Where(u => u.OrganizationId == orgId.Value)
+                .OrderBy(u => u.FirstName)
+                .Select(u => new SelectListItem { Value = u.Id, Text = $"{u.FirstName} {u.LastName}" })
+                .ToListAsync();
+
+            var model = new ProjectEditViewModel
+            {
+                ProjectId = project.ProjectId,
+                Name = project.Name,
+                ProjectCode = project.ProjectCode,
+                Description = project.Description,
+                Status = project.Status,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                Budget = project.Budget,
+                SiteId = project.SiteId,
+                ManagerUserId = project.ManagerUserId,
+                AvailableSites = sites,
+                AvailableManagers = managers
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, ProjectEditViewModel model)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Challenge();
+            var orgId = user.OrganizationId;
+            
+            if (id != model.ProjectId) return BadRequest();
+
+            if (!ModelState.IsValid)
+            {
+                await using var db = await _tenantDbFactory.CreateAsync(orgId);
+                model.AvailableSites = await db.Sites.AsNoTracking()
+                    .Where(s => s.OrgId == orgId && s.Status == "Active")
+                    .OrderBy(s => s.SiteName)
+                    .Select(s => new SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})" })
+                    .ToListAsync();
+
+                model.AvailableManagers = await _platformDb.Users.AsNoTracking()
+                    .Where(u => u.OrganizationId == orgId)
+                    .OrderBy(u => u.FirstName)
+                    .Select(u => new SelectListItem { Value = u.Id, Text = $"{u.FirstName} {u.LastName}" })
+                    .ToListAsync();
+                    
+                return View(model);
+            }
+
+            var success = await _projectService.UpdateProjectAsync(orgId, model.ProjectId, user.Id, 
+                model.Name, model.Description, model.Status, model.StartDate, model.EndDate, model.Budget, model.ManagerUserId, model.SiteId);
+
+            if (!success) return NotFound();
+
+            TempData["Message"] = "Project updated successfully.";
+            return RedirectToAction(nameof(Details), new { id = model.ProjectId });
+        }
+
         // --- WBS / Task API ---
 
         [HttpGet]
@@ -383,6 +461,23 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public DateTime? EndDate { get; set; }
         public string? SiteName { get; set; }
         public string? ManagerName { get; set; }
+    }
+
+    public class ProjectEditViewModel
+    {
+        public int ProjectId { get; set; }
+        public string Name { get; set; } = "";
+        public string ProjectCode { get; set; } = "";
+        public string? Description { get; set; }
+        public string Status { get; set; } = "Draft";
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public decimal? Budget { get; set; }
+        public int? SiteId { get; set; }
+        public string? ManagerUserId { get; set; }
+
+        public List<SelectListItem> AvailableSites { get; set; } = new();
+        public List<SelectListItem> AvailableManagers { get; set; } = new();
     }
 
     public class ProjectCreateViewModel

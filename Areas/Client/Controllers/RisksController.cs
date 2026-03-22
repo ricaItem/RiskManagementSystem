@@ -190,6 +190,22 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (!attachResult.Ok && !string.IsNullOrEmpty(attachResult.Error))
                     TempData["AttachmentError"] = attachResult.Error;
             }
+
+            if (status == "Submitted")
+            {
+                var employeeName = $"{user.FirstName} {user.LastName}".Trim();
+                if (string.IsNullOrEmpty(employeeName)) employeeName = "An employee";
+
+                await _notificationService.NotifyRiskEventAsync(
+                    user.OrganizationId, 
+                    "Submitted", 
+                    risk.RiskId, 
+                    $"{employeeName} reported a new risk", 
+                    $"{employeeName} reported a new risk. Details - Title: {risk.Title}, Category: {risk.Category ?? "N/A"}.", 
+                    user.Id, 
+                    HttpContext.RequestAborted);
+            }
+
             TempData["SuccessMessage"] = status == "Submitted" ? "Risk submitted successfully." : "Risk draft saved.";
             return RedirectToAction("Identification");
         }
@@ -273,7 +289,19 @@ namespace Web_Sentro.Areas.Client.Controllers
                 await _riskService.SaveChangesAsync(db);
                 var risk = await _riskService.GetByIdForOrgAsync(RiskId, orgId, IsSuperAdmin());
                 if (risk != null)
-                    await _notificationService.NotifyRiskEventAsync(orgId.Value, "Submitted", RiskId, "Risk submitted", $"Risk '{risk.Title}' has been submitted for review.", risk.ReportByUserId, HttpContext.RequestAborted);
+                {
+                    var employeeName = $"{user.FirstName} {user.LastName}".Trim();
+                    if (string.IsNullOrEmpty(employeeName)) employeeName = "An employee";
+
+                    await _notificationService.NotifyRiskEventAsync(
+                        orgId.Value, 
+                        "Submitted", 
+                        RiskId, 
+                        $"{employeeName} reported a new risk", 
+                        $"{employeeName} reported a new risk. Details - Title: {risk.Title}, Category: {risk.Category ?? "N/A"}.", 
+                        risk.ReportByUserId, 
+                        HttpContext.RequestAborted);
+                }
             }
             return RedirectToAction("Identification");
         }

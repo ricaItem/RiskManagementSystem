@@ -9,6 +9,9 @@ using WEB_Sentro.Data;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Services;
 using WEB_Sentro.Areas.Client.Models;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace WEB_Sentro.Areas.Client.Controllers
 {
@@ -177,6 +180,120 @@ namespace WEB_Sentro.Areas.Client.Controllers
             };
 
             return PartialView("_DashboardContent", model);
+        }
+
+        public async Task<IActionResult> ExportPdf(DateTime? startDate = null, DateTime? endDate = null, int? siteId = null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
+            var start = startDate ?? DateTime.Today.AddMonths(-6);
+            var end = endDate ?? DateTime.Today;
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+
+            // 1. Incidents
+            var incidentStats = await _incidentService.GetIncidentStatsAsync(orgId, start, end, siteId);
+            
+            // 2. Overdue Items
+            var tasksQuery = db.MitigationTasks.AsNoTracking()
+                .Include(t => t.Plan).ThenInclude(p => p.Risk)
+                .Where(t => t.Plan.Risk.OrgId == orgId);
+            if (siteId.HasValue)
+                tasksQuery = tasksQuery.Where(t => t.Plan.Risk.SiteId == siteId.Value);
+            int overdueItemsCount = await tasksQuery.CountAsync(t => t.DueDate < DateTime.Today && t.Status != "Done" && t.Status != "Completed" && t.Status != "Closed");
+
+            // 3. Pending Approvals
+            var poQuery = db.PurchaseOrders.AsNoTracking().Where(po => po.OrgId == orgId);
+            if (siteId.HasValue)
+                poQuery = poQuery.Where(po => po.SiteId == siteId.Value);
+            poQuery = poQuery.Where(po => po.OrderDate >= start && po.OrderDate <= end);
+            int pendingApprovals = await poQuery.CountAsync(po => po.Status == "Pending Approval");
+
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+            var document = QuestPDF.Fluent.Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(QuestPDF.Helpers.PageSizes.A4);
+                    page.Margin(2, QuestPDF.Infrastructure.Unit.Centimetre);
+                    page.PageColor(QuestPDF.Helpers.Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(12));
+
+                    page.Header().Element(ComposeHeader);
+                    page.Content().Element(x => ComposeContent(x, incidentStats.Open, overdueItemsCount, pendingApprovals));
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.CurrentPageNumber();
+                        x.Span(" / ");
+                        x.TotalPages();
+                    });
+                });
+
+                void ComposeHeader(QuestPDF.Infrastructure.IContainer container)
+                {
+                    var logoPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "images", "logoo.png");
+
+                    container.Column(column =>
+                    {
+                        column.Item().Row(row =>
+                        {
+                            if (System.IO.File.Exists(logoPath))
+                            {
+                                row.AutoItem().Height(60).Image(logoPath).FitHeight();
+                            }
+                            row.RelativeItem().PaddingLeft(15).Column(textCol =>
+                            {
+                                textCol.Item().Text("Sentro").FontSize(28).SemiBold().FontColor(QuestPDF.Helpers.Colors.Blue.Darken3);
+                                textCol.Item().Text($"Date: {DateTime.Now:MMMM dd, yyyy}").FontSize(12).FontColor(QuestPDF.Helpers.Colors.Grey.Medium);
+                            });
+                        });
+
+                        column.Item().PaddingVertical(15).LineHorizontal(1).LineColor(QuestPDF.Helpers.Colors.Grey.Lighten2);
+
+                        column.Item().Text("Dashboard Summary Report").FontSize(20).SemiBold().FontColor(QuestPDF.Helpers.Colors.Black);
+                        column.Item().Text($"Date Range: {start:MMM dd, yyyy} - {end:MMM dd, yyyy}").FontSize(12).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
+                    });
+                }
+
+                void ComposeContent(QuestPDF.Infrastructure.IContainer container, int openIncidents, int overdue, int pending)
+                {
+                    container.PaddingVertical(1, QuestPDF.Infrastructure.Unit.Centimetre).Column(column =>
+                    {
+                        column.Spacing(20);
+                        column.Item().Text("Key Metrics").FontSize(16).SemiBold();
+
+                        column.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().BorderBottom(1).PaddingBottom(5).Text("Open Incidents").SemiBold();
+                                header.Cell().BorderBottom(1).PaddingBottom(5).Text("Overdue Items").SemiBold();
+                                header.Cell().BorderBottom(1).PaddingBottom(5).Text("Pending Approvals").SemiBold();
+                            });
+
+                            table.Cell().PaddingTop(5).Text(openIncidents.ToString());
+                            table.Cell().PaddingTop(5).Text(overdue.ToString());
+                            table.Cell().PaddingTop(5).Text(pending.ToString());
+                        });
+                    });
+                }
+            });
+
+            var pdfStream = new System.IO.MemoryStream();
+            document.GeneratePdf(pdfStream);
+            pdfStream.Position = 0;
+
+            return File(pdfStream, "application/pdf", $"Dashboard_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
     }
 }

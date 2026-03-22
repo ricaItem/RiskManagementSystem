@@ -126,30 +126,74 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             ViewBag.SupplierName = supplier.Name;
             ViewBag.SupplierId = id;
-            var auditLogs = await db.AuditLogs.AsNoTracking()
+
+            // 1. Direct Supplier Logs
+            var directLogs = await db.AuditLogs.AsNoTracking()
                 .Where(a => a.OrgId == orgId.Value && a.EntityType == "Supplier" && a.EntityId == id)
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(50)
                 .ToListAsync();
 
-            var userIds = auditLogs.Select(a => a.UserId).Distinct().ToList();
+            // 2. Related Purchase Order Logs
+            var poIds = await db.PurchaseOrders.AsNoTracking()
+                .Where(p => p.OrgId == orgId.Value && p.SupplierId == id)
+                .Select(p => p.PurchaseOrderId)
+                .ToListAsync();
+                
+            var poLogs = new List<AuditLog>();
+            if (poIds.Any())
+            {
+                poLogs = await db.AuditLogs.AsNoTracking()
+                    .Where(a => a.OrgId == orgId.Value && a.EntityType == "PurchaseOrder" && poIds.Contains(a.EntityId))
+                    .ToListAsync();
+            }
+
+            // 3. Related Risk Logs
+            var riskIds = await db.Risks.AsNoTracking()
+                .Where(r => r.OrgId == orgId.Value && r.SupplierId == id)
+                .Select(r => r.RiskId)
+                .ToListAsync();
+
+            var riskLogs = new List<AuditLog>();
+            if (riskIds.Any())
+            {
+                riskLogs = await db.AuditLogs.AsNoTracking()
+                    .Where(a => a.OrgId == orgId.Value && a.EntityType == "Risk" && riskIds.Contains(a.EntityId))
+                    .ToListAsync();
+            }
+
+            // Combine and sort
+            var allLogs = directLogs.Concat(poLogs).Concat(riskLogs)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(100)
+                .ToList();
+
+            var userIds = allLogs.Select(a => a.UserId).Distinct().ToList();
             var users = await _userManager.Users.AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
 
             var auditList = new List<dynamic>();
-            foreach (var a in auditLogs)
+            foreach (var a in allLogs)
             {
                 int impact = 0;
                 // Calculate impact based on action type
                 switch (a.ActionType)
                 {
-                    case "RiskIdentified": impact = -15; break;
+                    case "RiskIdentified": 
+                    case "AutoCreatedFromOverduePO":
+                    case "RiskCreatedFromSupplier":
+                        impact = -15; break;
                     case "DisputeFiled": impact = -10; break;
                     case "PerformanceReview": impact = 5; break;
                     case "ContractRenewal": impact = 10; break;
                     case "CertificationVerified": impact = 8; break;
+                    case "SupplierCreated":
                     case "Initial Onboarding": impact = 50; break;
+                    case "AutoClosed": impact = 10; break;
+                    case "RiskAssessmentSaved": impact = 0; break;
+                    case "StatusChanged":
+                        if (a.Message != null && a.Message.Contains("Received", StringComparison.OrdinalIgnoreCase)) impact = 5;
+                        else if (a.Message != null && a.Message.Contains("Cancelled", StringComparison.OrdinalIgnoreCase)) impact = -5;
+                        break;
                     default: impact = 0; break;
                 }
 

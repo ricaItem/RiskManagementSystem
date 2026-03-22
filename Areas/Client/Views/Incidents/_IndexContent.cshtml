@@ -43,93 +43,93 @@
     <!-- Summary Cards -->
     <div class="grid gap-6 md:grid-cols-3">
         <!-- Card 1: Total Incidents -->
-        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-rose-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-rose-500/50">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Reported</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.TotalIncidents</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Reported</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.TotalIncidents</h3>
                 </div>
-                <div class="rounded-full bg-slate-100 p-2 dark:bg-slate-800">
-                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <div class="rounded-full bg-slate-50 p-2 dark:bg-slate-800">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </div>
             </div>
              <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs text-slate-400">All time records</span>
+                <span class="text-[10px] font-medium text-slate-400 uppercase tracking-widest">All time records</span>
             </div>
         </div>
 
         <!-- Card 2: Open / Investigating -->
-        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-rose-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-amber-500/50">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Active Cases</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.OpenIncidents</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Active Cases</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.OpenIncidents</h3>
                 </div>
                 <div class="rounded-full bg-amber-50 p-2 dark:bg-amber-900/20">
                     <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs text-amber-600 dark:text-amber-400">Requires attention</span>
+                <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Requires attention</span>
             </div>
         </div>
 
         <!-- Card 3: Critical -->
-        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-rose-500/50 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900/40">
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-rose-500/50">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Critical Severity</p>
-                    <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@ViewBag.CriticalIncidents</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Critical Severity</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.CriticalIncidents</h3>
                 </div>
                 <div class="rounded-full bg-rose-50 p-2 dark:bg-rose-900/20">
                     <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs text-rose-600 dark:text-rose-400">High priority</span>
+                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest">High priority</span>
             </div>
         </div>
     </div>
 
     <!-- Filters -->
     <form method="get" action="@Url.Action("Index", "Incidents", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <span class="text-xs font-medium text-slate-500">Site</span>
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Site</span>
             <select name="siteId" onchange="this.form.submit()" asp-items="sites" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
                 <option value="">All Sites</option>
             </select>
         </div>
 
-        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <span class="text-xs font-medium text-slate-500">Status</span>
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Status</span>
             <select name="status" onchange="this.form.submit()" asp-items="@(new SelectList(new[] { "Open", "Investigating", "Closed" }, ViewBag.StatusFilter))" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
                 <option value="">All Statuses</option>
             </select>
         </div>
         
-        <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <span class="text-xs font-medium text-slate-500">From</span>
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">From</span>
             <input type="date" name="startDate" value="@ViewBag.StartDate" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer" />
         </div>
         
-        <a href="@Url.Action("Index", "Incidents", new { area = "Client" })" class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-500" title="Reset Filters">
+        <a href="@Url.Action("Index", "Incidents", new { area = "Client" })" class="rounded-full bg-slate-100 px-3 py-2 text-slate-500 hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700" title="Reset Filters">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </a>
     </form>
 
     <!-- Table Card -->
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+    <div class="proj-card overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
                 <thead>
-                    <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                        <th class="px-6 py-3 font-medium">Date</th>
-                        <th class="px-6 py-3 font-medium">Title</th>
-                        <th class="px-6 py-3 font-medium">Site</th>
-                        <th class="px-6 py-3 font-medium">Type</th>
-                        <th class="px-6 py-3 font-medium">Severity</th>
-                        <th class="px-6 py-3 font-medium">Status</th>
-                        <th class="px-6 py-3 font-medium text-right">Actions</th>
+                    <tr class="border-b border-slate-100/50 bg-slate-50/30 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900/50">
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Title</th>
+                        <th class="px-6 py-4">Site</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4">Severity</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -274,14 +274,14 @@
 <div id="formModal" class="fixed inset-0 z-[80] hidden transition-all duration-300">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
     <div class="relative flex min-h-screen items-center justify-center p-4">
-        <div class="w-full max-w-2xl scale-100 transform rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
-            <div class="mb-6 flex items-center justify-between">
+        <div class="w-full max-w-2xl scale-100 transform rounded-[24px] bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-100/50 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-100/50 pb-4 dark:border-slate-800">
                 <div>
-                    <h2 id="modalTitle" class="text-xl font-bold text-slate-900 dark:text-white">Report Incident</h2>
-                    <p class="text-xs text-slate-500 mt-1">Enter incident details</p>
+                    <h2 id="modalTitle" class="text-xl font-extrabold text-slate-800 dark:text-white">Report Incident</h2>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mt-1">Enter incident details</p>
                 </div>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <button onclick="closeModal()" class="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-full transition-colors dark:bg-slate-800 dark:hover:bg-rose-900/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </button>
             </div>
 
@@ -291,8 +291,8 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="SiteId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
-                        <select id="SiteId" name="SiteId" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                        <label for="SiteId" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
+                        <select id="SiteId" name="SiteId" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                             <option value="">Select site...</option>
                             @if (sites != null)
                             {
@@ -305,8 +305,8 @@
                         <span id="error-SiteId" class="text-xs text-rose-500 mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label for="ProjectId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Project</label>
-                        <select id="ProjectId" name="ProjectId" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                        <label for="ProjectId" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Project</label>
+                        <select id="ProjectId" name="ProjectId" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                             <option value="">Select project...</option>
                             @if (projects != null)
                             {
@@ -319,16 +319,16 @@
                         <span id="error-ProjectId" class="text-xs text-rose-500 mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label for="IncidentDate" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Date & Time <span class="text-rose-500">*</span></label>
-                        <input type="datetime-local" id="IncidentDate" name="IncidentDate" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all" />
+                        <label for="IncidentDate" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Date & Time <span class="text-rose-500">*</span></label>
+                        <input type="datetime-local" id="IncidentDate" name="IncidentDate" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3" />
                         <span id="error-IncidentDate" class="text-xs text-rose-500 mt-1 hidden"></span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="Type" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Type <span class="text-rose-500">*</span></label>
-                        <select id="Type" name="Type" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                        <label for="Type" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Type <span class="text-rose-500">*</span></label>
+                        <select id="Type" name="Type" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                             <option value="Near Miss">Near Miss</option>
                             <option value="Injury">Injury</option>
                             <option value="Property Damage">Property Damage</option>
@@ -338,8 +338,8 @@
                         <span id="error-Type" class="text-xs text-rose-500 mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label for="Severity" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Severity <span class="text-rose-500">*</span></label>
-                        <select id="Severity" name="Severity" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                        <label for="Severity" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Severity <span class="text-rose-500">*</span></label>
+                        <select id="Severity" name="Severity" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
@@ -350,20 +350,20 @@
                 </div>
                 
                  <div>
-                    <label for="Title" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Title <span class="text-rose-500">*</span></label>
-                    <input type="text" id="Title" name="Title" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all" placeholder="Brief description..." />
+                    <label for="Title" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Title <span class="text-rose-500">*</span></label>
+                    <input type="text" id="Title" name="Title" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3" placeholder="Brief description..." />
                     <span id="error-Title" class="text-xs text-rose-500 mt-1 hidden"></span>
                 </div>
 
                 <div>
-                    <label for="Description" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Description</label>
-                    <textarea id="Description" name="Description" rows="3" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all"></textarea>
+                    <label for="Description" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Description</label>
+                    <textarea id="Description" name="Description" rows="3" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3"></textarea>
                     <span id="error-Description" class="text-xs text-rose-500 mt-1 hidden"></span>
                 </div>
                 
                 <div class="hidden" id="statusContainer">
-                     <label for="Status" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Status</label>
-                     <select id="Status" name="Status" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                     <label for="Status" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Status</label>
+                     <select id="Status" name="Status" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
                         <option value="Open">Open</option>
                         <option value="Investigating">Investigating</option>
                         <option value="Closed">Closed</option>

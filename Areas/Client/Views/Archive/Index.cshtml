@@ -96,7 +96,7 @@
                     if (oldScript.src) {
                         newScript.src = oldScript.src;
                     } else {
-                        newScript.text = oldScript.innerText;
+                        newScript.text = oldScript.textContent;
                     }
                     document.body.appendChild(newScript);
                 });

@@ -216,6 +216,30 @@
         .dark .hover\:shadow-card-hover:hover {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
         }
+
+        html:not(.dark) #mainSidebar {
+            background-color: #ffffff !important;
+        }
+
+        html:not(.dark) body, 
+        html:not(.dark) #main-content {
+            background-color: #f0f4f8 !important; /* Cooler, slightly bluish gray */
+            background-image: none !important; /* Remove gradient to make it flatter and cleaner */
+        }
+
+        html.dark #mainSidebar {
+            background-color: #0f172a !important;
+        }
+
+        html:not(.dark) #main-content :is(div, section, article, a, form).sentro-card,
+        html:not(.dark) #main-content :is(div, section, article, a, form)[class*="bg-white"][class*="rounded-xl"],
+        html:not(.dark) #main-content :is(div, section, article, a, form)[class*="bg-white"][class*="rounded-2xl"],
+        html:not(.dark) #main-content :is(div, section, article, a, form)[class*="bg-white"][class*="rounded-3xl"],
+        html:not(.dark) .dash-card {
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important; /* Slightly darker border for clearer division */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important; /* Sharper, cleaner shadow */
+        }
     </style>
 </head>
 
@@ -239,11 +263,11 @@
 
     <div class="flex min-h-screen relative">
         <aside id="mainSidebar"
-               class="sidebar-transition fixed inset-y-0 left-0 z-50 flex flex-col border-r sentro-border sentro-bg-sidebar dark:border-slate-800 dark:bg-slate-900
+               class="sidebar-transition fixed inset-y-0 left-0 z-50 flex flex-col border-r sentro-border sentro-bg-sidebar bg-white dark:border-slate-800 dark:bg-slate-900
                   w-sidebar-expanded -translate-x-full md:translate-x-0 md:sticky md:top-0 md:h-screen">
 
             <button onclick="toggleSidebar()"
-                    class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] shadow-md transition-colors hover:bg-[var(--nav-hover-bg)] hover:text-[var(--brand-accent)] focus-ring dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-emerald-400"
+                    class="absolute -right-3 top-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] shadow-md transition-colors hover:bg-[var(--nav-hover-bg)] hover:text-[var(--brand-accent)] focus-ring dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-blue-400"
                     id="sidebarToggleBtn" type="button">
                 <span class="text-[10px]" id="toggleIcon">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
