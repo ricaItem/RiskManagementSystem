@@ -103,13 +103,13 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: false);
+            var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
             if (!check.Succeeded)
             {
                 if (check.IsLockedOut)
                 {
                     await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
-                    ModelState.AddModelError(string.Empty, "Your account has been locked. Please contact administrator.");
+                    ModelState.AddModelError(string.Empty, "Your account has been locked for 1 minute due to multiple failed login attempts.");
                     return Page();
                 }
                 if (check.IsNotAllowed)
@@ -119,7 +119,20 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 }
 
                 await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginFailed", "Invalid password attempt", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
-                ModelState.AddModelError(string.Empty, "Invalid credentials.");
+                
+                var maxAttempts = _signInManager.Options.Lockout.MaxFailedAccessAttempts;
+                var currentAttempts = await _userManager.GetAccessFailedCountAsync(user);
+                var attemptsLeft = maxAttempts - currentAttempts;
+
+                if (attemptsLeft > 0)
+                {
+                    ModelState.AddModelError(string.Empty, $"Invalid credentials. You have {attemptsLeft} attempt(s) remaining before a temporary lockout.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid credentials.");
+                }
+
                 return Page();
             }
 
