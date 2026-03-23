@@ -87,37 +87,21 @@ namespace WEB_Sentro.Services
                 }
             }
 
-            var latest = await db.RiskEvaluations
-                .Where(e => e.RiskId == riskId && e.IsInherent == isInherent)
-                .OrderByDescending(e => e.EvaluatedAt)
-                .FirstOrDefaultAsync(ct);
-
-            if (latest != null)
+            // Always log a new evaluation history instead of overwriting the previous one
+            // This is crucial for AI Trend Analysis and maintaining a historical audit trail
+            db.RiskEvaluations.Add(new RiskEvaluation
             {
-                latest.LikelihoodScore = likelihood;
-                latest.ImpactScore = impact;
-                latest.RiskScore = riskScore;
-                latest.RiskLevel = riskLevel;
-                latest.EvaluatedByUserId = userId;
-                latest.Remarks = remarks;
-                latest.EvaluatedAt = DateTime.UtcNow;
-            }
-            else
-            {
-                db.RiskEvaluations.Add(new RiskEvaluation
-                {
-                    RiskId = riskId,
-                    EvaluatedByUserId = userId,
-                    IsInherent = isInherent,
-                    LikelihoodScore = likelihood,
-                    ImpactScore = impact,
-                    RiskScore = riskScore,
-                    RiskLevel = riskLevel,
-                    Decision = "None",
-                    Remarks = remarks,
-                    EvaluatedAt = DateTime.UtcNow
-                });
-            }
+                RiskId = riskId,
+                EvaluatedByUserId = userId,
+                IsInherent = isInherent,
+                LikelihoodScore = likelihood,
+                ImpactScore = impact,
+                RiskScore = riskScore,
+                RiskLevel = riskLevel,
+                Decision = "None",
+                Remarks = remarks,
+                EvaluatedAt = DateTime.UtcNow
+            });
 
             risk.Priority = riskLevel;
             risk.UpdatedAt = DateTime.UtcNow;

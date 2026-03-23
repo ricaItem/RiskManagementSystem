@@ -28,8 +28,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IProcurementOverdueService _procurementOverdueService;
         private readonly IIncidentService _incidentService;
         private readonly ProjectService _projectService;
+        private readonly RiskForecastingService _forecastingService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService, ProjectService projectService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService, ProjectService projectService, RiskForecastingService forecastingService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -46,6 +47,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _procurementOverdueService = procurementOverdueService;
             _incidentService = incidentService;
             _projectService = projectService;
+            _forecastingService = forecastingService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -805,6 +807,18 @@ namespace Web_Sentro.Areas.Client.Controllers
                 .ToListAsync();
 
             return Json(tasks);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAiForecast(int riskId, CancellationToken ct)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized();
+            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return BadRequest(new { error = "Organization required" });
+
+            var forecast = await _forecastingService.GenerateForecastAsync(riskId, orgId.Value, ct);
+            return Json(new { forecast });
         }
     }
 }

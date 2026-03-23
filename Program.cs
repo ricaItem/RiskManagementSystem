@@ -98,6 +98,7 @@ builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
 
 // App services
 builder.Services.AddScoped<RiskService>();
+builder.Services.AddScoped<RiskForecastingService>();
 builder.Services.AddScoped<RiskAnalyticsService>();
 builder.Services.AddScoped<RiskAnalyticsPdfService>();
 builder.Services.AddScoped<RiskAttachmentService>();

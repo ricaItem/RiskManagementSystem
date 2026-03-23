@@ -1,0 +1,414 @@
+@model WEB_Sentro.Areas.Vendor.Models.SalesAndExpensesIndexViewModel
+@{
+    ViewData["Title"] = "Sales and Expenses";
+    Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
+}
+
+<!-- Page Title -->
+<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-gray-900">Sales and Expenses</h1>
+        <p class="text-sm text-gray-500 mt-1">Monitor platform income, operational expenses, and cash flow analytics.</p>
+    </div>
+    <div class="mt-4 md:mt-0 flex flex-wrap gap-3">
+        <form method="get" asp-action="Index" class="flex flex-wrap gap-2 items-center">
+            <select name="month" class="block w-full md:w-auto rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-emerald-600 sm:text-sm sm:leading-6" asp-for="SelectedMonth" asp-items="Model.MonthOptions"></select>
+            <select name="year" class="block w-full md:w-auto rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-emerald-600 sm:text-sm sm:leading-6" asp-for="SelectedYear" asp-items="Model.YearOptions"></select>
+            <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Filter</button>
+            <a href="/Vendor/SalesAndExpenses" data-nav class="text-sm text-emerald-600 hover:text-emerald-700 font-medium px-2">Clear</a>
+        </form>
+        <a href="@Url.Action("ExportPdf", "SalesAndExpenses", new { area = "Vendor", month = Model.SelectedMonth, year = Model.SelectedYear })" target="_blank" class="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Export PDF
+        </a>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-4 rounded-md bg-red-50 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-red-800">@TempData["ErrorMessage"]</p>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
+    <div class="overflow-hidden rounded-lg bg-white shadow">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-md bg-green-100 text-green-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="truncate text-sm font-medium text-gray-500">Total Sales</dt>
+                        <dd>
+                            <div class="text-2xl font-bold tracking-tight text-gray-900">@Model.TotalSalesDisplay</div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-lg bg-white shadow">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-md bg-red-100 text-red-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="truncate text-sm font-medium text-gray-500">Total Expenses</dt>
+                        <dd>
+                            <div class="text-2xl font-bold tracking-tight text-gray-900">@Model.TotalExpensesDisplay</div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-lg bg-white shadow ring-1 ring-black ring-opacity-5">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-md @(Model.IsProfitPositive ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600")">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="truncate text-sm font-medium text-gray-500">Net Profit</dt>
+                        <dd>
+                            <div class="text-2xl font-bold tracking-tight @(Model.IsProfitPositive ? "text-emerald-600" : "text-red-600")">@Model.ProfitDisplay</div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Analytics -->
+<div class="rounded-lg bg-white shadow mb-8">
+    <div class="border-b border-gray-200 px-6 py-5">
+        <h3 class="text-base font-semibold leading-6 text-gray-900">@Model.ChartTitle</h3>
+    </div>
+    <div class="p-6">
+        <div class="w-full h-80">
+            <canvas id="financialChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Lower Section Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    
+    <!-- Recent Transactions -->
+    <div class="rounded-lg bg-white shadow">
+        <div class="border-b border-gray-200 px-6 py-5">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Recent Transactions</h3>
+        </div>
+        <div class="p-6">
+            @if (Model.RecentTransactions.Any())
+            {
+                <div class="flow-root">
+                    <ul role="list" class="-mb-8">
+                        @foreach (var transaction in Model.RecentTransactions)
+                        {
+                            <li>
+                                <div class="relative pb-8">
+                                    <!-- Line connector -->
+                                    <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white @(transaction.IsPositive ? "bg-green-500" : "bg-red-500")">
+                                                @if (transaction.IsPositive)
+                                                {
+                                                    <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                                }
+                                                else
+                                                {
+                                                    <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
+                                                }
+                                            </span>
+                                        </div>
+                                        <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                            <div>
+                                                <p class="text-sm text-gray-500">@transaction.Description</p>
+                                            </div>
+                                            <div class="whitespace-nowrap text-right text-sm font-medium @(transaction.IsPositive ? "text-green-600" : "text-red-600")">
+                                                @(transaction.IsPositive ? "+" : "-") @transaction.AmountDisplay
+                                                <div class="text-xs text-gray-500 font-normal">@transaction.Date.ToString("MMM dd, yyyy")</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <p class="text-sm text-gray-500 text-center py-4">No recent transactions found.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Expenses CRUD -->
+    <div class="rounded-lg bg-white shadow">
+        <div class="border-b border-gray-200 px-6 py-5 flex justify-between items-center">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Manage Expenses</h3>
+            <button type="button" onclick="openExpenseModal()" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                Add Expense
+            </button>
+        </div>
+        <div class="overflow-hidden">
+            <div class="max-h-96 overflow-y-auto p-0">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Date</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Description</th>
+                            <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Amount</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 bg-white">
+                        @if (Model.Expenses.Any())
+                        {
+                            @foreach (var expense in Model.Expenses)
+                            {
+                                <tr>
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6">@expense.DateDisplay</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">@expense.Description</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-gray-900">@expense.AmountDisplay</td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <button type="button" onclick="openEditModal(@expense.Id, '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(expense.Description))', @expense.Amount, '@expense.DateDisplay')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                        <form asp-action="DeleteExpense" asp-route-id="@expense.Id" method="post" class="inline" onsubmit="return confirm('Are you sure you want to delete this expense?');">
+                                            <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="py-8 text-center text-sm text-gray-500">No expenses recorded yet.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Expense Modal -->
+<div id="expenseModal" class="relative z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-[100] w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-100">
+                <form id="expenseForm" asp-action="CreateExpense" method="post">
+                    <input type="hidden" id="ExpenseId" name="Id" value="0" />
+                    <div class="bg-white px-6 pb-6 pt-8">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 sm:mx-0 sm:h-12 sm:w-12">
+                                <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-xl font-bold leading-6 text-slate-900" id="modal-title">Add Platform Expense</h3>
+                                <p class="text-sm text-slate-500 mt-1">Enter the details of the platform's operational expense.</p>
+                                
+                                <div class="mt-6 space-y-5">
+                                    <div>
+                                        <label for="Description" class="block text-sm font-semibold leading-6 text-slate-900">Description</label>
+                                        <div class="mt-2">
+                                            <input type="text" name="Description" id="Description" required maxlength="255" placeholder="e.g. Server hosting, Marketing..." class="block w-full rounded-xl border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6 transition-all">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-5">
+                                        <div>
+                                            <label for="Amount" class="block text-sm font-semibold leading-6 text-slate-900">Amount (PHP)</label>
+                                            <div class="mt-2 relative">
+                                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                    <span class="text-slate-500 sm:text-sm">₱</span>
+                                                </div>
+                                                <input type="number" step="0.01" min="0.01" name="Amount" id="Amount" required placeholder="0.00" class="block w-full rounded-xl border-0 py-2.5 pl-8 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6 transition-all">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label for="ExpenseDate" class="block text-sm font-semibold leading-6 text-slate-900">Date</label>
+                                            <div class="mt-2">
+                                                <input type="date" name="ExpenseDate" id="ExpenseDate" required value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" class="block w-full rounded-xl border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6 transition-all">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-6 py-4 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-slate-100">
+                        <button type="submit" id="saveBtn" class="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all sm:ml-3 sm:w-auto">Save Expense</button>
+                        <button type="button" onclick="closeExpenseModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all sm:mt-0 sm:w-auto">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Logic and Chart.js (inline to work with soft nav) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    (function() {
+        // Modal Logic
+        const modal = document.getElementById('expenseModal');
+        const form = document.getElementById('expenseForm');
+        const modalTitle = document.getElementById('modal-title');
+        
+        window.openExpenseModal = function() {
+            form.action = '@Url.Action("CreateExpense", "SalesAndExpenses", new { area = "Vendor" })';
+            document.getElementById('ExpenseId').value = "0";
+            document.getElementById('Description').value = "";
+            document.getElementById('Amount').value = "";
+            document.getElementById('ExpenseDate').value = "@DateTime.UtcNow.ToString("yyyy-MM-dd")";
+            modalTitle.textContent = "Add Platform Expense";
+            modal.classList.remove('hidden');
+        };
+
+        window.openEditModal = function(id, description, amount, dateStr) {
+            form.action = '@Url.Action("EditExpense", "SalesAndExpenses", new { area = "Vendor" })';
+            document.getElementById('ExpenseId').value = id;
+            document.getElementById('Description').value = description;
+            document.getElementById('Amount').value = amount;
+            document.getElementById('ExpenseDate').value = dateStr;
+            modalTitle.textContent = "Edit Platform Expense";
+            modal.classList.remove('hidden');
+        };
+
+        window.closeExpenseModal = function() {
+            modal.classList.add('hidden');
+        };
+
+        // Chart.js initialization
+        function initChart() {
+            const canvas = document.getElementById('financialChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AnalyticsLabels));
+            const incomeData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AnalyticsIncomeData));
+            const expenseData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AnalyticsExpenseData));
+
+            // Destroy previous chart instance if it exists to prevent overlap issues on soft navigation
+            if (window.myFinancialChart instanceof Chart) {
+                window.myFinancialChart.destroy();
+            }
+
+            window.myFinancialChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Sales',
+                            data: incomeData,
+                            borderColor: 'rgb(34, 197, 94)', // green-500
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Expenses',
+                            data: expenseData,
+                            borderColor: 'rgb(239, 68, 68)', // red-500
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'PHP ' + new Intl.NumberFormat('en-PH', { style: 'decimal', minimumFractionDigits: 2 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return 'PHP ' + new Intl.NumberFormat('en-PH', { notation: "compact", compactDisplay: "short" }).format(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize immediately if Chart is already loaded, otherwise wait for it
+        if (typeof Chart !== 'undefined') {
+            initChart();
+        } else {
+            const checkChart = setInterval(() => {
+                if (typeof Chart !== 'undefined') {
+                    clearInterval(checkChart);
+                    initChart();
+                }
+            }, 100);
+            
+            // Safety timeout
+            setTimeout(() => clearInterval(checkChart), 5000);
+        }
+    })();
+</script>

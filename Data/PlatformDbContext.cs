@@ -15,6 +15,7 @@ namespace WEB_Sentro.Data
         public DbSet<Subscription> Subscriptions { get; set; } = null!;
         public DbSet<Invoice> Invoices { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
+        public DbSet<PlatformExpense> PlatformExpenses { get; set; } = null!;
         public DbSet<OrganizationAnalyticsSnapshot> OrganizationAnalyticsSnapshots { get; set; } = null!;
         public DbSet<PlatformSetting> PlatformSettings { get; set; } = null!;
 
