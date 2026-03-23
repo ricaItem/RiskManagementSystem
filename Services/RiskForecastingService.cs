@@ -73,7 +73,7 @@ namespace WEB_Sentro.Services
                 {
                     promptBuilder.AppendLine($"- Date: {eval.Date}, Likelihood: {eval.LikelihoodScore}/5, Impact: {eval.ImpactScore}/5, Score: {eval.RiskScore}, Level: {eval.RiskLevel}");
                 }
-                promptBuilder.AppendLine("Provide a concise, 3-sentence warning or forecast on where this risk is heading based on the trend, and what immediate action is recommended.");
+                promptBuilder.AppendLine("Provide a clear and easy-to-understand 3-sentence warning or forecast on where this risk is heading based on the trend. Use simple, everyday language, avoid complex jargon, and clearly explain the results and what immediate action is recommended so that anyone can understand it.");
 
                 // Call Gemini API
                 var requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={apiKey}";
