@@ -1,48 +1,232 @@
+:root {
+  --bg-top: #f4f7f9;
+  --bg-bottom: #ebf0f5;
+  --surface: #ffffff;
+  --surface-soft: #f7fafc;
+  --border: #d5dfea;
+  --text: #0f2235;
+  --muted: #4f6478;
+  --brand: #0e3a5d;
+  --brand-hover: #114b77;
+  --success-bg: #eaf8ef;
+  --success-text: #1b6a36;
+  --danger-bg: #fff0f0;
+  --danger-text: #9d2020;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #f4f6fb;
+  font-family: "Public Sans", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 20% 10%, #ffffff 0, transparent 40%), linear-gradient(170deg, var(--bg-top), var(--bg-bottom));
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 420px;
-  margin: 48px auto;
-  padding: 16px;
+  max-width: 560px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .panel {
-  background: #fff;
-  border: 1px solid #d7deea;
-  border-radius: 10px;
-  padding: 16px;
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  box-shadow: 0 16px 40px rgba(15, 34, 53, 0.08);
 }
 
-input,
-button {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #c9d4e5;
+.section-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.section-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+input:focus {
+  outline: 2px solid rgba(14, 58, 93, 0.2);
+  border-color: var(--brand);
 }
 
 button {
-  background: #1c3d66;
-  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 700;
   cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--brand-hover);
+}
+
+.btn-secondary {
+  background: #dbe6f1;
+  color: #173854;
+}
+
+.btn-secondary:hover {
+  background: #c9d9e8;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qr-wrap {
+  align-self: center;
+  width: 228px;
+  height: 228px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
 }
 
 .qr {
-  width: 220px;
-  height: 220px;
-  align-self: center;
+  width: 100%;
+  height: 100%;
+}
+
+.inline-code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed #c4d2e1;
+  background: #f4f8fb;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.status {
+  margin: 0;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 0.9rem;
 }
 
 .error {
-  color: #aa1d1d;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .ok {
-  color: #16663a;
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.code-input {
+  max-width: 180px;
+  letter-spacing: 0.25em;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.security-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 24, 40, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modal {
+  width: min(480px, 100%);
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 18px;
+  box-shadow: 0 25px 55px rgba(0, 0, 0, 0.25);
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    margin: 20px auto;
+    padding: 14px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+  }
+
+  .qr-wrap {
+    width: 200px;
+    height: 200px;
+  }
 }

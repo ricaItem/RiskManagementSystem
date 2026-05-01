@@ -91,11 +91,66 @@
                                 @(Model.IsTwoFactorEnabled ? "Enabled" : "Not enabled")
                             </p>
                         </div>
-                        <a href="/Identity/Account/Manage/TwoFactorAuthentication" class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
-                            Manage 2FA
-                        </a>
+                        @if (!Model.IsTwoFactorEnabled)
+                        {
+                            <form asp-area="Client" asp-controller="Account" asp-action="EnableTwoFactor" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
+                                    Set up 2FA
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-area="Client" asp-controller="Account" asp-action="DisableTwoFactor" method="post" onsubmit="return confirm('Disable two-factor authentication for your account?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="inline-flex items-center rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-700 transition hover:bg-rose-100 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-300 dark:hover:bg-rose-900/30">
+                                    Disable 2FA
+                                </button>
+                            </form>
+                        }
                     </div>
                 </div>
+
+                @if (Model.ShowTwoFactorSetup && !Model.IsTwoFactorEnabled)
+                {
+                    <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/80">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">Complete setup</p>
+                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">1) Scan the QR code. 2) Enter the 6-digit code from your authenticator app.</p>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.TwoFactorQrCodeImage))
+                        {
+                            <div class="mt-4 inline-flex rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700">
+                                <img src="@Model.TwoFactorQrCodeImage" alt="2FA setup QR code" class="h-52 w-52 rounded-lg" />
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.TwoFactorSharedKey))
+                        {
+                            <div class="mt-4">
+                                <p class="text-[10px] font-black uppercase text-slate-400">Manual key</p>
+                                <code class="mt-1 block break-all rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">@Model.TwoFactorSharedKey</code>
+                            </div>
+                        }
+
+                        <details class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                            <summary class="cursor-pointer">Show otpauth URI</summary>
+                            <code class="mt-2 block break-all rounded-lg bg-slate-50 p-2 dark:bg-slate-800/80">@Model.TwoFactorOtpAuthUri</code>
+                        </details>
+
+                        <form asp-area="Client" asp-controller="Account" asp-action="VerifyTwoFactor" method="post" class="mt-4 space-y-3">
+                            @Html.AntiForgeryToken()
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-slate-400 ml-1" for="twoFactorCode">Verification Code</label>
+                                <input id="twoFactorCode" name="code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" class="w-full max-w-[240px] rounded-xl border border-slate-200 bg-slate-50 p-3 text-center text-sm font-bold tracking-[0.25em] dark:border-slate-800 dark:bg-slate-950 dark:text-white" required />
+                            </div>
+                            <button type="submit" class="rounded-xl bg-slate-900 px-6 py-3 text-xs font-black text-white dark:bg-emerald-600 transition-all hover:shadow-lg hover:shadow-emerald-500/20">
+                                Verify and enable 2FA
+                            </button>
+                        </form>
+                    </div>
+                }
+
                 <form asp-area="Client" asp-controller="Account" asp-action="ChangePassword" method="post" class="space-y-4">
                     @Html.AntiForgeryToken()
                     <div class="space-y-1">

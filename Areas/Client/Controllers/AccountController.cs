@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
+using QRCoder;
 using WEB_Sentro.Areas.Client.Models;
 using WEB_Sentro.Models.Identity;
 
@@ -41,6 +42,10 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 ProfileImagePath = user.ProfileImagePath,
                 LastLoginAt = user.LastLoginAt,
                 IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
+                ShowTwoFactorSetup = TempData["ShowTwoFactorSetup"] as string == "1",
+                TwoFactorQrCodeImage = TempData["TwoFactorQrCodeImage"] as string,
+                TwoFactorSharedKey = TempData["TwoFactorSharedKey"] as string,
+                TwoFactorOtpAuthUri = TempData["TwoFactorOtpAuthUri"] as string,
                 Message = message,
                 Error = error
             };
@@ -99,6 +104,68 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction(nameof(Index), new { message = "Password changed successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EnableTwoFactor()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            await _userManager.ResetAuthenticatorKeyAsync(user);
+            var key = await _userManager.GetAuthenticatorKeyAsync(user);
+            if (string.IsNullOrWhiteSpace(key))
+                return RedirectToAction(nameof(Index), new { error = "Unable to generate an authenticator key right now." });
+
+            SetTwoFactorSetupTempData(user, key);
+
+            return RedirectToAction(nameof(Index), new { message = "Scan the QR code, then enter the 6-digit code to finish enabling 2FA." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyTwoFactor(string? code)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            var normalizedCode = (code ?? string.Empty).Replace(" ", string.Empty).Replace("-", string.Empty);
+            if (normalizedCode.Length != 6)
+            {
+                var key = await _userManager.GetAuthenticatorKeyAsync(user);
+                if (!string.IsNullOrWhiteSpace(key))
+                    SetTwoFactorSetupTempData(user, key);
+                return RedirectToAction(nameof(Index), new { error = "Please enter a valid 6-digit authenticator code." });
+            }
+
+            var isValid = await _userManager.VerifyTwoFactorTokenAsync(user, _userManager.Options.Tokens.AuthenticatorTokenProvider, normalizedCode);
+            if (!isValid)
+            {
+                var key = await _userManager.GetAuthenticatorKeyAsync(user);
+                if (!string.IsNullOrWhiteSpace(key))
+                    SetTwoFactorSetupTempData(user, key);
+                return RedirectToAction(nameof(Index), new { error = "Invalid verification code. Please try again." });
+            }
+
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+            await _signInManager.RefreshSignInAsync(user);
+            return RedirectToAction(nameof(Index), new { message = "Two-factor authentication has been enabled." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DisableTwoFactor()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
+            await _signInManager.RefreshSignInAsync(user);
+            return RedirectToAction(nameof(Index), new { message = "Two-factor authentication has been disabled." });
         }
 
         [HttpPost]
@@ -165,6 +232,25 @@ namespace WEB_Sentro.Areas.Client.Controllers
             if (roles.Contains("Employee"))
                 return ("Employee", "You have standard employee access.");
             return ("Organization Member", "You have access to the client portal.");
+        }
+
+        private void SetTwoFactorSetupTempData(ApplicationUser user, string key)
+        {
+            var issuer = "Sentro";
+            var email = user.Email ?? user.UserName ?? "user";
+            var label = Uri.EscapeDataString($"{issuer}:{email}");
+            var otpAuthUri = $"otpauth://totp/{label}?secret={key}&issuer={Uri.EscapeDataString(issuer)}&digits=6";
+
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrData = qrGenerator.CreateQrCode(otpAuthUri, QRCodeGenerator.ECCLevel.Q);
+            var qrPng = new PngByteQRCode(qrData);
+            var qrBytes = qrPng.GetGraphic(20);
+            var qrImage = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
+
+            TempData["ShowTwoFactorSetup"] = "1";
+            TempData["TwoFactorQrCodeImage"] = qrImage;
+            TempData["TwoFactorSharedKey"] = key;
+            TempData["TwoFactorOtpAuthUri"] = otpAuthUri;
         }
     }
 }

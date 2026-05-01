@@ -7,43 +7,56 @@
 
 <partial name="_StatusMessage" for="StatusMessage" />
 
-<h3 class="text-lg font-extrabold">@ViewData["Title"]</h3>
+<div class="rounded-2xl border border-[#D5DFEA] bg-gradient-to-br from-white to-[#F4F8FB] p-6 shadow-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+    <h3 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">@ViewData["Title"]</h3>
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Protect your account by requiring a one-time code from an authenticator app.</p>
+</div>
 
-<div class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <p class="text-slate-700 dark:text-slate-200">Scan this QR code using Microsoft Authenticator, Google Authenticator, or a compatible app.</p>
+<div class="mt-5 rounded-2xl border border-[#D5DFEA] bg-white p-6 text-sm shadow-[0_16px_40px_rgba(15,34,53,0.08)] dark:border-slate-800 dark:bg-slate-900">
+    <h4 class="text-base font-semibold text-slate-900 dark:text-slate-100">Step 1: Connect your authenticator app</h4>
+    <p class="mt-1 text-slate-700 dark:text-slate-200">Scan this QR code using Microsoft Authenticator, Google Authenticator, or a compatible app.</p>
 
     @if (!string.IsNullOrWhiteSpace(Model.QrCodeImage))
     {
-        <img src="@Model.QrCodeImage" alt="2FA setup QR code" class="mt-4 h-56 w-56 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700" />
+        <div class="mt-4 inline-flex rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700">
+            <img src="@Model.QrCodeImage" alt="2FA setup QR code" class="h-56 w-56 rounded-lg" />
+        </div>
     }
 
-    <p class="mt-4 text-slate-700 dark:text-slate-200">If you cannot scan the QR code, enter this key manually:</p>
-    <code class="mt-2 inline-block rounded-lg bg-slate-100 px-3 py-2 text-xs tracking-wide text-slate-900 dark:bg-slate-800 dark:text-slate-100">@Model.SharedKey</code>
+    <p class="mt-5 text-slate-700 dark:text-slate-200">If you cannot scan the QR code, enter this key manually:</p>
+    <code class="mt-2 inline-block rounded-xl border border-dashed border-[#C4D2E1] bg-[#F4F8FB] px-3 py-2 text-xs tracking-wide text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@Model.SharedKey</code>
 
     <details class="mt-4 text-xs text-slate-500 dark:text-slate-400">
         <summary class="cursor-pointer">Show otpauth URI</summary>
-        <code class="mt-2 block break-all">@Model.OtpAuthUri</code>
+        <code class="mt-2 block break-all rounded-lg bg-slate-50 p-2 dark:bg-slate-800/80">@Model.OtpAuthUri</code>
     </details>
 </div>
 
 @if (!Model.Is2faEnabled)
 {
-    <form method="post" asp-page-handler="Verify" class="mt-6 space-y-3">
-        <label asp-for="Input.Code" class="block text-sm font-medium text-slate-700 dark:text-slate-200"></label>
-        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" class="w-full max-w-xs rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
-        <span asp-validation-for="Input.Code" class="block text-xs text-rose-600"></span>
-        <button type="submit" class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90">Verify code and enable 2FA</button>
-    </form>
+    <div class="mt-5 rounded-2xl border border-[#D5DFEA] bg-white p-6 text-sm shadow-[0_16px_40px_rgba(15,34,53,0.08)] dark:border-slate-800 dark:bg-slate-900">
+        <h4 class="text-base font-semibold text-slate-900 dark:text-slate-100">Step 2: Verify and enable</h4>
+        <p class="mt-1 text-slate-600 dark:text-slate-300">Enter the current 6-digit code from your app to complete setup.</p>
+        <form method="post" asp-page-handler="Verify" class="mt-4 space-y-3">
+            <label asp-for="Input.Code" class="block text-sm font-semibold text-slate-700 dark:text-slate-200"></label>
+            <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" class="w-full max-w-xs rounded-xl border border-[#D7E0EA] bg-[#F8FAFC] px-4 py-3 text-center text-base tracking-[0.3em] text-slate-900 focus:border-[#0E3A5D] focus:ring-2 focus:ring-[#0E3A5D]/20 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+            <span asp-validation-for="Input.Code" class="block text-xs text-rose-600"></span>
+            <button type="submit" class="inline-flex items-center rounded-xl bg-[#0E3A5D] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#114B77]">Verify code and enable 2FA</button>
+        </form>
+    </div>
 }
 else
 {
-    <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200">
-        Two-factor authentication is currently enabled for your account.
+    <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200">
+        Two-factor authentication is enabled for your account.
     </div>
 
-    <form method="post" asp-page-handler="Disable" class="mt-4">
-        <button type="submit" class="inline-flex items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90">Disable 2FA</button>
-    </form>
+    <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/40 dark:bg-rose-900/10">
+        <p class="text-sm text-rose-800 dark:text-rose-200">Disable only if you are moving to a different authenticator app.</p>
+        <form method="post" asp-page-handler="Disable" class="mt-3">
+            <button type="submit" class="inline-flex items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700">Disable 2FA</button>
+        </form>
+    </div>
 }
 
 @section Scripts {

@@ -1,10 +1,18 @@
-﻿@page
+@page
 @model AccessDeniedModel
 @{
     ViewData["Title"] = "Access denied";
+    Layout = "/Views/Shared/_LayoutLanding.cshtml";
 }
 
-<header>
-    <h1 class="text-danger">@ViewData["Title"]</h1>
-    <p class="text-danger">You do not have access to this resource.</p>
-</header>
+<section class="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#F4F7F9] to-[#EBF0F5] dark:from-slate-950 dark:to-slate-900">
+    <div class="relative flex min-h-screen items-center justify-center px-4 py-12">
+        <div class="mx-auto w-full max-w-md">
+            <div class="mt-10 rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-[0_16px_40px_rgba(15,34,53,0.12)] dark:border-rose-900/40 dark:bg-slate-900">
+                <h1 class="text-2xl font-bold text-rose-700 dark:text-rose-300">@ViewData["Title"]</h1>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">You do not have access to this resource.</p>
+                <a asp-page="./Login" class="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-[#0E3A5D] py-3.5 text-sm font-semibold text-white transition hover:bg-[#114B77]">Back to sign in</a>
+            </div>
+        </div>
+    </div>
+</section>

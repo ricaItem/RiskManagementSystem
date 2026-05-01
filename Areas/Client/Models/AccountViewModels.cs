@@ -15,6 +15,10 @@ namespace WEB_Sentro.Areas.Client.Models
         public string? ProfileImagePath { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public bool IsTwoFactorEnabled { get; set; }
+        public bool ShowTwoFactorSetup { get; set; }
+        public string? TwoFactorQrCodeImage { get; set; }
+        public string? TwoFactorSharedKey { get; set; }
+        public string? TwoFactorOtpAuthUri { get; set; }
         public string? Message { get; set; }
         public string? Error { get; set; }
     }
