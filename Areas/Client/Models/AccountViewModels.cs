@@ -14,6 +14,7 @@ namespace WEB_Sentro.Areas.Client.Models
         public string AccountLevelDescription { get; set; } = "";
         public string? ProfileImagePath { get; set; }
         public DateTime? LastLoginAt { get; set; }
+        public bool IsTwoFactorEnabled { get; set; }
         public string? Message { get; set; }
         public string? Error { get; set; }
     }

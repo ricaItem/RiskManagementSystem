@@ -26,14 +26,19 @@ namespace WEB_Sentro.Areas.Client.Controllers
             _tenantDbFactory = tenantDbFactory;
         }
 
-        public async Task<IActionResult> Index(string range = "30", string site = "All")
+        private async Task<int?> ResolveOrgIdAsync()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Challenge();
+            if (user == null) return null;
+            return user.OrganizationId > 0 ? user.OrganizationId : null;
+        }
 
-            var orgId = user.OrganizationId > 0 ? user.OrganizationId : 1;
+        public async Task<IActionResult> Index(string range = "30", string site = "All")
+        {
+            var orgId = await ResolveOrgIdAsync();
+            if (!orgId.HasValue) return Forbid();
 
-            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
 
             var model = new ReportsViewModel
             {
@@ -47,8 +52,8 @@ namespace WEB_Sentro.Areas.Client.Controllers
             else if (range == "YTD") startDate = new DateTime(DateTime.UtcNow.Year, 1, 1);
 
             // Base queries
-            var expensesQuery = db.Expenses.AsQueryable();
-            var siteQuery = db.Sites.AsQueryable();
+            var expensesQuery = db.Expenses.AsQueryable().Where(e => e.OrgId == orgId.Value);
+            var siteQuery = db.Sites.AsQueryable().Where(s => s.OrgId == orgId.Value && s.Status != "Archived");
 
             if (site != "All")
             {
@@ -124,22 +129,37 @@ namespace WEB_Sentro.Areas.Client.Controllers
             }
 
             // 2. Safety (Incidents)
-            model.TotalIncidents = await db.Incidents.CountAsync();
-            model.OpenIncidents = await db.Incidents.CountAsync(i => i.Status != "Closed");
-            
-            // Mock trend for visual appeal
-            model.IncidentsOverTime = new List<ChartDataPoint>
+            var incidentsQuery = db.Incidents.AsQueryable().Where(i => i.OrgId == orgId.Value && i.DeletedAt == null);
+            if (site != "All")
             {
-                new ChartDataPoint { Label = "W1", Value = 2 },
-                new ChartDataPoint { Label = "W2", Value = 0 },
-                new ChartDataPoint { Label = "W3", Value = 3 },
-                new ChartDataPoint { Label = "W4", Value = 1 }
-            };
+                incidentsQuery = incidentsQuery.Where(i => i.Site.SiteName == site);
+            }
+
+            model.TotalIncidents = await incidentsQuery.CountAsync();
+            model.OpenIncidents = await incidentsQuery.CountAsync(i => i.Status != "Closed");
+
+            var weekEnd = DateTime.UtcNow.Date.AddDays(1);
+            var incidentWeekBuckets = Enumerable.Range(0, 4)
+                .Select(i => weekEnd.AddDays(-(4 - i) * 7))
+                .Select((start, idx) => new { Start = start, End = start.AddDays(7), Label = $"W{idx + 1}" })
+                .ToList();
+            var incidentStart = incidentWeekBuckets.First().Start;
+            var incidentRows = await incidentsQuery
+                .Where(i => i.IncidentDate >= incidentStart && i.IncidentDate < weekEnd)
+                .Select(i => i.IncidentDate)
+                .ToListAsync();
+            model.IncidentsOverTime = incidentWeekBuckets.Select(w => new ChartDataPoint
+            {
+                Label = w.Label,
+                Value = incidentRows.Count(d => d >= w.Start && d < w.End),
+                Color = "#ef4444"
+            }).ToList();
 
             // 3. Supplier Risk
-            model.TotalSuppliers = await db.Suppliers.CountAsync();
+            model.TotalSuppliers = await db.Suppliers.CountAsync(s => s.OrgId == orgId.Value);
             // Group by DeliveryTrend or Category as proxy for risk
             var supplierRisks = await db.Suppliers
+                .Where(s => s.OrgId == orgId.Value)
                 .GroupBy(s => s.DeliveryTrend ?? "Stable")
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync();
@@ -158,27 +178,41 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 model.SupplierRiskDistribution.Add(new ChartDataPoint { Label = item.Status, Value = item.Count, Color = color });
             }
 
-            // Ensure chart has data even if empty DB
-            if (!model.SupplierRiskDistribution.Any())
-            {
-                 model.SupplierRiskDistribution.Add(new ChartDataPoint { Label = "Stable", Value = 15, Color = "#10b981" });
-                 model.SupplierRiskDistribution.Add(new ChartDataPoint { Label = "At Risk", Value = 5, Color = "#f59e0b" });
-                 model.SupplierRiskDistribution.Add(new ChartDataPoint { Label = "Critical", Value = 2, Color = "#f43f5e" });
-            }
-            
             model.CriticalSuppliers = model.SupplierRiskDistribution.Where(x => x.Label == "Critical" || x.Label == "Poor").Sum(x => (int)x.Value);
 
 
             // 4. Compliance (Audit Logs)
-            // Mock compliance trend
-            model.AuditComplianceScore = 94.2m;
-            model.AuditIssuesTrend = new List<ChartDataPoint>
+            var auditWindow = await db.AuditLogs.AsNoTracking()
+                .Where(a => a.OrgId == orgId.Value && a.CreatedAt >= startDate)
+                .Select(a => new { a.CreatedAt, a.Level })
+                .ToListAsync();
+            var issueCount = auditWindow.Count(a => string.Equals(a.Level, "Warning", StringComparison.OrdinalIgnoreCase)
+                                                || string.Equals(a.Level, "Error", StringComparison.OrdinalIgnoreCase)
+                                                || string.Equals(a.Level, "Critical", StringComparison.OrdinalIgnoreCase));
+            var totalAudits = auditWindow.Count;
+            model.AuditComplianceScore = totalAudits == 0
+                ? 100m
+                : Math.Max(0m, 100m - (decimal)issueCount * 100m / totalAudits);
+
+            var quarterStart = new DateTime(DateTime.UtcNow.Year, ((DateTime.UtcNow.Month - 1) / 3) * 3 + 1, 1);
+            var quarterBuckets = Enumerable.Range(0, 4)
+                .Select(i => quarterStart.AddMonths(-9 + i * 3))
+                .Select(d => new { Start = d, End = d.AddMonths(3), Label = $"Q{((d.Month - 1) / 3) + 1}" })
+                .ToList();
+            var quarterAuditRows = await db.AuditLogs.AsNoTracking()
+                .Where(a => a.OrgId == orgId.Value && a.CreatedAt >= quarterBuckets.First().Start)
+                .Select(a => new { a.CreatedAt, a.Level })
+                .ToListAsync();
+            model.AuditIssuesTrend = quarterBuckets.Select(q => new ChartDataPoint
             {
-                new ChartDataPoint { Label = "Q1", Value = 12 },
-                new ChartDataPoint { Label = "Q2", Value = 8 },
-                new ChartDataPoint { Label = "Q3", Value = 5 }, // Improving trend
-                new ChartDataPoint { Label = "Q4", Value = 2 }
-            };
+                Label = q.Label,
+                Value = quarterAuditRows.Count(a => a.CreatedAt >= q.Start
+                                                    && a.CreatedAt < q.End
+                                                    && (string.Equals(a.Level, "Warning", StringComparison.OrdinalIgnoreCase)
+                                                        || string.Equals(a.Level, "Error", StringComparison.OrdinalIgnoreCase)
+                                                        || string.Equals(a.Level, "Critical", StringComparison.OrdinalIgnoreCase))),
+                Color = "#f59e0b"
+            }).ToList();
 
             return View(model);
         }

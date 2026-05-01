@@ -1,14 +1,19 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json;
 using WEB_Sentro.Data;
 using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
 using WEB_Sentro.Services;
+using WEB_Sentro.Services.Auth;
 using WEB_Sentro.Services.PayMongo;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using WEB_Sentro.Filters;
+using WEB_Sentro.Models.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +94,31 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RiskContributors", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager", "Employee"));
     options.AddPolicy("ClientReports", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager"));
 });
+
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
+{
+    throw new InvalidOperationException("Jwt:SigningKey is required in configuration.");
+}
+
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+builder.Services.AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
 
 // --------------------
 // Tenant DB resolution
@@ -204,7 +234,7 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-app.Run();
+    app.Run();
 
 static SecurityPolicyDefaults? LoadSecurityDefaults(string connectionString)
 {

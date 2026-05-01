@@ -1,5 +1,4 @@
-﻿@page
-@using Microsoft.AspNetCore.Http.Features
+@page
 @model TwoFactorAuthenticationModel
 @{
     ViewData["Title"] = "Two-factor authentication (2FA)";
@@ -7,65 +6,44 @@
 }
 
 <partial name="_StatusMessage" for="StatusMessage" />
+
 <h3 class="text-lg font-extrabold">@ViewData["Title"]</h3>
 
-@{
-    var consentFeature = HttpContext.Features.Get<ITrackingConsentFeature>();
-    if (consentFeature?.CanTrack ?? true)
+<div class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <p class="text-slate-700 dark:text-slate-200">Scan this QR code using Microsoft Authenticator, Google Authenticator, or a compatible app.</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.QrCodeImage))
     {
-        if (Model.Is2faEnabled)
-        {
-            if (Model.RecoveryCodesLeft == 0)
-            {
-                <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900/40 dark:bg-rose-900/10">
-                    <strong>You have no recovery codes left.</strong>
-                    <p class="mt-1">You must <a asp-page="./GenerateRecoveryCodes" class="text-emerald-700 hover:underline">generate a new set of recovery codes</a> before you can log in with a recovery code.</p>
-                </div>
-            }
-            else if (Model.RecoveryCodesLeft == 1)
-            {
-                <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900/40 dark:bg-rose-900/10">
-                    <strong>You have 1 recovery code left.</strong>
-                    <p class="mt-1">You can <a asp-page="./GenerateRecoveryCodes" class="text-emerald-700 hover:underline">generate a new set of recovery codes</a>.</p>
-                </div>
-            }
-            else if (Model.RecoveryCodesLeft <= 3)
-            {
-                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10">
-                    <strong>You have @Model.RecoveryCodesLeft recovery codes left.</strong>
-                    <p class="mt-1">You should <a asp-page="./GenerateRecoveryCodes" class="text-emerald-700 hover:underline">generate a new set of recovery codes</a>.</p>
-                </div>
-            }
-
-            if (Model.IsMachineRemembered)
-            {
-                <form method="post" style="display: inline-block">
-                    <button type="submit" class="inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90">Forget this browser</button>
-                </form>
-            }
-
-            <a asp-page="./Disable2fa" class="inline-flex items-center rounded-xl bg-rose-600 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90 ml-2">Disable 2FA</a>
-            <a asp-page="./GenerateRecoveryCodes" class="inline-flex items-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90 ml-2">Reset recovery codes</a>
-        }
-
-        <h4 class="mt-6 text-sm font-semibold">Authenticator app</h4>
-        if (!Model.HasAuthenticator)
-        {
-            <a id="enable-authenticator" asp-page="./EnableAuthenticator" class="inline-flex items-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90 mt-2">Add authenticator app</a>
-        }
-        else
-        {
-            <a id="enable-authenticator" asp-page="./EnableAuthenticator" class="inline-flex items-center rounded-xl bg-sky-600 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90 mt-2">Set up authenticator app</a>
-            <a id="reset-authenticator" asp-page="./ResetAuthenticator" class="inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-sm font-extrabold text-white hover:opacity-90 mt-2 ml-2">Reset authenticator app</a>
-        }
+        <img src="@Model.QrCodeImage" alt="2FA setup QR code" class="mt-4 h-56 w-56 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700" />
     }
-    else
-    {
-        <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900/40 dark:bg-rose-900/10">
-            <strong>Privacy and cookie policy have not been accepted.</strong>
-            <p class="mt-1">You must accept the policy before you can enable two factor authentication.</p>
-        </div>
-    }
+
+    <p class="mt-4 text-slate-700 dark:text-slate-200">If you cannot scan the QR code, enter this key manually:</p>
+    <code class="mt-2 inline-block rounded-lg bg-slate-100 px-3 py-2 text-xs tracking-wide text-slate-900 dark:bg-slate-800 dark:text-slate-100">@Model.SharedKey</code>
+
+    <details class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        <summary class="cursor-pointer">Show otpauth URI</summary>
+        <code class="mt-2 block break-all">@Model.OtpAuthUri</code>
+    </details>
+</div>
+
+@if (!Model.Is2faEnabled)
+{
+    <form method="post" asp-page-handler="Verify" class="mt-6 space-y-3">
+        <label asp-for="Input.Code" class="block text-sm font-medium text-slate-700 dark:text-slate-200"></label>
+        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" class="w-full max-w-xs rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+        <span asp-validation-for="Input.Code" class="block text-xs text-rose-600"></span>
+        <button type="submit" class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90">Verify code and enable 2FA</button>
+    </form>
+}
+else
+{
+    <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200">
+        Two-factor authentication is currently enabled for your account.
+    </div>
+
+    <form method="post" asp-page-handler="Disable" class="mt-4">
+        <button type="submit" class="inline-flex items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90">Disable 2FA</button>
+    </form>
 }
 
 @section Scripts {

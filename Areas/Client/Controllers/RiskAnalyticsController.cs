@@ -25,10 +25,9 @@ namespace WEB_Sentro.Areas.Client.Controllers
         private async Task<int?> GetMyOrgIdAsync()
         {
             var user = await _userManager.GetUserAsync(User);
-            return user?.OrganizationId;
+            if (user == null) return null;
+            return user.OrganizationId > 0 ? user.OrganizationId : null;
         }
-
-        private bool IsSuperAdmin() => User.IsInRole("SuperAdmin");
 
         public async Task<IActionResult> Index(int? dateRange, int? siteId, string? category, string? severity, string? source, string? status)
         {
@@ -39,11 +38,11 @@ namespace WEB_Sentro.Areas.Client.Controllers
         public async Task<IActionResult> IndexContent(int? dateRange, int? siteId, string? category, string? severity, string? source, string? status)
         {
             ViewData["Title"] = "Risk Analytics";
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
-            var effectiveOrgId = orgId ?? 1;
+            var orgId = await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return Forbid();
             var dateRangeDays = dateRange switch { 7 => 7, 90 => 90, _ => 30 };
             var model = await _analyticsService.GetAnalyticsAsync(
-                effectiveOrgId,
+                orgId.Value,
                 dateRangeDays,
                 siteId,
                 category,
@@ -57,11 +56,11 @@ namespace WEB_Sentro.Areas.Client.Controllers
         [HttpGet]
         public async Task<IActionResult> ExportPdf(int? dateRange, int? siteId, string? category, string? severity, string? source, string? status)
         {
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
-            var effectiveOrgId = orgId ?? 1;
+            var orgId = await GetMyOrgIdAsync();
+            if (!orgId.HasValue) return Forbid();
             var dateRangeDays = dateRange switch { 7 => 7, 90 => 90, _ => 30 };
             var model = await _analyticsService.GetAnalyticsAsync(
-                effectiveOrgId,
+                orgId.Value,
                 dateRangeDays,
                 siteId,
                 category,

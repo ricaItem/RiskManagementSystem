@@ -99,6 +99,8 @@ namespace WEB_Sentro.Services
             var criticalRisks = risks.Count(r => string.Equals(r.Priority, "Critical", StringComparison.OrdinalIgnoreCase));
             var createdInPeriod = currentPeriodRisks.Count;
             var weatherTriggered = risks.Count(r => r.SourceType != null && r.SourceType.Contains("Weather", StringComparison.OrdinalIgnoreCase));
+            var weatherTriggeredCurrent = currentPeriodRisks.Count(r => r.SourceType != null && r.SourceType.Contains("Weather", StringComparison.OrdinalIgnoreCase));
+            var weatherTriggeredPrevious = previousPeriodRisks.Count(r => r.SourceType != null && r.SourceType.Contains("Weather", StringComparison.OrdinalIgnoreCase));
             var previousCreated = previousPeriodRisks.Count;
 
             var closedWithDate = risks.Where(r => (r.Status == "Closed_Invalid" || r.Status == "Closed_Controlled") && r.UpdatedAt.HasValue).ToList();
@@ -116,6 +118,12 @@ namespace WEB_Sentro.Services
                 var days = closedWithDate.Select(r => (r.UpdatedAt!.Value - r.CreatedAt).TotalDays).Where(d => d >= 0).ToList();
                 avgTimeToCloseDays = days.Any() ? (int)Math.Round(days.Average()) : 0;
             }
+            var previousClosedDays = closedWithDate
+                .Where(r => r.UpdatedAt >= previousPeriodStart && r.UpdatedAt < periodStart)
+                .Select(r => (r.UpdatedAt!.Value - r.CreatedAt).TotalDays)
+                .Where(d => d >= 0)
+                .ToList();
+            var previousAvgTimeToCloseDays = previousClosedDays.Any() ? (int)Math.Round(previousClosedDays.Average()) : 0;
 
             var risksWithEvals = risks.Where(r => r.Evaluations.Any()).ToList();
             var withTwoEvals = risksWithEvals.Where(r => r.Evaluations.Count >= 2).ToList();
@@ -152,6 +160,26 @@ namespace WEB_Sentro.Services
                 avgInitial = evals.Average(e => e.RiskScore);
                 avgResidual = avgInitial;
             }
+
+            var previousWithTwoEvals = previousPeriodRisks.Where(r => r.Evaluations.Count >= 2).ToList();
+            var previousAvgReductionPercent = 0;
+            if (previousWithTwoEvals.Any())
+            {
+                var previousReductions = previousWithTwoEvals.Select(r =>
+                {
+                    var evals = r.Evaluations.OrderBy(e => e.EvaluatedAt).ToList();
+                    var inherent = evals.FirstOrDefault(e => e.IsInherent) ?? evals.First();
+                    var residual = evals.LastOrDefault(e => !e.IsInherent) ?? evals.Last();
+                    return inherent.RiskScore > 0
+                        ? (int)Math.Round((1 - (double)residual.RiskScore / inherent.RiskScore) * 100)
+                        : 0;
+                }).ToList();
+                previousAvgReductionPercent = previousReductions.Any() ? (int)Math.Round(previousReductions.Average()) : 0;
+            }
+
+            var weatherDelta = weatherTriggeredCurrent - weatherTriggeredPrevious;
+            var avgCloseDelta = avgTimeToCloseDays - previousAvgTimeToCloseDays;
+            var reductionDelta = avgReductionPercent - previousAvgReductionPercent;
 
             var siteGroups = risks
                 .Where(r => r.SiteId.HasValue)
@@ -243,9 +271,9 @@ namespace WEB_Sentro.Services
                 new() { Label = "Active Risks", Value = activeRisks, DeltaText = activeDeltaText, DeltaUp = activeDelta <= 0 },
                 new() { Label = "Critical Risks", Value = criticalRisks, DeltaText = "— vs previous", DeltaUp = false },
                 new() { Label = "Created in Period", Value = createdInPeriod, DeltaText = (createdDelta >= 0 ? "+" : "") + createdDelta + "% vs previous", DeltaUp = createdDelta <= 0 }, // Less new is better generally
-                new() { Label = "Weather-triggered", Value = weatherTriggered, DeltaText = "+2 vs previous", DeltaUp = true },
-                new() { Label = "Avg Time to Close (days)", Value = avgTimeToCloseDays, DeltaText = "-3 vs previous", DeltaUp = true }, // Less time is better
-                new() { Label = "Avg Risk Reduction (%)", Value = avgReductionPercent, DeltaText = "+4% vs previous", DeltaUp = true }
+                new() { Label = "Weather-triggered", Value = weatherTriggered, DeltaText = (weatherDelta >= 0 ? "+" : "") + weatherDelta + " vs previous", DeltaUp = weatherDelta <= 0 },
+                new() { Label = "Avg Time to Close (days)", Value = avgTimeToCloseDays, DeltaText = (avgCloseDelta >= 0 ? "+" : "") + avgCloseDelta + " vs previous", DeltaUp = avgCloseDelta <= 0 }, // Less time is better
+                new() { Label = "Avg Risk Reduction (%)", Value = avgReductionPercent, DeltaText = (reductionDelta >= 0 ? "+" : "") + reductionDelta + "% vs previous", DeltaUp = reductionDelta >= 0 }
             };
 
             var escalationHigh = openRisks.Count(r => string.Equals(r.Priority, "High", StringComparison.OrdinalIgnoreCase));

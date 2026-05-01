@@ -83,6 +83,19 @@
 
             <div class="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                 <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Security</h3>
+                <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">Two-Factor Authentication</p>
+                            <p class="mt-1 text-xs font-semibold @(Model.IsTwoFactorEnabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")">
+                                @(Model.IsTwoFactorEnabled ? "Enabled" : "Not enabled")
+                            </p>
+                        </div>
+                        <a href="/Identity/Account/Manage/TwoFactorAuthentication" class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
+                            Manage 2FA
+                        </a>
+                    </div>
+                </div>
                 <form asp-area="Client" asp-controller="Account" asp-action="ChangePassword" method="post" class="space-y-4">
                     @Html.AntiForgeryToken()
                     <div class="space-y-1">

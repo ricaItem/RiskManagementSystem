@@ -40,6 +40,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 AccountLevelDescription = levelDescription,
                 ProfileImagePath = user.ProfileImagePath,
                 LastLoginAt = user.LastLoginAt,
+                IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
                 Message = message,
                 Error = error
             };

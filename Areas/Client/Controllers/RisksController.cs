@@ -28,8 +28,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         private readonly IProcurementOverdueService _procurementOverdueService;
         private readonly IIncidentService _incidentService;
         private readonly ProjectService _projectService;
+        private readonly ControlService _controlService;
 
-        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService, ProjectService projectService)
+        public RisksController(RiskService riskService, RiskEvaluationService evaluationService, RiskAttachmentService attachmentService, ITenantDbFactory tenantDbFactory, UserManager<ApplicationUser> userManager, MonitoringHubService monitoringHub, IOpenWeatherService openWeather, IWebHostEnvironment env, IConfiguration config, INotificationService notificationService, RiskExportService exportService, IRiskVersionService versionService, IProcurementOverdueService procurementOverdueService, IIncidentService incidentService, ProjectService projectService, ControlService controlService)
         {
             _riskService = riskService;
             _evaluationService = evaluationService;
@@ -46,6 +47,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             _procurementOverdueService = procurementOverdueService;
             _incidentService = incidentService;
             _projectService = projectService;
+            _controlService = controlService;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync() => await _userManager.GetUserAsync(User);
@@ -54,6 +56,12 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var me = await GetCurrentUserAsync();
             return me?.OrganizationId;
+        }
+
+        private async Task<int?> ResolveOrgIdAsync()
+        {
+            var orgId = await GetMyOrgIdAsync();
+            return orgId.HasValue && orgId.Value > 0 ? orgId : null;
         }
 
         private bool IsSuperAdmin() => User.IsInRole("SuperAdmin");
@@ -68,7 +76,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var user = await GetCurrentUserAsync();
                 if (user != null)
                 {
-                    var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+                    var orgId = await ResolveOrgIdAsync();
                     if (orgId.HasValue)
                     {
                         var incident = await _incidentService.GetIncidentByIdAsync(createFromIncidentId.Value, orgId.Value);
@@ -97,7 +105,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 5, 50);
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var employeeOnly = EmployeeOnly();
             var includeDeleted = showDeleted && (IsAdmin() || IsSuperAdmin());
             var list = await _riskService.GetRisksForListAsync(orgId, user.Id, employeeOnly, search, status, category, siteId, includeDeleted);
@@ -201,7 +209,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var vm = await _evaluationService.GetAssessmentViewModelAsync(id, orgId, IsSuperAdmin());
             if (vm == null) return NotFound();
             return View(vm);
@@ -262,7 +270,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var submitted = await _riskService.SubmitRiskAsync(RiskId, orgId, user.Id, EmployeeOnly());
             if (!submitted) return NotFound();
 
@@ -285,7 +293,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var deleted = await _attachmentService.DeleteAttachmentAsync(id, orgId, user.Id, IsAdmin() || IsSuperAdmin());
             if (!deleted) return NotFound();
             return RedirectToAction("Identification");
@@ -298,7 +306,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var risk = await _riskService.GetByIdForOrgAsync(RiskId, orgId, IsSuperAdmin());
             if (risk == null) return NotFound();
 
@@ -316,7 +324,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
             if (risk == null) return NotFound();
             if (risk.Status == "Draft") return Forbid(); // Draft uses HardDelete only
@@ -340,7 +348,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
             if (!IsAdmin() && !IsSuperAdmin()) return Forbid();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             await _riskService.RestoreAsync(id, orgId, IsSuperAdmin());
             if (orgId.HasValue)
             {
@@ -384,7 +392,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
             if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var ok = await _riskService.ReviewRiskAsync(id, orgId, user.Id);
             if (!ok)
             {
@@ -413,7 +421,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
             if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var ok = await _riskService.ApproveRiskAsync(id, orgId, user.Id);
             if (!ok)
             {
@@ -439,7 +447,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return Forbid();
             var bytes = await _exportService.ExportToExcelAsync(orgId.Value, user.Id, EmployeeOnly(), ct);
             var fileName = $"RiskRegister_{orgId.Value}_{DateTime.UtcNow:yyyyMMdd}.xlsx";
@@ -454,7 +462,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
             if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var ok = await _riskService.MarkReviewedAsync(id, orgId, user.Id, IsSuperAdmin());
             if (!ok) return NotFound();
             if (orgId.HasValue)
@@ -475,7 +483,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (user == null) return Challenge();
             if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
             if (string.IsNullOrWhiteSpace(RejectRemarks)) { TempData["RejectError"] = "Remarks are required when rejecting."; return RedirectToAction("Identification"); }
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             var ok = await _riskService.RejectRiskAsync(id, orgId, user.Id, RejectRemarks.Trim());
             if (!ok) return NotFound();
             if (orgId.HasValue)
@@ -504,7 +512,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
 
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue)
             {
                 ViewData["EnableSimulation"] = _env.IsDevelopment() || string.Equals(_config["Monitoring:EnableSimulation"], "true", StringComparison.OrdinalIgnoreCase);
@@ -614,7 +622,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
 
             int monitoringSiteId;
@@ -641,7 +649,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
             var ok = await _monitoringHub.AcknowledgeAlertAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
             if (!ok) return NotFound();
@@ -654,7 +662,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
             var ok = await _monitoringHub.ResolveAlertAsync(orgId.Value, alertId, user.Id, HttpContext.RequestAborted);
             if (!ok) return NotFound();
@@ -667,7 +675,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
             var alert = await _monitoringHub.GetAlertAsync(orgId.Value, alertId, HttpContext.RequestAborted);
             if (alert == null) return NotFound();
@@ -693,7 +701,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return RedirectToAction(nameof(Monitoring));
 
             var alert = await _monitoringHub.GetAlertAsync(orgId.Value, alertId, HttpContext.RequestAborted);
@@ -719,7 +727,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return Ok(new List<object>());
             
             var data = await _monitoringHub.GetMapDataAsync(orgId.Value, ct);
@@ -731,7 +739,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return NotFound();
             
             var details = await _monitoringHub.GetSiteDetailsAsync(orgId.Value, id, ct);
@@ -744,7 +752,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return BadRequest();
 
             var versions = await _versionService.GetVersionsAsync(id, orgId.Value);
@@ -756,27 +764,11 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
-            var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
+            var orgId = await ResolveOrgIdAsync();
             if (!orgId.HasValue) return BadRequest();
 
-            await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
-
-            // Fetch linked mitigation tasks as controls
-            var tasks = await db.MitigationTasks.AsNoTracking()
-                .Where(t => t.Plan != null && t.Plan.RiskId == id && t.Plan.Risk.OrgId == orgId.Value)
-                .OrderBy(t => t.Status == "Done" ? 1 : 0)
-                .ThenBy(t => t.DueDate)
-                .Select(t => new
-                {
-                    t.TaskId,
-                    t.Title,
-                    t.Status,
-                    t.DueDate,
-                    t.ProgressPercent
-                })
-                .ToListAsync();
-
-            return Json(tasks);
+            var controls = await _controlService.GetLinkedControlsForRiskAsync(id, orgId.Value);
+            return Json(controls);
         }
     }
 }

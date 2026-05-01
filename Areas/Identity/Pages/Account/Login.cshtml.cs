@@ -103,16 +103,21 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: false);
-            if (!check.Succeeded)
+            var signInResult = await _signInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+            if (signInResult.RequiresTwoFactor)
             {
-                if (check.IsLockedOut)
+                return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+            }
+
+            if (!signInResult.Succeeded)
+            {
+                if (signInResult.IsLockedOut)
                 {
                     await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                     ModelState.AddModelError(string.Empty, "Your account has been locked. Please contact administrator.");
                     return Page();
                 }
-                if (check.IsNotAllowed)
+                if (signInResult.IsNotAllowed)
                 {
                     ModelState.AddModelError(string.Empty, "Login not allowed. Please confirm your email first.");
                     return Page();
@@ -131,7 +136,6 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            await _signInManager.SignInAsync(user, Input.RememberMe);
             await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginSuccess", "User logged in successfully", "Success", HttpContext.Connection.RemoteIpAddress?.ToString());
             _logger.LogInformation("User logged in (explicit sign-in). UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
 

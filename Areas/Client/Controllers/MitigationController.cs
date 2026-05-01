@@ -314,7 +314,9 @@ namespace Web_Sentro.Areas.Client.Controllers
             await db.SaveChangesAsync();
 
             var planId = task.PlanId;
-            var allDone = await db.MitigationTasks.AllAsync(t => t.PlanId == planId && t.Status == "Done");
+            var allDone = await db.MitigationTasks
+                .Where(t => t.PlanId == planId)
+                .AllAsync(t => t.Status == "Done");
             if (allDone)
             {
                 var risk = task.Plan.Risk;
