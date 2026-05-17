@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg-top: #f4f7f9;
   --bg-bottom: #ebf0f5;
   --surface: #ffffff;
@@ -8,6 +9,8 @@
   --muted: #4f6478;
   --brand: #0e3a5d;
   --brand-hover: #114b77;
+  --brand-disabled: #5a768f;
+  --on-brand: #ffffff;
   --success-bg: #eaf8ef;
   --success-text: #1b6a36;
   --danger-bg: #fff0f0;
@@ -88,7 +91,7 @@ input:focus {
 }
 
 button {
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 10px;
   padding: 11px 14px;
   font-weight: 700;
@@ -108,20 +111,42 @@ button:disabled {
 
 .btn-primary {
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
+  border-color: #0a2c46;
 }
 
 .btn-primary:hover {
   background: var(--brand-hover);
 }
 
+.btn-primary:disabled {
+  background: var(--brand-disabled);
+  color: var(--on-brand);
+  border-color: #4f6b84;
+  opacity: 1;
+}
+
 .btn-secondary {
   background: #dbe6f1;
   color: #173854;
+  border-color: #b9ccdf;
 }
 
 .btn-secondary:hover {
   background: #c9d9e8;
+}
+
+@media (forced-colors: active) {
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-primary:disabled {
+    forced-color-adjust: auto;
+    background: ButtonFace;
+    color: ButtonText;
+    border-color: ButtonText;
+    opacity: 1;
+  }
 }
 
 .button-row {

@@ -47,6 +47,7 @@
             <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-lg
                         dark:border-slate-800 dark:bg-slate-900">
                 <form id="loginForm" method="post" class="space-y-5">
+                    <input asp-for="Input.RecaptchaToken" type="hidden" id="recaptcha-token" />
                     @if (ViewData.ModelState[""]?.Errors?.Count > 0)
                     {
                         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
@@ -123,6 +124,10 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (Model.ReCaptchaEnabled)
+    {
+        <script src="https://www.google.com/recaptcha/api.js?render=@Model.ReCaptchaSiteKey"></script>
+    }
     <script>
         (function () {
             function togglePassword(button) {
@@ -155,16 +160,35 @@
             const loginText = document.getElementById('login-submit-text');
 
             if (loginForm && loginButton) {
-                loginForm.addEventListener('submit', function (e) {
+                loginForm.addEventListener('submit', async function (e) {
                     if (loginForm.dataset.submitting === '1') {
                         e.preventDefault();
                         return;
+                    }
+
+                    @if (Model.ReCaptchaEnabled)
+                    {
+                        @:if (typeof grecaptcha === 'undefined') {
+                        @:    e.preventDefault();
+                        @:    alert('Security verification is unavailable. Please refresh and try again.');
+                        @:    return;
+                        @:}
+                        @:e.preventDefault();
+                        @:try {
+                        @:    const token = await grecaptcha.execute('@Model.ReCaptchaSiteKey', { action: 'login' });
+                        @:    const tokenInput = document.getElementById('recaptcha-token');
+                        @:    if (tokenInput) tokenInput.value = token || '';
+                        @:} catch {
+                        @:    alert('Security verification failed. Please try again.');
+                        @:    return;
+                        @:}
                     }
 
                     loginForm.dataset.submitting = '1';
                     loginButton.disabled = true;
                     if (loginSpinner) loginSpinner.classList.remove('hidden');
                     if (loginText) loginText.textContent = 'Logging in...';
+                    loginForm.submit();
                 });
             }
         })();

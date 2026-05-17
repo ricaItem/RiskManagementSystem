@@ -10,9 +10,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using WEB_Sentro.Models.Auth;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Services;
+using WEB_Sentro.Services.Auth;
 
 namespace WEB_Sentro.Areas.Identity.Pages.Account
 {
@@ -22,17 +25,23 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly IAuditService _auditService;
+        private readonly IReCaptchaVerifier _reCaptchaVerifier;
+        private readonly ReCaptchaOptions _reCaptchaOptions;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             ILogger<LoginModel> logger,
-            IAuditService auditService)
+            IAuditService auditService,
+            IReCaptchaVerifier reCaptchaVerifier,
+            IOptions<ReCaptchaOptions> reCaptchaOptions)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
             _auditService = auditService;
+            _reCaptchaVerifier = reCaptchaVerifier;
+            _reCaptchaOptions = reCaptchaOptions.Value;
         }
 
         [BindProperty]
@@ -41,6 +50,9 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
         public string ReturnUrl { get; set; }
+
+        public bool ReCaptchaEnabled { get; private set; }
+        public string ReCaptchaSiteKey { get; private set; } = string.Empty;
 
         [TempData]
         public string ErrorMessage { get; set; }
@@ -57,6 +69,14 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
 
             [Display(Name = "Remember me?")]
             public bool RememberMe { get; set; }
+
+            public string RecaptchaToken { get; set; } = string.Empty;
+        }
+
+        private void SetReCaptchaViewData()
+        {
+            ReCaptchaEnabled = _reCaptchaOptions.Enabled && !string.IsNullOrWhiteSpace(_reCaptchaOptions.SiteKey);
+            ReCaptchaSiteKey = _reCaptchaOptions.SiteKey;
         }
 
         public async Task<IActionResult> OnGetAsync(string returnUrl = null)
@@ -83,6 +103,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
             ReturnUrl = returnUrl;
+            SetReCaptchaViewData();
             return Page();
         }
 
@@ -91,9 +112,26 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             returnUrl ??= Url.Content("~/");
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            SetReCaptchaViewData();
 
             if (!ModelState.IsValid)
                 return Page();
+
+            if (ReCaptchaEnabled)
+            {
+                var verification = await _reCaptchaVerifier.VerifyAsync(
+                    Input.RecaptchaToken ?? string.Empty,
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    "login",
+                    HttpContext.RequestAborted);
+
+                if (!verification.IsSuccess)
+                {
+                    _logger.LogWarning("Login blocked by reCAPTCHA. Score: {Score}, Action: {Action}, Error: {Error}", verification.Score, verification.Action, verification.Error);
+                    ModelState.AddModelError(string.Empty, "Login verification failed. Please try again.");
+                    return Page();
+                }
+            }
 
             var user = await _userManager.FindByEmailAsync(Input.Email);
 

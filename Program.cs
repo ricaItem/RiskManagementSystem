@@ -102,7 +102,9 @@ if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
 }
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<ReCaptchaOptions>(builder.Configuration.GetSection(ReCaptchaOptions.SectionName));
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IReCaptchaVerifier, ReCaptchaVerifier>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
