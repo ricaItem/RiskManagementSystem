@@ -337,7 +337,7 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["ErrorMessage"] = "Failed to create expense. Please check your inputs.";
+            TempData["ToastError"] = "Failed to create expense. Please check your inputs.";
             return RedirectToAction(nameof(Index));
         }
 

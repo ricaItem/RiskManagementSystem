@@ -108,8 +108,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(role))
             {
-                TempData["Alert"] = "Missing required fields (first name, email, role).";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Missing required fields (first name, email, role).";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -120,8 +119,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var existing = await _userManager.FindByEmailAsync(email);
             if (existing != null)
             {
-                TempData["Alert"] = "Email is already used by another account.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Email is already used by another account.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -152,8 +150,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
                         if (currentCount >= plan.MaxAdminSeats.Value)
                         {
-                            TempData["Alert"] = $"Plan limit reached. Your current plan ({plan.DisplayName}) allows a maximum of {plan.MaxAdminSeats.Value} active users. Please upgrade your plan to add more employees.";
-                            TempData["AlertType"] = "error";
+                            TempData["ToastError"] = $"Plan limit reached. Your current plan ({plan.DisplayName}) allows a maximum of {plan.MaxAdminSeats.Value} active users. Please upgrade your plan to add more employees.";
                             return RedirectToAction(nameof(Index));
                         }
                     }
@@ -177,8 +174,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             if (!createRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", createRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", createRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
@@ -189,8 +185,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
                 if (!allowed.Contains(role))
                 {
-                    TempData["Alert"] = "You are not allowed to assign that role.";
-                    TempData["AlertType"] = "error";
+                    TempData["ToastError"] = "You are not allowed to assign that role.";
                     await _userManager.DeleteAsync(user);
                     return RedirectToAction(nameof(Index));
                 }
@@ -210,8 +205,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             );
 
             var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
-            TempData["Alert"] = $"Created employee account for {displayName}. Temporary password: {tempPassword}";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = $"Created employee account for {displayName}. Temporary password: {tempPassword}";
 
             return RedirectToAction(nameof(Index));
         }
@@ -223,16 +217,14 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                TempData["Alert"] = "Invalid employee.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Invalid employee.";
                 return RedirectToAction(nameof(Index));
             }
 
             var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
-                TempData["Alert"] = "Employee not found.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Employee not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -253,8 +245,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var existing = await _userManager.FindByEmailAsync(newEmail);
                 if (existing != null && existing.Id != target.Id)
                 {
-                    TempData["Alert"] = "Email is already used by another account.";
-                    TempData["AlertType"] = "error";
+                    TempData["ToastError"] = "Email is already used by another account.";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -271,8 +262,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
                     if (!allowed.Contains(role))
                     {
-                        TempData["Alert"] = "You are not allowed to assign that role.";
-                        TempData["AlertType"] = "error";
+                        TempData["ToastError"] = "You are not allowed to assign that role.";
                         return RedirectToAction(nameof(Index));
                     }
                 }
@@ -290,8 +280,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
@@ -310,8 +299,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Alert"] = "Employee updated successfully.";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = "Employee updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -322,16 +310,14 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                TempData["Alert"] = "Invalid employee.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Invalid employee.";
                 return RedirectToAction(nameof(Index));
             }
 
             var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
-                TempData["Alert"] = "Employee not found.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Employee not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -363,8 +349,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
                             if (currentCount >= plan.MaxAdminSeats.Value)
                             {
-                                TempData["Alert"] = $"Plan limit reached. Cannot activate user. Your plan ({plan.DisplayName}) allows max {plan.MaxAdminSeats.Value} active users.";
-                                TempData["AlertType"] = "error";
+                                TempData["ToastError"] = $"Plan limit reached. Cannot activate user. Your plan ({plan.DisplayName}) allows max {plan.MaxAdminSeats.Value} active users.";
                                 return RedirectToAction(nameof(Index));
                             }
                         }
@@ -377,8 +362,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
@@ -397,8 +381,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Alert"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";
             return RedirectToAction(nameof(Index));
         }
 

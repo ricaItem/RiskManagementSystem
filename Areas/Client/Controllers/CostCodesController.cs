@@ -110,7 +110,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     var user = await GetCurrentUserAsync();
                     await _auditService.LogAsync(orgId.Value, user?.Id, "CostCode", model.CostCodeId, "Created", $"Cost Code '{model.Code}' created.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
 
-                    TempData["Message"] = "Cost Code created successfully.";
+                    TempData["ToastSuccess"] = "Cost Code created successfully.";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -176,7 +176,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     var user = await GetCurrentUserAsync();
                     await _auditService.LogAsync(orgId.Value, user?.Id, "CostCode", id, "Updated", $"Cost Code '{model.Code}' updated.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
 
-                    TempData["Message"] = "Cost Code updated successfully.";
+                    TempData["ToastSuccess"] = "Cost Code updated successfully.";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -202,7 +202,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             
             if (await db.CostCodes.AnyAsync(c => c.OrgId == orgId.Value))
             {
-                TempData["Error"] = "Cannot import MasterFormat: Cost Codes already exist.";
+                TempData["ToastError"] = "Cannot import MasterFormat: Cost Codes already exist.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -211,7 +211,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             await _auditService.LogAsync(orgId.Value, user?.Id, "CostCode", 0, "Imported", "MasterFormat Cost Codes imported.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["Message"] = "Standard MasterFormat Cost Codes imported successfully.";
+            TempData["ToastSuccess"] = "Standard MasterFormat Cost Codes imported successfully.";
             return RedirectToAction(nameof(Index));
         }
     }

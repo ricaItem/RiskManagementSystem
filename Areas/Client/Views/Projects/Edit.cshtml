@@ -41,6 +41,8 @@
 
     <form method="post" asp-action="Edit" class="space-y-8">
         <input type="hidden" asp-for="ProjectId" />
+        <div asp-validation-summary="ModelOnly" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300"></div>
+
         <div class="proj-card p-6 md:p-8">
             <h2 class="text-lg font-extrabold tracking-tight text-slate-800 mb-6">Project Details</h2>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">

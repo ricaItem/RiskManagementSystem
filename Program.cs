@@ -160,6 +160,8 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<WEB_Sentro.Middlewares.GlobalExceptionMiddleware>();
+
 // --------------------S
 // Auto migrate (Platform)
 // --------------------

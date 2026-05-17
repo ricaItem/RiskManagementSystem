@@ -120,41 +120,48 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             if (ModelState.IsValid)
             {
-                await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
-                
-                // Validate Site
-                var site = await db.Sites.FirstOrDefaultAsync(s => s.SiteId == model.SiteId && s.OrgId == orgId.Value);
-                if (site == null)
+                try
                 {
-                     ModelState.AddModelError("SiteId", "Invalid Site selected.");
-                }
-                else
-                {
-                    model.OrgId = orgId.Value;
-                    model.CreatedAt = DateTime.UtcNow;
-                    model.UpdatedAt = DateTime.UtcNow;
-                    model.Status = model.Status ?? "Draft";
+                    await using var db = await _tenantDbFactory.CreateAsync(orgId.Value);
                     
-                    if (items != null && items.Any())
+                    // Validate Site
+                    var site = await db.Sites.FirstOrDefaultAsync(s => s.SiteId == model.SiteId && s.OrgId == orgId.Value);
+                    if (site == null)
                     {
-                        foreach (var item in items)
+                         ModelState.AddModelError("SiteId", "Invalid Site selected.");
+                    }
+                    else
+                    {
+                        model.OrgId = orgId.Value;
+                        model.CreatedAt = DateTime.UtcNow;
+                        model.UpdatedAt = DateTime.UtcNow;
+                        model.Status = model.Status ?? "Draft";
+                        
+                        if (items != null && items.Any())
                         {
-                            if (!string.IsNullOrWhiteSpace(item.Description) && item.Amount != 0)
+                            foreach (var item in items)
                             {
-                                item.CostCodeId = item.CostCodeId; // Ensure mapping
-                                model.LineItems.Add(item);
+                                if (!string.IsNullOrWhiteSpace(item.Description) && item.Amount != 0)
+                                {
+                                    item.CostCodeId = item.CostCodeId; // Ensure mapping
+                                    model.LineItems.Add(item);
+                                }
                             }
                         }
+
+                        db.ChangeOrders.Add(model);
+                        await db.SaveChangesAsync();
+
+                        var user = await GetCurrentUserAsync();
+                        await _auditService.LogAsync(orgId.Value, user?.Id, "ChangeOrder", model.ChangeOrderId, "Created", $"Change Order '{model.Title}' created.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
+
+                        TempData["ToastSuccess"] = "Change Order created successfully.";
+                        return RedirectToAction(nameof(Details), new { id = model.ChangeOrderId });
                     }
-
-                    db.ChangeOrders.Add(model);
-                    await db.SaveChangesAsync();
-
-                    var user = await GetCurrentUserAsync();
-                    await _auditService.LogAsync(orgId.Value, user?.Id, "ChangeOrder", model.ChangeOrderId, "Created", $"Change Order '{model.Title}' created.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
-
-                    TempData["Message"] = "Change Order created successfully.";
-                    return RedirectToAction(nameof(Details), new { id = model.ChangeOrderId });
+                }
+                catch (Exception)
+                {
+                    ModelState.AddModelError(string.Empty, "A system error occurred while processing your request. Please try again.");
                 }
             }
 
@@ -176,7 +183,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (co == null) return NotFound();
             if (co.Status == "Approved" || co.Status == "Rejected")
             {
-                TempData["Error"] = "Cannot edit a finalized Change Order.";
+                TempData["ToastError"] = "Cannot edit a finalized Change Order.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -199,44 +206,51 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (existing == null) return NotFound();
             if (existing.Status == "Approved" || existing.Status == "Rejected")
             {
-                TempData["Error"] = "Cannot edit a finalized Change Order.";
+                TempData["ToastError"] = "Cannot edit a finalized Change Order.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
             if (ModelState.IsValid)
             {
-                existing.SiteId = model.SiteId;
-                existing.ProjectId = model.ProjectId;
-                existing.Title = model.Title;
-                existing.Description = model.Description;
-                existing.Status = model.Status; // Can update status back to Draft or directly to Pending
-                existing.UpdatedAt = DateTime.UtcNow;
-
-                // Update Line Items
-                db.ChangeOrderLines.RemoveRange(existing.LineItems);
-                if (items != null && items.Any())
+                try
                 {
-                    foreach (var item in items)
+                    existing.SiteId = model.SiteId;
+                    existing.ProjectId = model.ProjectId;
+                    existing.Title = model.Title;
+                    existing.Description = model.Description;
+                    existing.Status = model.Status; // Can update status back to Draft or directly to Pending
+                    existing.UpdatedAt = DateTime.UtcNow;
+
+                    // Update Line Items
+                    db.ChangeOrderLines.RemoveRange(existing.LineItems);
+                    if (items != null && items.Any())
                     {
-                         if (!string.IsNullOrWhiteSpace(item.Description) && item.Amount != 0)
+                        foreach (var item in items)
                         {
-                            existing.LineItems.Add(new ChangeOrderLine
+                             if (!string.IsNullOrWhiteSpace(item.Description) && item.Amount != 0)
                             {
-                                Description = item.Description,
-                                Amount = item.Amount,
-                                CostCodeId = item.CostCodeId
-                            });
+                                existing.LineItems.Add(new ChangeOrderLine
+                                {
+                                    Description = item.Description,
+                                    Amount = item.Amount,
+                                    CostCodeId = item.CostCodeId
+                                });
+                            }
                         }
                     }
+
+                    await db.SaveChangesAsync();
+
+                    var user = await GetCurrentUserAsync();
+                    await _auditService.LogAsync(orgId.Value, user?.Id, "ChangeOrder", id, "Updated", $"Change Order '{model.Title}' updated.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
+
+                    TempData["ToastSuccess"] = "Change Order updated successfully.";
+                    return RedirectToAction(nameof(Details), new { id });
                 }
-
-                await db.SaveChangesAsync();
-
-                var user = await GetCurrentUserAsync();
-                await _auditService.LogAsync(orgId.Value, user?.Id, "ChangeOrder", id, "Updated", $"Change Order '{model.Title}' updated.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
-
-                TempData["Message"] = "Change Order updated successfully.";
-                return RedirectToAction(nameof(Details), new { id });
+                catch (Exception)
+                {
+                    ModelState.AddModelError(string.Empty, "A system error occurred while updating your request. Please try again.");
+                }
             }
 
             await PopulateDropdowns(db, orgId.Value);
@@ -282,7 +296,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 // Simple logic: Only Pending can be Approved/Rejected
                 if (co.Status != "Pending")
                 {
-                     TempData["Error"] = "Only Pending Change Orders can be approved or rejected.";
+                     TempData["ToastError"] = "Only Pending Change Orders can be approved or rejected.";
                      return RedirectToAction(nameof(Details), new { id });
                 }
                 
@@ -297,7 +311,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await _auditService.LogAsync(orgId.Value, user?.Id, "ChangeOrder", id, "StatusChanged", $"Change Order status changed to {newStatus}.", "Info", HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["Message"] = $"Change Order {newStatus}.";
+            TempData["ToastSuccess"] = $"Change Order {newStatus}.";
             return RedirectToAction(nameof(Details), new { id });
         }
 

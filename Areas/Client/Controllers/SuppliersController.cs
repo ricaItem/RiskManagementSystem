@@ -123,7 +123,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
-            TempData["Message"] = "Supplier created.";
+            TempData["ToastSuccess"] = "Supplier created.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -178,7 +178,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
-            TempData["Message"] = "Supplier updated.";
+            TempData["ToastSuccess"] = "Supplier updated.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -220,7 +220,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
-            TempData["Message"] = "Supplier deleted.";
+            TempData["ToastSuccess"] = "Supplier deleted.";
             return RedirectToAction(nameof(Index));
         }
     }

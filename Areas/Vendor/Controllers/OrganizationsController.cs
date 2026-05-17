@@ -125,7 +125,7 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Invalid form data.";
+                TempData["ToastError"] = "Invalid form data.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -227,7 +227,7 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 $"Updated organization profile for {org.OrgName}",
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
-            TempData["Success"] = "Organization updated successfully.";
+            TempData["ToastSuccess"] = "Organization updated successfully.";
 
             return RedirectToAction(nameof(Index));
         }

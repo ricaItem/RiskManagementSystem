@@ -30,14 +30,14 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             ValidateRiskScoring(form);
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Please correct the risk scoring fields and try again.";
+                TempData["ToastError"] = "Please correct the risk scoring fields and try again.";
                 return View("Index", await BuildViewModelAsync("risk", ct, form));
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _globalSettings.SetAsync(GlobalSettingKeys.RiskScoring, form, userId, ct);
 
-            TempData["Success"] = "Risk scoring settings saved. These defaults will be used for new organizations.";
+            TempData["ToastSuccess"] = "Risk scoring settings saved. These defaults will be used for new organizations.";
             return RedirectToAction(nameof(Index), new { tab = "risk" });
         }
 
@@ -48,14 +48,14 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             ValidateWorkflows(form);
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Please correct the workflow default fields and try again.";
+                TempData["ToastError"] = "Please correct the workflow default fields and try again.";
                 return View("Index", await BuildViewModelAsync("workflows", ct, null, form));
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _globalSettings.SetAsync(GlobalSettingKeys.DefaultWorkflows, form, userId, ct);
 
-            TempData["Success"] = "Default workflow settings saved. These defaults will be used for new organizations.";
+            TempData["ToastSuccess"] = "Default workflow settings saved. These defaults will be used for new organizations.";
             return RedirectToAction(nameof(Index), new { tab = "workflows" });
         }
 
@@ -66,14 +66,14 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             ValidateNotificationTemplates(form);
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Please correct the notification template fields and try again.";
+                TempData["ToastError"] = "Please correct the notification template fields and try again.";
                 return View("Index", await BuildViewModelAsync("notifications", ct, null, null, form));
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _globalSettings.SetAsync(GlobalSettingKeys.NotificationTemplates, form, userId, ct);
 
-            TempData["Success"] = "Notification templates saved. These defaults will be used for new organizations.";
+            TempData["ToastSuccess"] = "Notification templates saved. These defaults will be used for new organizations.";
             return RedirectToAction(nameof(Index), new { tab = "notifications" });
         }
 
@@ -84,14 +84,14 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             ValidateSecurityPolicies(form);
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Please correct the security policy fields and try again.";
+                TempData["ToastError"] = "Please correct the security policy fields and try again.";
                 return View("Index", await BuildViewModelAsync("security", ct, null, null, null, form));
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _globalSettings.SetAsync(GlobalSettingKeys.SecurityPolicies, form, userId, ct);
 
-            TempData["Success"] = "Security policy defaults saved. These defaults will be used for new organizations.";
+            TempData["ToastSuccess"] = "Security policy defaults saved. These defaults will be used for new organizations.";
             return RedirectToAction(nameof(Index), new { tab = "security" });
         }
 

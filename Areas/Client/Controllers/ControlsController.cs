@@ -41,9 +41,9 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             var orgId = await GetOrgIdAsync();
             if (!orgId.HasValue) return Forbid();
-            if (string.IsNullOrWhiteSpace(Name)) { TempData["ControlError"] = "Name is required."; return RedirectToAction(nameof(Index)); }
+            if (string.IsNullOrWhiteSpace(Name)) { TempData["ToastError"] = "Name is required."; return RedirectToAction(nameof(Index)); }
             await _controlService.CreateAsync(orgId.Value, Name.Trim(), Description?.Trim(), null, Frequency?.Trim(), Type?.Trim(), ct);
-            TempData["ControlMessage"] = "Control created.";
+            TempData["ToastSuccess"] = "Control created.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -54,7 +54,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var orgId = await GetOrgIdAsync();
             if (!orgId.HasValue) return Forbid();
             var ok = await _controlService.DeleteAsync(id, orgId.Value, ct);
-            if (ok) TempData["ControlMessage"] = "Control removed."; else TempData["ControlError"] = "Control not found.";
+            if (ok) TempData["ToastSuccess"] = "Control removed."; else TempData["ToastError"] = "Control not found.";
             return RedirectToAction(nameof(Index));
         }
     }

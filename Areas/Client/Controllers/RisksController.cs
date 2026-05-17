@@ -190,7 +190,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             {
                 var attachResult = await _attachmentService.SaveAttachmentsAsync(risk.RiskId, user.OrganizationId, user.Id, attachmentFiles, HttpContext.Connection.RemoteIpAddress?.ToString());
                 if (!attachResult.Ok && !string.IsNullOrEmpty(attachResult.Error))
-                    TempData["AttachmentError"] = attachResult.Error;
+                    TempData["ToastError"] = attachResult.Error;
             }
 
             if (status == "Submitted")
@@ -208,7 +208,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     HttpContext.RequestAborted);
             }
 
-            TempData["SuccessMessage"] = status == "Submitted" ? "Risk submitted successfully." : "Risk draft saved.";
+            TempData["ToastSuccess"] = status == "Submitted" ? "Risk submitted successfully." : "Risk draft saved.";
             return RedirectToAction("Identification");
         }
 
@@ -257,7 +257,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 IsSuperAdmin());
             if (!ok)
             {
-                if (error != null) TempData["AssessmentError"] = error;
+                if (error != null) TempData["ToastError"] = error;
                 return RedirectToAction("Assess", new { id = model.RiskId });
             }
 
@@ -336,7 +336,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 return Forbid();
 
             await _riskService.UpdateRiskAsync(RiskId, orgId, Title, Category, SourceType, null, ProjectSite, SiteId, ProjectId, IsSuperAdmin(), changedByUserId: user.Id);
-            TempData["SuccessMessage"] = "Risk updated successfully.";
+            TempData["ToastSuccess"] = "Risk updated successfully.";
             return RedirectToAction("Identification");
         }
 
@@ -358,7 +358,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, risk.OrgId, user.Id, "Risk", id, "RiskSoftDeleted", "Risk moved to trash", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
-            TempData["SuccessMessage"] = "Risk moved to trash.";
+            TempData["ToastSuccess"] = "Risk moved to trash.";
             return RedirectToAction("Identification");
         }
 
@@ -378,7 +378,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, user.OrganizationId, user.Id, "Risk", id, "RiskRestored", "Risk restored from trash", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
-            TempData["SuccessMessage"] = "Risk restored successfully.";
+            TempData["ToastSuccess"] = "Risk restored successfully.";
             return RedirectToAction("Identification");
         }
 
@@ -402,7 +402,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 _riskService.AddAuditLog(db, orgId, user.Id, "Risk", id, "RiskHardDeleted", "Risk permanently deleted", HttpContext.Connection.RemoteIpAddress?.ToString());
                 await _riskService.SaveChangesAsync(db);
             }
-            TempData["SuccessMessage"] = "Risk permanently deleted.";
+            TempData["ToastSuccess"] = "Risk permanently deleted.";
             return RedirectToAction("Identification");
         }
 
@@ -421,7 +421,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
                 if (risk != null && risk.ReportByUserId == user.Id)
                 {
-                    TempData["ReviewError"] = "You cannot review a risk you created.";
+                    TempData["ToastError"] = "You cannot review a risk you created.";
                     return RedirectToAction("Identification");
                 }
                 return NotFound();
@@ -450,7 +450,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var risk = await _riskService.GetByIdForOrgAsync(id, orgId, IsSuperAdmin());
                 if (risk != null && risk.ReportByUserId == user.Id)
                 {
-                    TempData["ReviewError"] = "You cannot approve a risk you created.";
+                    TempData["ToastError"] = "You cannot approve a risk you created.";
                     return RedirectToAction("Identification");
                 }
                 return NotFound();
@@ -504,7 +504,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
             if (!IsRiskManager() && !IsAdmin() && !IsSuperAdmin()) return Forbid();
-            if (string.IsNullOrWhiteSpace(RejectRemarks)) { TempData["RejectError"] = "Remarks are required when rejecting."; return RedirectToAction("Identification"); }
+            if (string.IsNullOrWhiteSpace(RejectRemarks)) { TempData["ToastError"] = "Remarks are required when rejecting."; return RedirectToAction("Identification"); }
             var orgId = IsSuperAdmin() ? null : await GetMyOrgIdAsync();
             var ok = await _riskService.RejectRiskAsync(id, orgId, user.Id, RejectRemarks.Trim());
             if (!ok) return NotFound();

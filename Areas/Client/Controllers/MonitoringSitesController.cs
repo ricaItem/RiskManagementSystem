@@ -86,7 +86,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             m.SiteId = model.SiteId;
             await db.SaveChangesAsync();
-            TempData["Message"] = "Monitoring site updated.";
+            TempData["ToastSuccess"] = "Monitoring site updated.";
             return RedirectToAction(nameof(Index));
         }
     }

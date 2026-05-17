@@ -53,7 +53,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             if (!orgId.HasValue) return Forbid();
             if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin") && !User.IsInRole("RiskManager")) return Forbid();
             await _matrixService.EnsureDefaultMatrixAsync(orgId.Value, ct);
-            TempData["MatrixMessage"] = "Default risk matrix created.";
+            TempData["ToastSuccess"] = "Default risk matrix created.";
             return RedirectToAction(nameof(Index));
         }
     }

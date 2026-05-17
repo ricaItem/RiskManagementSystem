@@ -106,16 +106,14 @@ namespace Web_Sentro.Areas.Client.Controllers
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                TempData["Alert"] = "Invalid employee.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Invalid employee.";
                 return RedirectToAction(nameof(Index));
             }
 
             var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
-                TempData["Alert"] = "Employee not found.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Employee not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -127,13 +125,11 @@ namespace Web_Sentro.Areas.Client.Controllers
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Alert"] = $"{target.FirstName} {target.LastName} has been restored and is active again.";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = $"{target.FirstName} {target.LastName} has been restored and is active again.";
             return RedirectToAction(nameof(Index));
         }
 

@@ -56,7 +56,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["OrgSettingsError"] = "Please review the profile fields and try again.";
+                TempData["ToastError"] = "Please review the profile fields and try again.";
                 return RedirectToAction(nameof(Index), new { tab = "profile" });
             }
 
@@ -74,14 +74,14 @@ namespace WEB_Sentro.Areas.Client.Controllers
             {
                 if (!logoFile.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
                 {
-                    TempData["OrgSettingsError"] = "Logo upload failed. Only image files are allowed.";
+                    TempData["ToastError"] = "Logo upload failed. Only image files are allowed.";
                     return RedirectToAction(nameof(Index), new { tab = "profile" });
                 }
 
                 const long maxBytes = 2 * 1024 * 1024;
                 if (logoFile.Length > maxBytes)
                 {
-                    TempData["OrgSettingsError"] = "Logo upload failed. Maximum size is 2 MB.";
+                    TempData["ToastError"] = "Logo upload failed. Maximum size is 2 MB.";
                     return RedirectToAction(nameof(Index), new { tab = "profile" });
                 }
 
@@ -112,7 +112,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["OrgSettingsSuccess"] = "Profile settings updated.";
+            TempData["ToastSuccess"] = "Profile settings updated.";
             return RedirectToAction(nameof(Index), new { tab = "profile" });
         }
 
@@ -127,7 +127,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["OrgSettingsError"] = "Please review the address fields and try again.";
+                TempData["ToastError"] = "Please review the address fields and try again.";
                 return RedirectToAction(nameof(Index), new { tab = "addresses" });
             }
 
@@ -169,7 +169,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["OrgSettingsSuccess"] = "Address settings updated.";
+            TempData["ToastSuccess"] = "Address settings updated.";
             return RedirectToAction(nameof(Index), new { tab = "addresses" });
         }
 
@@ -187,26 +187,26 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(s => s.OrganizationId == user.OrganizationId && s.Status == "Active", ct);
             if (subscription == null)
             {
-                TempData["OrgSettingsError"] = "No active subscription found.";
+                TempData["ToastError"] = "No active subscription found.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             var targetPlan = await _platformDb.Plans.FirstOrDefaultAsync(p => p.PlanId == planId && p.IsActive, ct);
             if (targetPlan == null)
             {
-                TempData["OrgSettingsError"] = "Selected plan is unavailable.";
+                TempData["ToastError"] = "Selected plan is unavailable.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             if (targetPlan.AmountCentavos <= subscription.Plan.AmountCentavos)
             {
-                TempData["OrgSettingsError"] = "Use schedule downgrade for lower-tier plans.";
+                TempData["ToastError"] = "Use schedule downgrade for lower-tier plans.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             if (targetPlan.PlanId == subscription.PlanId)
             {
-                TempData["OrgSettingsError"] = "Your organization is already on this plan.";
+                TempData["ToastError"] = "Your organization is already on this plan.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
@@ -275,7 +275,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["OrgSettingsSuccess"] = $"Plan upgraded to {targetPlan.DisplayName}.";
+            TempData["ToastSuccess"] = $"Plan upgraded to {targetPlan.DisplayName}.";
             return RedirectToAction(nameof(Index), new { tab = "billing" });
         }
 
@@ -293,26 +293,26 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(s => s.OrganizationId == user.OrganizationId && s.Status == "Active", ct);
             if (subscription == null)
             {
-                TempData["OrgSettingsError"] = "No active subscription found.";
+                TempData["ToastError"] = "No active subscription found.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             var targetPlan = await _platformDb.Plans.FirstOrDefaultAsync(p => p.PlanId == planId && p.IsActive, ct);
             if (targetPlan == null)
             {
-                TempData["OrgSettingsError"] = "Selected plan is unavailable.";
+                TempData["ToastError"] = "Selected plan is unavailable.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             if (targetPlan.PlanId == subscription.PlanId)
             {
-                TempData["OrgSettingsError"] = "Your organization is already on this plan.";
+                TempData["ToastError"] = "Your organization is already on this plan.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             if (targetPlan.AmountCentavos >= subscription.Plan.AmountCentavos)
             {
-                TempData["OrgSettingsError"] = "Use upgrade for higher-tier plans.";
+                TempData["ToastError"] = "Use upgrade for higher-tier plans.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
@@ -332,7 +332,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["OrgSettingsSuccess"] = $"Downgrade scheduled to {targetPlan.DisplayName} on next billing cycle.";
+            TempData["ToastSuccess"] = $"Downgrade scheduled to {targetPlan.DisplayName} on next billing cycle.";
             return RedirectToAction(nameof(Index), new { tab = "billing" });
         }
 
@@ -349,13 +349,13 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 .FirstOrDefaultAsync(s => s.OrganizationId == user.OrganizationId && s.Status == "Active", ct);
             if (subscription == null)
             {
-                TempData["OrgSettingsError"] = "No active subscription found.";
+                TempData["ToastError"] = "No active subscription found.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
             if (!string.Equals(subscription.PendingChangeType, "Downgrade", StringComparison.OrdinalIgnoreCase))
             {
-                TempData["OrgSettingsError"] = "No scheduled downgrade found.";
+                TempData["ToastError"] = "No scheduled downgrade found.";
                 return RedirectToAction(nameof(Index), new { tab = "billing" });
             }
 
@@ -376,7 +376,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 "Info",
                 HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            TempData["OrgSettingsSuccess"] = "Scheduled downgrade canceled.";
+            TempData["ToastSuccess"] = "Scheduled downgrade canceled.";
             return RedirectToAction(nameof(Index), new { tab = "billing" });
         }
 

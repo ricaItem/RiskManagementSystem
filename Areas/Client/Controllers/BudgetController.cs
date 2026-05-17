@@ -249,7 +249,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 site.BudgetAllocated = amount;
                 site.UpdatedAt = DateTime.UtcNow;
                 await db.SaveChangesAsync();
-                TempData["Message"] = $"Budget for {site.SiteName} updated.";
+                TempData["ToastSuccess"] = $"Budget for {site.SiteName} updated.";
             }
             
             return RedirectToAction(nameof(Index));

@@ -212,7 +212,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Message"] = "Expense recorded.";
+            TempData["ToastSuccess"] = "Expense recorded.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -307,7 +307,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Message"] = "Expense updated.";
+            TempData["ToastSuccess"] = "Expense updated.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -347,7 +347,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Message"] = "Expense deleted.";
+            TempData["ToastSuccess"] = "Expense deleted.";
             return RedirectToAction(nameof(Index));
         }
 

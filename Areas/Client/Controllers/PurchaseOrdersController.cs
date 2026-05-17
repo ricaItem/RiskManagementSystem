@@ -179,7 +179,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 await db.SaveChangesAsync();
             }
 
-            TempData["Message"] = "Purchase order created.";
+            TempData["ToastSuccess"] = "Purchase order created.";
             return RedirectToAction(nameof(Details), new { id = entity.PurchaseOrderId });
         }
 
@@ -269,7 +269,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
             
-            TempData["Message"] = "Purchase order updated.";
+            TempData["ToastSuccess"] = "Purchase order updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -304,7 +304,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 );
             }
 
-            TempData["Message"] = "Status updated to " + status + ".";
+            TempData["ToastSuccess"] = "Status updated to " + status + ".";
             return RedirectToAction(nameof(Details), new { id });
         }
     }

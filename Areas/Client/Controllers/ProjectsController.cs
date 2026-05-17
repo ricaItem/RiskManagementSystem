@@ -163,23 +163,46 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 return View(model);
             }
 
-            var project = new Project
+            try
             {
-                Name = model.Name,
-                ProjectCode = model.ProjectCode,
-                Description = model.Description,
-                Status = model.Status,
-                StartDate = model.StartDate,
-                EndDate = model.EndDate,
-                Budget = model.Budget,
-                SiteId = model.SiteId,
-                ManagerUserId = model.ManagerUserId
-            };
+                var project = new Project
+                {
+                    Name = model.Name,
+                    ProjectCode = model.ProjectCode,
+                    Description = model.Description,
+                    Status = model.Status,
+                    StartDate = model.StartDate,
+                    EndDate = model.EndDate,
+                    Budget = model.Budget,
+                    SiteId = model.SiteId,
+                    ManagerUserId = model.ManagerUserId
+                };
 
-            await _projectService.CreateProjectAsync(orgId, user.Id, project);
+                await _projectService.CreateProjectAsync(orgId, user.Id, project);
 
-            TempData["Message"] = "Project created successfully.";
-            return RedirectToAction(nameof(Details), new { id = project.ProjectId });
+                TempData["ToastSuccess"] = "Project created successfully.";
+                return RedirectToAction(nameof(Details), new { id = project.ProjectId });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, "A system error occurred while creating the project.");
+                
+                // Reload lists
+                await using var db = await _tenantDbFactory.CreateAsync(orgId);
+                model.AvailableSites = await db.Sites.AsNoTracking()
+                    .Where(s => s.OrgId == orgId && s.Status == "Active")
+                    .OrderBy(s => s.SiteName)
+                    .Select(s => new SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})" })
+                    .ToListAsync();
+
+                model.AvailableManagers = await _platformDb.Users.AsNoTracking()
+                    .Where(u => u.OrganizationId == orgId)
+                    .OrderBy(u => u.FirstName)
+                    .Select(u => new SelectListItem { Value = u.Id, Text = $"{u.FirstName} {u.LastName}" })
+                    .ToListAsync();
+                    
+                return View(model);
+            }
         }
 
         [HttpGet]
@@ -335,13 +358,35 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 return View(model);
             }
 
-            var success = await _projectService.UpdateProjectAsync(orgId, model.ProjectId, user.Id, 
-                model.Name, model.Description, model.Status, model.StartDate, model.EndDate, model.Budget, model.ManagerUserId, model.SiteId);
+            try
+            {
+                var success = await _projectService.UpdateProjectAsync(orgId, model.ProjectId, user.Id, 
+                    model.Name, model.Description, model.Status, model.StartDate, model.EndDate, model.Budget, model.ManagerUserId, model.SiteId);
 
-            if (!success) return NotFound();
+                if (!success) return NotFound();
 
-            TempData["Message"] = "Project updated successfully.";
-            return RedirectToAction(nameof(Details), new { id = model.ProjectId });
+                TempData["ToastSuccess"] = "Project updated successfully.";
+                return RedirectToAction(nameof(Details), new { id = model.ProjectId });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, "A system error occurred while updating the project.");
+                
+                await using var db = await _tenantDbFactory.CreateAsync(orgId);
+                model.AvailableSites = await db.Sites.AsNoTracking()
+                    .Where(s => s.OrgId == orgId && s.Status == "Active")
+                    .OrderBy(s => s.SiteName)
+                    .Select(s => new SelectListItem { Value = s.SiteId.ToString(), Text = $"{s.SiteName} ({s.SiteCode})" })
+                    .ToListAsync();
+
+                model.AvailableManagers = await _platformDb.Users.AsNoTracking()
+                    .Where(u => u.OrganizationId == orgId)
+                    .OrderBy(u => u.FirstName)
+                    .Select(u => new SelectListItem { Value = u.Id, Text = $"{u.FirstName} {u.LastName}" })
+                    .ToListAsync();
+                    
+                return View(model);
+            }
         }
 
         // --- WBS / Task API ---

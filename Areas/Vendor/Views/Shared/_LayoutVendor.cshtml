@@ -462,6 +462,20 @@
         });
     </script>
 
+    <script src="~/js/toast.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            @if (TempData["ToastSuccess"] != null)
+            {
+                <text>showToast("@Html.Raw(TempData["ToastSuccess"].ToString()?.Replace("\"", "\\\""))", 'success');</text>
+            }
+            @if (TempData["ToastError"] != null)
+            {
+                <text>showToast("@Html.Raw(TempData["ToastError"].ToString()?.Replace("\"", "\\\""))", 'error');</text>
+            }
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -156,7 +156,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             };
             db.Sites.Add(site);
             await db.SaveChangesAsync();
-            TempData["Message"] = "Site created successfully.";
+            TempData["ToastSuccess"] = "Site created successfully.";
             return RedirectToAction(nameof(Details), new { id = site.SiteId });
         }
 
@@ -227,7 +227,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             site.BudgetAllocated = model.BudgetAllocated;
             site.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            TempData["Message"] = "Site updated successfully.";
+            TempData["ToastSuccess"] = "Site updated successfully.";
             return RedirectToAction(nameof(Details), new { id = site.SiteId });
         }
 
@@ -381,7 +381,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
                 var targetUser = await _platformDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == managerEmployeeId && u.OrganizationId == orgId.Value);
                 if (targetUser == null)
                 {
-                    TempData["Error"] = "User not found.";
+                    TempData["ToastError"] = "User not found.";
                     return RedirectToAction(nameof(Details), new { id = siteId });
                 }
             }
@@ -390,7 +390,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             site.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
-            TempData["Message"] = "Project Manager updated.";
+            TempData["ToastSuccess"] = "Project Manager updated.";
             return RedirectToAction(nameof(Details), new { id = siteId });
         }
 
@@ -410,7 +410,7 @@ namespace WEB_Sentro.Areas.Client.Controllers
             site.Status = "Archived";
             site.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            TempData["Message"] = "Site archived.";
+            TempData["ToastSuccess"] = "Site archived.";
             return RedirectToAction(nameof(Index));
         }
     }

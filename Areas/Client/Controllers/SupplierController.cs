@@ -247,8 +247,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 }
             }
 
-            TempData["Alert"] = "Dispute case filed successfully. Legal team notified.";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = "Dispute case filed successfully. Legal team notified.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -308,7 +307,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 await _riskService.SaveChangesAsync(db2);
             }
 
-            TempData["SuccessMessage"] = "Risk created. You can assess it from the Risk register.";
+            TempData["ToastSuccess"] = "Risk created. You can assess it from the Risk register.";
             return RedirectToAction("Assess", "Risks", new { area = "Client", id = risk.RiskId });
         }
     }
