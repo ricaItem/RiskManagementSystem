@@ -1,24 +1,20 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using WEB_Sentro.Models.Identity;
 
 namespace WEB_Sentro.Areas.Identity.Pages.Account
 {
     public class ResetPasswordModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ResetPasswordModel(UserManager<IdentityUser> userManager)
+        public ResetPasswordModel(UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
         }
@@ -49,7 +45,7 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 12)]
             [DataType(DataType.Password)]
             public string Password { get; set; }
 
@@ -71,20 +67,17 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
 
         }
 
-        public IActionResult OnGet(string code = null)
+        public IActionResult OnGet(string code = null, string email = null)
         {
-            if (code == null)
+            if (string.IsNullOrEmpty(code))
+                return BadRequest("A valid reset link is required. Please request a new password reset from the forgot password page.");
+
+            Input = new InputModel
             {
-                return BadRequest("A code must be supplied for password reset.");
-            }
-            else
-            {
-                Input = new InputModel
-                {
-                    Code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code))
-                };
-                return Page();
-            }
+                Code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code)),
+                Email = email ?? ""
+            };
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()

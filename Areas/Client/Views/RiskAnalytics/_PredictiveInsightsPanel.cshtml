@@ -1,0 +1,235 @@
+@using WEB_Sentro.Areas.Client.Models
+@model RiskAnalyticsViewModel
+@{
+    var insights = Model?.PredictiveInsights;
+    var riskLevel = insights?.RiskLevel ?? "Low";
+    var riskColor = riskLevel == "High" ? "rose" : riskLevel == "Medium" ? "amber" : "emerald";
+    var hasWarnings = insights?.EarlyWarnings?.Any(w => w.IsWarning) == true;
+}
+<section aria-label="Predictive insights" class="mb-8">
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    Predictive Insights
+                    <span class="group relative inline-block cursor-help text-slate-400 hover:text-indigo-500">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-3 bg-slate-800 text-white text-xs rounded shadow-lg z-10 text-center font-normal tracking-normal pointer-events-none">
+                            These indicators use recent historical data and rule-based logic to project upcoming risks, helping you proactively mitigate them.
+                        </div>
+                    </span>
+                </h3>
+            </div>
+            @if (hasWarnings)
+            {
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    Action Required
+                </span>
+            }
+        </div>
+        
+        <div class="grid gap-px bg-slate-100 dark:bg-slate-800 sm:grid-cols-2 lg:grid-cols-3">
+            
+            @* Card 1: Overall Risk Posture (Combines Level & Momentum) *@
+            <div class="bg-white p-6 dark:bg-slate-900/40 relative">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Risk Posture</span>
+                    <span class="group relative inline-block cursor-help text-slate-400 hover:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block w-56 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-10 text-left pointer-events-none">
+                            @insights?.RiskLevelExplanation
+                        </div>
+                    </span>
+                </div>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-end gap-3">
+                        <span class="text-3xl font-bold text-slate-900 dark:text-white">@(insights?.DynamicRiskScore.ToString("0.0") ?? "0")</span>
+                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-@(riskColor)-100 text-@(riskColor)-800 dark:bg-@(riskColor)-900/30 dark:text-@(riskColor)-300 mb-1">
+                            @riskLevel
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-2.5 rounded-full transition-all bg-@(riskColor)-500" style="width: @Math.Min(100, (insights?.DynamicRiskScore ?? 0))%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                            <span>0</span>
+                            <span class="uppercase tracking-wide text-slate-500">Momentum: @(insights?.MomentumStatus ?? "Stable")</span>
+                            <span>100+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Card 2: Incident Forecast (Combines Expected & Weekly Trend) *@
+            <div class="bg-white p-6 dark:bg-slate-900/40 relative">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Incident Forecast</span>
+                    <span class="group relative inline-block cursor-help text-slate-400 hover:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block w-56 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-10 text-left pointer-events-none">
+                            Expected incidents over the next 7 days based on a 4-week moving average.
+                        </div>
+                    </span>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-bold text-slate-900 dark:text-white">@(insights?.ExpectedIncidentsNextWeek.ToString("0.0") ?? "0.0")</span>
+                        </div>
+                        <span class="text-sm font-medium text-slate-500 dark:text-slate-400">expected next week</span>
+                    </div>
+                    
+                    @if (insights?.TrendDirection == "Upward")
+                    {
+                        <div class="flex flex-col items-end">
+                            <span class="flex items-center text-rose-600 dark:text-rose-400 font-bold text-lg">
+                                <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                +@insights.WeekOverWeekTrendPercent%
+                            </span>
+                            <span class="text-xs text-slate-400">vs last week</span>
+                        </div>
+                    }
+                    else if (insights?.TrendDirection == "Downward")
+                    {
+                        <div class="flex flex-col items-end">
+                            <span class="flex items-center text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                                <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" /></svg>
+                                -@Math.Abs(insights.WeekOverWeekTrendPercent)%
+                            </span>
+                            <span class="text-xs text-slate-400">vs last week</span>
+                        </div>
+                    }
+                    else
+                    {
+                         <div class="flex flex-col items-end">
+                            <span class="flex items-center text-slate-500 dark:text-slate-400 font-bold text-lg">
+                                <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" /></svg>
+                                0%
+                            </span>
+                            <span class="text-xs text-slate-400">Stable trend</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Card 3: Alerts & Warnings *@
+            <div class="bg-white p-6 dark:bg-slate-900/40 relative @(hasWarnings ? "border-t-4 border-rose-500 sm:border-t-0 sm:border-l-4" : "")">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Alerts</span>
+                </div>
+                <ul class="space-y-3">
+                    @{
+                        var warnings = insights?.EarlyWarnings ?? new List<EarlyWarningRowViewModel>();
+                        var activeWarnings = warnings.Where(w => w.IsWarning).Take(3).ToList();
+                    }
+                    @if (activeWarnings.Any())
+                    {
+                        foreach (var w in activeWarnings)
+                        {
+                            <li class="flex items-start gap-3 bg-rose-50/50 dark:bg-rose-900/10 p-2 rounded-lg">
+                                <svg class="h-5 w-5 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">@w.Title</p>
+                                    @if (w.StatusPill != null)
+                                    {
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@w.StatusPill</p>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                         <li class="flex flex-col items-center justify-center py-2 text-slate-400 dark:text-slate-500">
+                             <svg class="h-8 w-8 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                             <p class="text-sm font-medium">No critical alerts detected</p>
+                         </li>
+                    }
+                </ul>
+            </div>
+
+            @* Card 4: Escalation Candidates *@
+            <div class="bg-white p-6 dark:bg-slate-900/40">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Escalation Watchlist</span>
+                     <span class="group relative inline-block cursor-help text-slate-400 hover:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-10 text-left pointer-events-none">
+                            Risks likely to be escalated based on severity and lack of mitigation progress.
+                        </div>
+                    </span>
+                </div>
+                <div class="flex items-center gap-4 mt-2">
+                    <div class="flex flex-col items-center p-3 bg-rose-50 dark:bg-rose-900/10 rounded-lg min-w-[80px]">
+                        <span class="text-2xl font-bold text-rose-600 dark:text-rose-400">@(insights?.EscalationHigh ?? 0)</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-rose-500">High</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg min-w-[80px]">
+                        <span class="text-2xl font-bold text-amber-600 dark:text-amber-400">@(insights?.EscalationMedium ?? 0)</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Medium</span>
+                    </div>
+                     <div class="flex flex-col justify-center text-xs text-slate-500 dark:text-slate-400 pl-2">
+                        <p>Currently monitoring <strong>@( (insights?.EscalationHigh ?? 0) + (insights?.EscalationMedium ?? 0) )</strong> elevated candidates.</p>
+                    </div>
+                </div>
+            </div>
+
+            @* Card 5: Flood & Weather Risk *@
+            <div class="bg-white p-6 dark:bg-slate-900/40">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Flood / Weather Index</span>
+                </div>
+                <div class="space-y-3 mt-2">
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-2xl font-bold text-slate-900 dark:text-white">@(insights?.FloodProbabilityPercent.HasValue == true ? insights.FloodProbabilityPercent + "%" : "—%")</span>
+                         <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Probability</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 dark:bg-slate-800 overflow-hidden">
+                        <div class="h-2 rounded-full @(insights?.FloodProbabilityPercent > 75 ? "bg-rose-500" : insights?.FloodProbabilityPercent > 50 ? "bg-amber-500" : "bg-blue-500")" style="width: @(insights?.FloodProbabilityPercent ?? 0)%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                        <span>Low</span>
+                        <span>Moderate</span>
+                        <span>High</span>
+                        <span>Critical</span>
+                    </div>
+                </div>
+            </div>
+
+            @* Card 6: Projected Impact (Cost & Resolution) *@
+            <div class="bg-white p-6 dark:bg-slate-900/40">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Projected Impact</span>
+                     <span class="group relative inline-block cursor-help text-slate-400 hover:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-10 text-left pointer-events-none">
+                            Estimated cost exposure and historical resolution times for severe risks.
+                        </div>
+                    </span>
+                </div>
+                 <div class="flex flex-col gap-4 mt-2">
+                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <span class="text-sm text-slate-500 dark:text-slate-400">Cost Exposure</span>
+                        <span class="text-lg font-bold text-slate-900 dark:text-white">@(insights?.CostForecastAmount.HasValue == true ? "₱" + insights.CostForecastAmount.Value.ToString("N0") : "—")</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 mb-2 block tracking-wider">Est. Resolution Time</span>
+                        @foreach (var row in (insights?.ClosureBySeverity ?? new List<ClosureBySeverityRowViewModel> { new() { Severity = "Critical" } }).Take(1))
+                        {
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                    <span class="h-2 w-2 rounded-full @(row.Severity == "Critical" ? "bg-rose-500" : "bg-amber-500")"></span>
+                                    @row.Severity Risks
+                                </span>
+                                <span class="font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-xs">@(row.EtaWindow ?? "—")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>

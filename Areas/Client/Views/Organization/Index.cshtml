@@ -1,0 +1,1192 @@
+@model WEB_Sentro.Areas.Client.Models.OrganizationSettingsViewModel
+@{
+    ViewData["Title"] = "Organization Settings";
+    Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
+
+    string TabClass(string tab) => Model.ActiveTab == tab
+        ? "bg-emerald-50 text-emerald-900 font-semibold shadow-sm ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20"
+        : "text-slate-500 hover:bg-white hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-200";
+
+    string Peso(long centavos) => $"PHP {(centavos / 100.0m):N2}";
+
+    var initials = new Func<string, string>(name =>
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length > 1 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+    });
+}
+
+<style>
+    .settings-shell {
+        background: linear-gradient(to bottom, #f8fafc 0%, #f8fafc 180px, transparent 180px);
+    }
+
+    .dark .settings-shell {
+        background: linear-gradient(to bottom, #020617 0%, #020617 180px, transparent 180px);
+    }
+
+    .settings-card {
+        border-radius: 1.25rem;
+        background: rgba(255,255,255,.92);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .dark .settings-card {
+        background: rgba(15, 23, 42, .88);
+        border-color: rgba(51, 65, 85, .9);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+    }
+
+    .section-title {
+        font-size: .95rem;
+        font-weight: 700;
+        color: rgb(15 23 42);
+        letter-spacing: -.01em;
+    }
+
+    .dark .section-title {
+        color: white;
+    }
+
+    .section-subtitle {
+        font-size: .875rem;
+        color: rgb(100 116 139);
+    }
+
+    .dark .section-subtitle {
+        color: rgb(148 163 184);
+    }
+
+    .nav-pill {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        border-radius: .95rem;
+        padding: .8rem .95rem;
+        transition: all .18s ease;
+    }
+
+    .floating-field {
+        position: relative;
+    }
+
+    .floating-input,
+    .floating-textarea,
+    .floating-select {
+        width: 100%;
+        border-radius: 1rem;
+        border: 1px solid transparent;
+        background: #f8fafc;
+        color: #0f172a;
+        padding: 1.45rem 1rem .7rem 1rem;
+        font-size: .95rem;
+        line-height: 1.25rem;
+        outline: none;
+        transition: all .18s ease;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+    }
+
+    .floating-input:focus,
+    .floating-textarea:focus,
+    .floating-select:focus {
+        background: white;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12), inset 0 0 0 1px rgba(16, 185, 129, .35);
+    }
+
+    .dark .floating-input,
+    .dark .floating-textarea,
+    .dark .floating-select {
+        background: rgb(15 23 42 / .9);
+        color: white;
+        box-shadow: inset 0 0 0 1px rgba(71, 85, 105, .6);
+    }
+
+    .dark .floating-input:focus,
+    .dark .floating-textarea:focus,
+    .dark .floating-select:focus {
+        background: rgb(15 23 42 / 1);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12), inset 0 0 0 1px rgba(52, 211, 153, .35);
+    }
+
+    .floating-label {
+        position: absolute;
+        left: 1rem;
+        top: .72rem;
+        font-size: .72rem;
+        font-weight: 600;
+        letter-spacing: .01em;
+        color: rgb(100 116 139);
+        pointer-events: none;
+    }
+
+    .dark .floating-label {
+        color: rgb(148 163 184);
+    }
+
+    /* Read-only: stacked label above value to prevent overlap */
+    .readonly-field .floating-label {
+        position: static;
+        display: block;
+        margin-bottom: .35rem;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+        color: rgb(100 116 139);
+    }
+
+    .dark .readonly-field .floating-label {
+        color: rgb(148 163 184);
+    }
+
+    .readonly-field .floating-input,
+    .readonly-field .floating-textarea,
+    .readonly-field .floating-select {
+        background: transparent;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        padding-left: 0;
+        min-height: 0;
+        font-size: .9375rem;
+        font-weight: 500;
+        color: rgb(15 23 42);
+        margin-top: 0;
+    }
+
+    .dark .readonly-field .floating-input,
+    .dark .readonly-field .floating-textarea,
+    .dark .readonly-field .floating-select {
+        color: rgb(226 232 240);
+    }
+
+    .readonly-field .floating-input::placeholder,
+    .readonly-field .floating-textarea::placeholder {
+        color: rgb(148 163 184);
+    }
+
+    .dark .readonly-field .floating-input::placeholder,
+    .dark .readonly-field .floating-textarea::placeholder {
+        color: rgb(71 85 105);
+    }
+
+    .readonly-field {
+        margin-bottom: 0;
+    }
+
+    .settings-card .grid.gap-6 .readonly-field:not(:last-child) {
+        padding-bottom: 0.25rem;
+    }
+
+    .brand-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        border-radius: .85rem;
+        background: linear-gradient(135deg, #0f766e, #10b981);
+        padding: .72rem 1rem;
+        font-size: .875rem;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, .18);
+        transition: all .18s ease;
+    }
+
+    .brand-btn:hover {
+        filter: brightness(1.04);
+        transform: translateY(-1px);
+    }
+
+    .ghost-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        border-radius: .85rem;
+        padding: .72rem 1rem;
+        font-size: .875rem;
+        font-weight: 600;
+        color: rgb(51 65 85);
+        background: transparent;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .35);
+        transition: all .18s ease;
+    }
+
+    .ghost-btn:hover {
+        background: rgba(248, 250, 252, .9);
+    }
+
+    .dark .ghost-btn {
+        color: rgb(226 232 240);
+        box-shadow: inset 0 0 0 1px rgba(71, 85, 105, .8);
+    }
+
+    .dark .ghost-btn:hover {
+        background: rgba(30, 41, 59, .85);
+    }
+
+    .soft-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        border-radius: 999px;
+        padding: .35rem .7rem;
+        font-size: .74rem;
+        font-weight: 700;
+    }
+
+    .upload-box {
+        border: 1.5px dashed rgba(148, 163, 184, .45);
+        background: linear-gradient(180deg, rgba(248,250,252,.9), rgba(255,255,255,.95));
+    }
+
+    .dark .upload-box {
+        border-color: rgba(71, 85, 105, .9);
+        background: linear-gradient(180deg, rgba(15,23,42,.72), rgba(15,23,42,.9));
+    }
+
+    .plan-card-current {
+        background: linear-gradient(180deg, rgba(16,185,129,.10), rgba(255,255,255,1));
+        border: 1px solid rgba(16,185,129,.35);
+        box-shadow: 0 14px 34px rgba(16,185,129,.10);
+    }
+
+    .dark .plan-card-current {
+        background: linear-gradient(180deg, rgba(16,185,129,.14), rgba(15,23,42,1));
+        border-color: rgba(52,211,153,.28);
+    }
+
+    .timeline-line {
+        position: absolute;
+        left: 1rem;
+        top: 2rem;
+        bottom: -1rem;
+        width: 2px;
+        background: rgba(226, 232, 240, 1);
+    }
+
+    .dark .timeline-line {
+        background: rgba(51, 65, 85, 1);
+    }
+</style>
+
+<div class="settings-shell min-h-screen">
+    <!-- Success Toast -->
+    @if (TempData["OrgSettingsSuccess"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div id="successToast" class="fixed right-6 top-6 z-[100] flex w-full max-w-sm transform items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/90 p-4 shadow-xl backdrop-blur-md transition-all duration-500 animate-in slide-in-from-right-10 dark:border-emerald-900/30 dark:bg-emerald-900/40">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-emerald-900 dark:text-emerald-100 uppercase tracking-wide">Success</h4>
+                <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">@success</p>
+            </div>
+            <button onclick="document.getElementById('successToast').remove()" class="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-200 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <script>setTimeout(() => { const t = document.getElementById('successToast'); if(t) { t.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => t.remove(), 500); } }, 5000);</script>
+    }
+
+    <!-- Error Toast -->
+    @if (TempData["OrgSettingsError"] is string error && !string.IsNullOrWhiteSpace(error))
+    {
+        <div id="errorToast" class="fixed right-6 top-6 z-[100] flex w-full max-w-sm transform items-center gap-4 rounded-2xl border border-rose-100 bg-rose-50/90 p-4 shadow-xl backdrop-blur-md transition-all duration-500 animate-in slide-in-from-right-10 dark:border-rose-900/30 dark:bg-rose-900/40">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-rose-900 dark:text-rose-100 uppercase tracking-wide">Action Failed</h4>
+                <p class="text-xs font-medium text-rose-700 dark:text-rose-300">@error</p>
+            </div>
+            <button onclick="document.getElementById('errorToast').remove()" class="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-200 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <script>setTimeout(() => { const t = document.getElementById('errorToast'); if(t) { t.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => t.remove(), 500); } }, 5000);</script>
+    }
+
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="settings-card overflow-hidden px-6 py-6 sm:px-8">
+                <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+                            Organization Settings
+                        </p>
+                        <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            @Model.OrgName
+                        </h1>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <span class="text-sm text-slate-500 dark:text-slate-400">@Model.OrgCode</span>
+                            <span class="soft-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+                                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                @Model.Status
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Section</p>
+                            <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">@Model.ActiveTab.ToUpper()</p>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Edit Access</p>
+                            <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">@(Model.CanEditOrganization ? "Enabled" : "View Only")</p>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700 col-span-2 sm:col-span-1">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Billing</p>
+                            <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">@(Model.CanManageBilling ? "Manageable" : "Restricted")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 xl:grid-cols-12">
+            <!-- Sidebar -->
+            <aside class="xl:col-span-3">
+                <div class="settings-card sticky top-6 overflow-hidden p-4">
+                    <div class="mb-4 px-2">
+                        <h2 class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Navigation</h2>
+                    </div>
+
+                    <nav class="space-y-2">
+                        <a href="@Url.Action("Index", "Organization", new { area = "Client", tab = "profile" })" data-nav class="nav-pill @TabClass("profile")">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM3 16.5A5.5 5.5 0 018.5 11h3A5.5 5.5 0 0117 16.5a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">Profile</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Identity and public details</p>
+                            </div>
+                        </a>
+
+                        <a href="@Url.Action("Index", "Organization", new { area = "Client", tab = "addresses" })" data-nav class="nav-pill @TabClass("addresses")">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 016 6c0 4.06-4.28 8.65-5.25 9.64a1 1 0 01-1.5 0C8.28 16.65 4 12.06 4 8a6 6 0 016-6zm0 8.25A2.25 2.25 0 1010 5.75a2.25 2.25 0 000 4.5z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">Addresses</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Legal and billing locations</p>
+                            </div>
+                        </a>
+
+                        <a href="@Url.Action("Index", "Organization", new { area = "Client", tab = "billing" })" data-nav class="nav-pill @TabClass("billing")">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M4 5a2 2 0 012-2h8a2 2 0 012 2v1H4V5zm12 3H4v5a2 2 0 002 2h8a2 2 0 002-2V8z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">Billing</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Plans, invoices, payments</p>
+                            </div>
+                        </a>
+
+                        <a href="@Url.Action("Index", "Organization", new { area = "Client", tab = "users" })" data-nav class="nav-pill @TabClass("users")">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6 5a3 3 0 116 0A3 3 0 016 5zm7 1a2 2 0 114 0 2 2 0 01-4 0zM2 15a4 4 0 014-4h4a4 4 0 014 4v1H2v-1zm11.5 1v-1a4.98 4.98 0 00-1.03-3.05A3.999 3.999 0 0118 15v1h-4.5z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">Users & Roles</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">People and permissions</p>
+                            </div>
+                        </a>
+
+                        <a href="@Url.Action("Index", "Organization", new { area = "Client", tab = "audit" })" data-nav class="nav-pill @TabClass("audit")">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a7 7 0 100 14 7 7 0 000-14zm.75 3.5a.75.75 0 00-1.5 0V10c0 .414.336.75.75.75h2.5a.75.75 0 000-1.5h-1.75V6.5z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">Audit Log</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Recent activity timeline</p>
+                            </div>
+                        </a>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- Main -->
+            <main class="xl:col-span-9">
+                @if (Model.ActiveTab == "profile")
+                {
+                    <div class="settings-card overflow-hidden">
+                        <form method="post" asp-action="UpdateProfile" asp-controller="Organization" asp-area="Client" enctype="multipart/form-data" class="org-settings-form" data-form-key="profile">
+                            @Html.AntiForgeryToken()
+
+                            <div class="flex flex-col gap-4 border-b border-slate-200/80 px-6 py-5 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <h2 class="section-title">Profile</h2>
+                                    <p class="section-subtitle mt-1">Update your organization's identity, contact information, and public details.</p>
+                                </div>
+
+                                @if (Model.CanEditOrganization)
+                                {
+                                    <div class="flex flex-wrap items-center gap-3" data-profile-actions>
+                                        <button type="button" class="edit-trigger flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300" data-edit-start title="Edit Profile">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <div class="edit-mode-actions hidden flex flex-wrap items-center gap-3" data-edit-actions>
+                                            <button type="submit" class="brand-btn" data-edit-save>Save changes</button>
+                                            <button type="button" class="ghost-btn" data-edit-cancel>Cancel</button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="space-y-8 px-6 py-6">
+                                <!-- Logo -->
+                                <div class="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900 dark:text-white">Organization Logo</p>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Shown across workspaces and billing documents.</p>
+                                    </div>
+
+                                    <div class="upload-box rounded-3xl p-5">
+                                        <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+                                            <div class="h-20 w-20 overflow-hidden rounded-3xl bg-white ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+                                                @if (!string.IsNullOrWhiteSpace(Model.Profile.LogoPath))
+                                                {
+                                                    <img src="@Model.Profile.LogoPath" alt="Logo" class="h-full w-full object-cover" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="flex h-full w-full items-center justify-center">
+                                                        <svg class="h-9 w-9 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18v-1.5M7.5 10.5l4.5-4.5m0 0 4.5 4.5M12 6v12" />
+                                                        </svg>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="flex-1">
+                                                <p class="text-sm font-semibold text-slate-900 dark:text-white">Upload a logo</p>
+                                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">PNG or JPG. Use a square image for best results.</p>
+                                                <div class="mt-4">
+                                                    <input type="file" name="logoFile" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-4 file:py-2.5 file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/20 dark:file:text-emerald-300" disabled data-edit-field />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Organization details -->
+                                <div class="border-t border-slate-200/80 pt-8 dark:border-slate-800">
+                                    <h3 class="mb-6 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Organization details</h3>
+                                    <div class="grid gap-8 sm:grid-cols-2">
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Profile.OrgName">Organization Name</label>
+                                            <input asp-for="Profile.OrgName" class="floating-input" readonly data-edit-field />
+                                            <span asp-validation-for="Profile.OrgName" class="mt-1 block text-xs text-rose-500"></span>
+                                        </div>
+
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Profile.DisplayName">Display Name</label>
+                                            <input asp-for="Profile.DisplayName" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field sm:col-span-2">
+                                            <label class="floating-label" asp-for="Profile.Website">Website</label>
+                                            <input asp-for="Profile.Website" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field max-w-md">
+                                            <label class="floating-label" asp-for="Profile.TaxId">Tax ID</label>
+                                            <input asp-for="Profile.TaxId" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Profile.PrimaryEmail">Primary Email</label>
+                                            <input asp-for="Profile.PrimaryEmail" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field max-w-md">
+                                            <label class="floating-label" asp-for="Profile.PrimaryPhone">Primary Phone</label>
+                                            <input asp-for="Profile.PrimaryPhone" class="floating-input" readonly data-edit-field />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                }
+
+                @if (Model.ActiveTab == "addresses")
+                {
+                    <div class="settings-card overflow-hidden">
+                        <form method="post" asp-action="UpdateAddresses" asp-controller="Organization" asp-area="Client" class="org-settings-form" data-form-key="addresses">
+                            @Html.AntiForgeryToken()
+
+                            <div class="flex flex-col gap-4 border-b border-slate-200/80 px-6 py-5 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <h2 class="section-title">Addresses</h2>
+                                    <p class="section-subtitle mt-1">Keep your legal address and billing contact information accurate.</p>
+                                </div>
+
+                                @if (Model.CanEditOrganization)
+                                {
+                                    <div class="flex flex-wrap items-center gap-3" data-addresses-actions>
+                                        <button type="button" class="edit-trigger flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300" data-edit-start title="Edit details">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <div class="edit-mode-actions hidden flex flex-wrap items-center gap-3" data-edit-actions>
+                                            <button type="submit" class="brand-btn" data-edit-save>Save changes</button>
+                                            <button type="button" class="ghost-btn" data-edit-cancel>Cancel</button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="grid gap-6 px-6 py-6 xl:grid-cols-2">
+                                <!-- Legal -->
+                                <section class="rounded-3xl bg-slate-50/80 p-5 ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700/80">
+                                    <div class="mb-5">
+                                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Legal Address</h3>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Registered organization location.</p>
+                                    </div>
+
+                                    <div class="grid gap-6">
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Addresses.LegalAddressLine1">Address Line 1</label>
+                                            <input asp-for="Addresses.LegalAddressLine1" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Addresses.LegalAddressLine2">Address Line 2</label>
+                                            <input asp-for="Addresses.LegalAddressLine2" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="grid gap-6 sm:grid-cols-[1.4fr_1.2fr_.9fr]">
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.LegalCity">City</label>
+                                                <input asp-for="Addresses.LegalCity" class="floating-input" readonly data-edit-field />
+                                            </div>
+
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.LegalProvince">Province / State</label>
+                                                <input asp-for="Addresses.LegalProvince" class="floating-input" readonly data-edit-field />
+                                            </div>
+
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.LegalPostalCode">Postal Code</label>
+                                                <input asp-for="Addresses.LegalPostalCode" class="floating-input" readonly data-edit-field />
+                                            </div>
+                                        </div>
+
+                                        <div class="floating-field readonly-field max-w-sm">
+                                            <label class="floating-label" asp-for="Addresses.LegalCountry">Country</label>
+                                            <input asp-for="Addresses.LegalCountry" class="floating-input" readonly data-edit-field />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Billing -->
+                                <section class="rounded-3xl bg-slate-50/80 p-5 ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700/80">
+                                    <div class="mb-5">
+                                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Billing Address & Contact</h3>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Used for invoices and account communication.</p>
+                                    </div>
+
+                                    <div class="grid gap-6">
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Addresses.BillingAddressLine1">Address Line 1</label>
+                                            <input asp-for="Addresses.BillingAddressLine1" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="floating-field readonly-field">
+                                            <label class="floating-label" asp-for="Addresses.BillingAddressLine2">Address Line 2</label>
+                                            <input asp-for="Addresses.BillingAddressLine2" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="grid gap-6 sm:grid-cols-[1.4fr_1.2fr_.9fr]">
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.BillingCity">City</label>
+                                                <input asp-for="Addresses.BillingCity" class="floating-input" readonly data-edit-field />
+                                            </div>
+
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.BillingProvince">Province / State</label>
+                                                <input asp-for="Addresses.BillingProvince" class="floating-input" readonly data-edit-field />
+                                            </div>
+
+                                            <div class="floating-field readonly-field">
+                                                <label class="floating-label" asp-for="Addresses.BillingPostalCode">Postal Code</label>
+                                                <input asp-for="Addresses.BillingPostalCode" class="floating-input" readonly data-edit-field />
+                                            </div>
+                                        </div>
+
+                                        <div class="floating-field readonly-field max-w-sm">
+                                            <label class="floating-label" asp-for="Addresses.BillingCountry">Country</label>
+                                            <input asp-for="Addresses.BillingCountry" class="floating-input" readonly data-edit-field />
+                                        </div>
+
+                                        <div class="mt-2 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200 dark:bg-slate-900/50 dark:ring-slate-700">
+                                            <p class="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Contact Person</p>
+                                            <div class="grid gap-6">
+                                                <div class="floating-field readonly-field">
+                                                    <label class="floating-label" asp-for="Addresses.BillingContactName">Name</label>
+                                                    <input asp-for="Addresses.BillingContactName" class="floating-input" readonly data-edit-field />
+                                                </div>
+
+                                                <div class="grid gap-6 sm:grid-cols-[1.4fr_1fr]">
+                                                    <div class="floating-field readonly-field">
+                                                        <label class="floating-label" asp-for="Addresses.BillingEmail">Email</label>
+                                                        <input asp-for="Addresses.BillingEmail" class="floating-input" readonly data-edit-field />
+                                                    </div>
+
+                                                    <div class="floating-field readonly-field">
+                                                        <label class="floating-label" asp-for="Addresses.BillingPhone">Phone</label>
+                                                        <input asp-for="Addresses.BillingPhone" class="floating-input" readonly data-edit-field />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </form>
+                    </div>
+                }
+
+                @if (Model.ActiveTab == "billing")
+                {
+                    <div class="space-y-8">
+                        <!-- Current Subscription -->
+                        <div class="settings-card overflow-hidden">
+                            <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                                <h2 class="section-title">Current Subscription</h2>
+                                <p class="section-subtitle mt-1">Your current billing plan and account status.</p>
+                            </div>
+
+                            <div class="px-6 py-6">
+                                @if (Model.CurrentSubscription != null)
+                                {
+                                    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                                        <div class="rounded-3xl plan-card-current p-6">
+                                            <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+                                                <div>
+                                                    <div class="flex flex-wrap items-center gap-3">
+                                                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white">@Model.CurrentSubscription.CurrentPlanName</h3>
+                                                        <span class="soft-badge bg-white text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800">
+                                                            Current Plan
+                                                        </span>
+                                                    </div>
+                                                    <p class="mt-2 text-slate-600 dark:text-slate-300">
+                                                        <span class="text-3xl font-bold text-slate-900 dark:text-white">@Peso(Model.CurrentSubscription.CurrentPlanAmountCentavos)</span>
+                                                        <span class="ml-1 text-sm font-semibold text-slate-500 dark:text-slate-400">/ @Model.CurrentSubscription.BillingInterval</span>
+                                                    </p>
+                                                </div>
+
+                                                <span class="soft-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+                                                    @Model.CurrentSubscription.Status
+                                                </span>
+                                            </div>
+
+                                            <div class="grid gap-4 sm:grid-cols-2">
+                                                <div class="rounded-2xl bg-white/80 p-4 ring-1 ring-slate-200 dark:bg-slate-900/50 dark:ring-slate-700">
+                                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Current Period</p>
+                                                    <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                        @Model.CurrentSubscription.CurrentPeriodStart.ToString("MMM dd, yyyy")
+                                                        -
+                                                        @Model.CurrentSubscription.CurrentPeriodEnd.ToString("MMM dd, yyyy")
+                                                    </p>
+                                                </div>
+
+                                                <div class="rounded-2xl bg-white/80 p-4 ring-1 ring-slate-200 dark:bg-slate-900/50 dark:ring-slate-700">
+                                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Interval</p>
+                                                    <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">@Model.CurrentSubscription.BillingInterval</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(Model.CurrentSubscription.PendingChangeType) && Model.CurrentSubscription.PendingChangeType == "Downgrade")
+                                        {
+                                            <div class="rounded-3xl border border-amber-200 bg-amber-50/90 p-5 shadow-sm dark:border-amber-900/30 dark:bg-amber-900/10">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-amber-500 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:ring-amber-800">
+                                                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">Scheduled Downgrade</h3>
+                                                        <p class="mt-2 text-sm text-amber-800 dark:text-amber-300">
+                                                            Downgrade to <strong>@Model.CurrentSubscription.PendingPlanName</strong> on
+                                                            <strong>@Model.CurrentSubscription.PendingChangeEffectiveAt?.ToString("MMM dd, yyyy")</strong>.
+                                                        </p>
+
+                                                        @if (Model.CanManageBilling)
+                                                        {
+                                                            <div class="mt-4">
+                                                                <form method="post" asp-action="CancelScheduledDowngrade" asp-controller="Organization" asp-area="Client">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <button type="submit" class="ghost-btn">Cancel downgrade</button>
+                                                                </form>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                                        No active subscription found.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Plans -->
+                        <div class="settings-card overflow-hidden">
+                            <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                                <h2 class="section-title">Available Plans</h2>
+                                <p class="section-subtitle mt-1">Compare plans and manage upgrades or downgrades.</p>
+                            </div>
+
+                            <div class="px-6 py-6">
+                                <div class="grid gap-6 lg:grid-cols-3">
+                                    @foreach (var plan in Model.AvailablePlans)
+                                    {
+                                        <div class="relative flex flex-col rounded-3xl border p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg @(plan.IsCurrent ? "plan-card-current" : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/60")">
+                                            @if (plan.IsCurrent)
+                                            {
+                                                <div class="absolute right-4 top-4 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                                                    Current Plan
+                                                </div>
+                                            }
+
+                                            <div class="pt-4">
+                                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">@plan.DisplayName</h3>
+                                                <div class="mt-4">
+                                                    <span class="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">@Peso(plan.AmountCentavos)</span>
+                                                    <span class="ml-1 text-sm font-semibold text-slate-500 dark:text-slate-400">/@plan.BillingInterval</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                                    Flexible billing cycle
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                                    Organization access included
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                                    Secure invoice history
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-auto pt-6">
+                                                @if (Model.CurrentSubscription != null && Model.CanManageBilling)
+                                                {
+                                                    if (plan.IsUpgrade)
+                                                    {
+                                                        <form method="post" asp-action="UpgradePlan" asp-controller="Organization" asp-area="Client">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="planId" value="@plan.PlanId" />
+                                                            <button type="submit" class="brand-btn w-full">Upgrade now</button>
+                                                        </form>
+                                                    }
+                                                    else if (plan.IsDowngrade)
+                                                    {
+                                                        <form method="post" asp-action="ScheduleDowngrade" asp-controller="Organization" asp-area="Client">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="planId" value="@plan.PlanId" />
+                                                            <button type="submit" class="ghost-btn w-full">Schedule downgrade</button>
+                                                        </form>
+                                                    }
+                                                    else if (plan.IsCurrent)
+                                                    {
+                                                        <button type="button" disabled class="w-full cursor-not-allowed rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                                            Active
+                                                        </button>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invoice + Payments -->
+                        <div class="grid gap-8 xl:grid-cols-2">
+                            <div class="settings-card overflow-hidden">
+                                <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                                    <h2 class="section-title">Invoice History</h2>
+                                </div>
+
+                                <div class="overflow-hidden">
+                                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                                        <thead class="bg-slate-50/80 dark:bg-slate-800/50">
+                                            <tr>
+                                                <th class="py-3.5 pl-6 pr-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Invoice</th>
+                                                <th class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Amount</th>
+                                                <th class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
+                                                <th class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                            @foreach (var invoice in Model.Invoices)
+                                            {
+                                                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
+                                                    <td class="whitespace-nowrap py-4 pl-6 pr-3 text-sm font-semibold text-slate-900 dark:text-white">@invoice.InvoiceNumber</td>
+                                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-600 dark:text-slate-300">@Peso(invoice.AmountDueCentavos)</td>
+                                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400">@invoice.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                                        <span class="soft-badge bg-slate-50 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">@invoice.Status</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                            @if (!Model.Invoices.Any())
+                                            {
+                                                <tr>
+                                                    <td colspan="4" class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">No invoices found.</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="settings-card overflow-hidden">
+                                <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                                    <h2 class="section-title">Recent Payments</h2>
+                                </div>
+
+                                <div class="px-6 py-3">
+                                    <ul role="list" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                        @foreach (var payment in Model.Payments)
+                                        {
+                                            <li class="py-4">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+                                                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm.75 3a.75.75 0 00-1.5 0v3c0 .414.336.75.75.75h2a.75.75 0 000-1.5h-1.25v-2.25z" /></svg>
+                                                    </div>
+
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">@Peso(payment.AmountCentavos)</p>
+                                                        <p class="truncate text-xs text-slate-500 dark:text-slate-400">@payment.Gateway • @payment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+                                                    </div>
+
+                                                    <span class="soft-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+                                                        @payment.Status
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        }
+
+                                        @if (!Model.Payments.Any())
+                                        {
+                                            <li class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">No payments recorded yet.</li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.ActiveTab == "users")
+                {
+                    <div class="settings-card overflow-hidden">
+                        <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                            <h2 class="section-title">Users & Roles</h2>
+                            <p class="section-subtitle mt-1">People with access to your organization.</p>
+                        </div>
+
+                        <div class="grid gap-4 px-6 py-6">
+                            @foreach (var user in Model.Users)
+                            {
+                                <div class="rounded-3xl bg-slate-50/80 p-4 ring-1 ring-slate-200 transition-all hover:shadow-sm dark:bg-slate-800/40 dark:ring-slate-700/80">
+                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div class="flex items-center gap-4">
+                                            @if (!string.IsNullOrWhiteSpace(user.ProfileImagePath))
+                                            {
+                                                <img src="@user.ProfileImagePath" alt="@user.FullName" class="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
+                                            }
+                                            else
+                                            {
+                                                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
+                                                    @initials(user.FullName)
+                                                </div>
+                                            }
+
+                                            <div>
+                                                <div class="text-sm font-bold text-slate-900 dark:text-white">@user.FullName</div>
+                                                <div class="text-sm text-slate-500 dark:text-slate-400">@user.Email</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-wrap items-center gap-3">
+                                            <span class="soft-badge bg-slate-50 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                                                @string.Join(", ", user.Roles)
+                                            </span>
+
+                                            <span class="soft-badge @(user.IsActive
+                                                                                                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20"
+                                                                                                  : "bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/20")">
+                                        @(user.IsActive ? "Active" : "Inactive")
+                                    </span>
+
+                                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                Added @user.CreatedAt.ToString("MMM dd, yyyy")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                                }
+
+                            @if (!Model.Users.Any())
+                            {
+                                <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                                    No users found.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Model.ActiveTab == "audit")
+                {
+                    <div class="settings-card overflow-hidden">
+                        <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                            <h2 class="section-title">Audit Log</h2>
+                            <p class="section-subtitle mt-1">A timeline of organization activity and system changes.</p>
+                        </div>
+
+                        <div class="px-6 py-6">
+                            @if (Model.AuditEntries.Any())
+                            {
+                                <ul role="list" class="space-y-1">
+                                    @for (int i = 0; i < Model.AuditEntries.Count; i++)
+                                    {
+                                        var entry = Model.AuditEntries[i];
+                                        var isLast = i == Model.AuditEntries.Count - 1;
+
+                                        <li class="relative pl-12">
+                                            @if (!isLast)
+                                            {
+                                                <span class="timeline-line" aria-hidden="true"></span>
+                                            }
+
+                                            <span class="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-600 ring-4 ring-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:ring-emerald-500/10">
+                                                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                                            </span>
+
+                                            <div class="mb-5 rounded-3xl bg-slate-50/80 p-4 ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700/80">
+                                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                                                            @entry.Message
+                                                            <span class="font-bold text-slate-900 dark:text-white">(@entry.EntityType)</span>
+                                                        </p>
+                                                        <p class="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                                            @entry.ActionType • by @entry.UserId
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                        <time datetime="@entry.CreatedAt.ToString("o")">@entry.CreatedAt.ToString("MMM dd, yyyy • HH:mm")</time>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                                    No activity recorded.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </main>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        function toggleReadonlyAppearance(field, editing) {
+            // Handle file inputs separately as they don't have the floating-field wrapper
+            if (field.type === 'file') {
+                field.disabled = !editing;
+                return;
+            }
+
+            const wrapper = field.closest('.floating-field');
+            if (!wrapper) return;
+
+            wrapper.classList.toggle('readonly-field', !editing);
+            field.readOnly = !editing;
+        }
+
+        function setEditing(form, editing) {
+            const fields = form.querySelectorAll('[data-edit-field]');
+            fields.forEach(function (field) {
+                toggleReadonlyAppearance(field, editing);
+            });
+
+            var editTrigger = form.querySelector('[data-edit-start]');
+            var editActions = form.querySelector('[data-edit-actions]');
+
+            if (editTrigger) editTrigger.classList.toggle('hidden', editing);
+            if (editActions) editActions.classList.toggle('hidden', !editing);
+        }
+
+        function initOrgSettingsForms() {
+            var forms = document.querySelectorAll('.org-settings-form');
+
+            // Attach skeleton loader to nav pills
+            var navPills = document.querySelectorAll('.nav-pill[data-nav]');
+            navPills.forEach(function (pill) {
+                // To avoid duplicate listeners, we can clone and replace, 
+                // OR we can rely on a data attribute to check if initialized.
+                // Cloning is safer for removing old anonymous listeners but tricky if other things depend on the element reference.
+                // Given this is a simple page, cloning works.
+                
+                // IMPORTANT: Since `softNav` attaches listeners to `document`, we don't need to worry about losing IT's listener 
+                // because it uses delegation. But we want OUR listener to run first or alongside.
+                
+                // However, replacing the element might break if some other script attached a direct listener.
+                // Let's just add the listener and use a flag to prevent adding it multiple times.
+                
+                if (pill.dataset.skeletonInitialized) return;
+                pill.dataset.skeletonInitialized = "true";
+                
+                pill.addEventListener('click', function (e) {
+                     // Check if this is a modified click (ctrl/meta) - let default browser behavior handle it
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    
+                    // Inject skeleton content immediately
+                    var mainCol = document.querySelector('.xl\\:col-span-9');
+                    if (mainCol) {
+                        mainCol.innerHTML = `
+                            <div class="settings-card overflow-hidden animate-pulse">
+                                <div class="border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+                                    <div class="h-5 w-32 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                    <div class="mt-2 h-4 w-64 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                </div>
+                                <div class="px-6 py-6 space-y-8">
+                                    <div class="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+                                         <div class="space-y-2">
+                                            <div class="h-4 w-32 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                            <div class="h-3 w-48 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                         </div>
+                                         <div class="upload-box rounded-3xl p-5 h-32 bg-slate-50 dark:bg-slate-800/50"></div>
+                                    </div>
+                                    <div class="border-t border-slate-200/80 pt-8 dark:border-slate-800 grid gap-8 sm:grid-cols-2">
+                                        <div class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+                                        <div class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+                                        <div class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 sm:col-span-2"></div>
+                                        <div class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+                                        <div class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Set active state on sidebar visually immediately
+                    // We need to re-query pills because the node list 'navPills' is static from earlier
+                    var allPills = document.querySelectorAll('.nav-pill[data-nav]');
+                    
+                    allPills.forEach(p => {
+                         // Remove active classes
+                         p.classList.remove('bg-emerald-50', 'text-emerald-900', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-emerald-200', 'dark:bg-emerald-500/10', 'dark:text-emerald-300', 'dark:ring-emerald-500/20');
+                         // Add inactive classes
+                         p.classList.add('text-slate-500', 'hover:bg-white', 'hover:text-slate-800', 'dark:text-slate-400', 'dark:hover:bg-slate-800/70', 'dark:hover:text-slate-200');
+                    });
+                    
+                    // Activate current pill
+                    pill.classList.remove('text-slate-500', 'hover:bg-white', 'hover:text-slate-800', 'dark:text-slate-400', 'dark:hover:bg-slate-800/70', 'dark:hover:text-slate-200');
+                    pill.classList.add('bg-emerald-50', 'text-emerald-900', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-emerald-200', 'dark:bg-emerald-500/10', 'dark:text-emerald-300', 'dark:ring-emerald-500/20');
+                });
+            });
+
+            forms.forEach(function (form) {
+                // Attach save loading animation
+                // Check if listener attached
+                if (form.dataset.submitListenerAttached) return;
+                form.dataset.submitListenerAttached = "true";
+                
+                form.addEventListener('submit', function() {
+                    var saveBtn = form.querySelector('button[type="submit"]');
+                    if (saveBtn && !saveBtn.disabled) {
+                        saveBtn.disabled = true;
+                        // Keep width to avoid layout shift
+                        saveBtn.style.minWidth = saveBtn.offsetWidth + 'px';
+                        saveBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...`;
+                    }
+                });
+
+                const fields = form.querySelectorAll('[data-edit-field]');
+                fields.forEach(function (field) {
+                    toggleReadonlyAppearance(field, false);
+                });
+
+                var editBtn = form.querySelector('[data-edit-start]');
+                var cancelBtn = form.querySelector('[data-edit-cancel]');
+
+                if (editBtn) {
+                    // Remove existing listeners to prevent duplicates if function runs multiple times
+                    var newEditBtn = editBtn.cloneNode(true);
+                    editBtn.parentNode.replaceChild(newEditBtn, editBtn);
+                    editBtn = newEditBtn;
+
+                    editBtn.addEventListener('click', function () {
+                        setEditing(form, true);
+                    });
+                }
+
+                if (cancelBtn) {
+                    // Remove existing listeners
+                    var newCancelBtn = cancelBtn.cloneNode(true);
+                    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                    cancelBtn = newCancelBtn;
+
+                    cancelBtn.addEventListener('click', function () {
+                        form.reset();
+
+                        var fileField = form.querySelector('input[type="file"]');
+                        if (fileField) fileField.value = '';
+
+                        setEditing(form, false);
+                    });
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initOrgSettingsForms);
+        } else {
+            initOrgSettingsForms();
+        }
+    })();
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

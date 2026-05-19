@@ -1,73 +1,116 @@
+@model WEB_Sentro.Areas.Vendor.Models.LogsIndexViewModel
 @{
-    ViewData["Title"] = "System Logs & Audit Trails";
+    ViewData["Title"] = "Audit & System Logs";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
 }
 
 <div class="space-y-6 animate-in fade-in duration-500">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Audit <span class="text-emerald-600">Trails</span></h1>
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Global Security & Activity Monitoring</p>
-        </div>
-        <div class="flex gap-2">
-            <button class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                Download CSV
-            </button>
-            <button class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white dark:bg-emerald-600">
-                Live Refresh
-            </button>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Audit <span class="text-emerald-600">and System Logs</span></h1>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Clear separation by log type, severity, and organization</p>
         </div>
     </div>
 
-    <div class="flex flex-wrap gap-3 rounded-2xl bg-slate-100/50 p-2 dark:bg-slate-800/50">
-        <select class="rounded-lg border-none bg-white px-3 py-2 text-xs font-medium shadow-sm dark:bg-slate-900 dark:text-slate-300">
-            <option>All Severity</option>
-            <option>Critical</option>
-            <option>Security</option>
-            <option>Info</option>
-        </select>
-        <select class="rounded-lg border-none bg-white px-3 py-2 text-xs font-medium shadow-sm dark:bg-slate-900 dark:text-slate-300">
-            <option>All Organizations</option>
-            <option>BuildCraft Solutions</option>
-            <option>Skyline Heights</option>
-        </select>
-        <input type="text" placeholder="Search by User or Event..." class="flex-1 rounded-lg border-none bg-white px-3 py-2 text-xs font-normal shadow-sm dark:bg-slate-900 dark:text-white" />
-    </div>
+    <form method="get" class="grid gap-3 md:grid-cols-12 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/50">
+        <input type="hidden" name="page" value="1" />
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <div class="md:col-span-4">
+            <input type="text" name="search" value="@Model.Search" placeholder="Search event, message, actor..." class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+        </div>
+        <div class="md:col-span-2">
+            <select name="logType" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option value="">All Types</option>
+                <option value="Audit" selected="@(Model.LogType == "Audit")">Audit</option>
+                <option value="System" selected="@(Model.LogType == "System")">System</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <select name="severity" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option value="">All Severity</option>
+                <option value="success" selected="@(Model.Severity == "success")">Success</option>
+                <option value="warning" selected="@(Model.Severity == "warning")">Warning</option>
+                <option value="critical" selected="@(Model.Severity == "critical")">Critical</option>
+            </select>
+        </div>
+        <div class="md:col-span-3">
+            <select name="orgId" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option value="">All Organizations</option>
+                @foreach (var org in Model.OrganizationOptions)
+                {
+                    <option value="@org.OrganizationId" selected="@(Model.OrganizationId == org.OrganizationId)">@org.OrgName</option>
+                }
+            </select>
+        </div>
+        <div class="md:col-span-1">
+            <button type="submit" class="w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Apply</button>
+        </div>
+    </form>
 
-    <div class="rounded-3xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900/50">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50 text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:bg-slate-800/50">
-                    <th class="px-6 py-4">Timestamp</th>
-                    <th class="px-6 py-4">Organization</th>
-                    <th class="px-6 py-4">Actor</th>
-                    <th class="px-6 py-4">Event</th>
-                    <th class="px-6 py-4">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs font-normal dark:divide-slate-800">
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td class="px-6 py-4 text-slate-400">2026-02-08 14:22:01</td>
-                    <td class="px-6 py-4 dark:text-white">BuildCraft Solutions</td>
-                    <td class="px-6 py-4 text-slate-500">admin@buildcraft.com</td>
-                    <td class="px-6 py-4">Modified Risk Threshold (Global)</td>
-                    <td class="px-6 py-4"><span class="text-emerald-500">Success</span></td>
-                </tr>
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors bg-rose-50/30 dark:bg-rose-900/10">
-                    <td class="px-6 py-4 text-slate-400">2026-02-08 14:15:10</td>
-                    <td class="px-6 py-4 dark:text-white">Skyline Heights</td>
-                    <td class="px-6 py-4 text-slate-500">m.jones@skyline.io</td>
-                    <td class="px-6 py-4 text-rose-600">Failed Login Attempt (3x)</td>
-                    <td class="px-6 py-4"><span class="text-rose-500 font-black">Warning</span></td>
-                </tr>
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td class="px-6 py-4 text-slate-400">2026-02-08 13:58:45</td>
-                    <td class="px-6 py-4 dark:text-white">System Vendor</td>
-                    <td class="px-6 py-4 text-slate-500">SuperAdmin (You)</td>
-                    <td class="px-6 py-4">Provisioned New Organization</td>
-                    <td class="px-6 py-4"><span class="text-emerald-500">Success</span></td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="rounded-3xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:bg-slate-800/30">
+                        <th class="px-6 py-4">Timestamp</th>
+                        <th class="px-6 py-4">Organization</th>
+                        <th class="px-6 py-4">Actor</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4">Event</th>
+                        <th class="px-6 py-4">IP Address</th>
+                        <th class="px-6 py-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    @if (!Model.Logs.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="px-6 py-8 text-center text-slate-500">No logs found for the selected filters.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="px-6 py-4 text-xs text-slate-500">@log.TimestampDisplay</td>
+                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">@log.OrganizationName</td>
+                                <td class="px-6 py-4 text-slate-600 dark:text-slate-300">@log.ActorName</td>
+                                <td class="px-6 py-4"><span class="inline-flex rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-300">@log.Category</span></td>
+                                <td class="px-6 py-4">@log.Event</td>
+                                <td class="px-6 py-4 text-xs font-mono text-slate-500">@log.IpAddress</td>
+                                <td class="px-6 py-4"><span class="text-xs font-bold @log.StatusColorClass">@log.Status</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 text-xs text-slate-500 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+            <span>Showing @Model.Logs.Count of @Model.TotalCount logs</span>
+            <div class="flex items-center gap-2">
+                @{
+                    var prevPage = Math.Max(1, Model.CurrentPage - 1);
+                    var nextPage = Math.Min(Model.TotalPages, Model.CurrentPage + 1);
+                }
+                <a class="rounded-lg border border-slate-200 px-3 py-1.5 @(Model.CurrentPage == 1 ? "pointer-events-none opacity-40" : "")"
+                   asp-action="Index"
+                   asp-route-search="@Model.Search"
+                   asp-route-logType="@Model.LogType"
+                   asp-route-severity="@Model.Severity"
+                   asp-route-orgId="@Model.OrganizationId"
+                   asp-route-page="@prevPage"
+                   asp-route-pageSize="@Model.PageSize">Prev</a>
+                <span>Page @Model.CurrentPage / @Model.TotalPages</span>
+                <a class="rounded-lg border border-slate-200 px-3 py-1.5 @(Model.CurrentPage >= Model.TotalPages ? "pointer-events-none opacity-40" : "")"
+                   asp-action="Index"
+                   asp-route-search="@Model.Search"
+                   asp-route-logType="@Model.LogType"
+                   asp-route-severity="@Model.Severity"
+                   asp-route-orgId="@Model.OrganizationId"
+                   asp-route-page="@nextPage"
+                   asp-route-pageSize="@Model.PageSize">Next</a>
+            </div>
+        </div>
     </div>
 </div>

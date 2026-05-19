@@ -1,0 +1,199 @@
+@model WEB_Sentro.Data.Entities.ChangeOrder
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "New Change Order";
+    var sites = ViewBag.Sites as IEnumerable<WEB_Sentro.Data.Entities.Site> ?? new List<WEB_Sentro.Data.Entities.Site>();
+    var projects = ViewBag.Projects as IEnumerable<WEB_Sentro.Data.Entities.Project> ?? new List<WEB_Sentro.Data.Entities.Project>();
+    var costCodes = ViewBag.CostCodes as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<div class="animate-in fade-in min-h-screen flex items-center justify-center p-4 duration-500">
+    <div class="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">New Change Order</h2>
+                    <p class="text-xs text-slate-500 mt-1">Create a new change order for a project</p>
+                </div>
+                <a href="@Url.Action("Index", "ChangeOrders", new { area = "Client" })" class="text-slate-400 hover:text-slate-500 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" /></svg>
+                </a>
+            </div>
+
+            <form method="post" action="@Url.Action("Create", "ChangeOrders", new { area = "Client" })" class="space-y-8">
+                @Html.AntiForgeryToken()
+                
+                <div asp-validation-summary="ModelOnly" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Site Selection -->
+                    <div>
+                        <label for="SiteId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
+                        <select id="SiteId" name="SiteId" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="">Select site...</option>
+                            @foreach (var s in sites) { <option value="@s.SiteId" selected="@(Model?.SiteId == s.SiteId)">@s.SiteName (@s.SiteCode)</option> }
+                        </select>
+                    </div>
+
+                    <!-- Project Selection -->
+                    <div>
+                        <label for="ProjectId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Project</label>
+                        <select id="ProjectId" name="ProjectId" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="">Select project (Optional)...</option>
+                            @foreach (var p in projects) { <option value="@p.ProjectId" selected="@(Model?.ProjectId == p.ProjectId)">@p.Name</option> }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label for="Title" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Title <span class="text-rose-500">*</span></label>
+                        <input type="text" id="Title" name="Title" value="@Model?.Title" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" />
+                    </div>
+                    <div>
+                        <label for="Description" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Description</label>
+                        <textarea id="Description" name="Description" rows="3" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all">@Model?.Description</textarea>
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Line Items</h3>
+                        <button type="button" onclick="addLineItem()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            Add Item
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-hidden border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700" id="linesTable">
+                            <thead class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[25%]">Cost Code</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[50%]">Description</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[20%]">Amount</th>
+                                    <th scope="col" class="px-4 py-3 w-[5%]"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700" id="linesBody">
+                                @if (Model?.LineItems?.Any() == true)
+                                {
+                                    for (int i = 0; i < Model.LineItems.Count; i++)
+                                    {
+                                        var item = Model.LineItems.ElementAt(i);
+                                        <tr>
+                                            <td class="px-4 py-2">
+                                                <select name="items[@i].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                                                    <option value="">Select Code...</option>
+                                                    @foreach (var c in costCodes)
+                                                    {
+                                                        <option value="@c.CostCodeId" selected="@(item.CostCodeId == c.CostCodeId)">@c.Code - @c.Description</option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="text" name="items[@i].Description" value="@item.Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" name="items[@i].Amount" value="@item.Amount.ToString("F2")" step="0.01" oninput="calculateGrandTotal()" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                                            </td>
+                                            <td class="px-4 py-2 text-center">
+                                                <button type="button" onclick="removeLineItem(this)" class="text-slate-400 hover:text-rose-500 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                            <tfoot class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <td colspan="2" class="px-4 py-3 text-right text-xs font-bold text-slate-900 dark:text-white uppercase">Total Amount</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400" id="grandTotal">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-4 flex gap-3">
+                    <a href="@Url.Action("Index", "ChangeOrders", new { area = "Client" })" class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700">Cancel</a>
+                    <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-sm transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">Create Change Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        var costCodeOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(costCodes));
+
+        window.addLineItem = function() {
+            const tbody = document.getElementById('linesBody');
+            const index = tbody.children.length;
+            const row = document.createElement('tr');
+            
+            let optionsHtml = '<option value="">Select Code...</option>';
+            if (costCodeOptions && costCodeOptions.length) {
+                costCodeOptions.forEach(c => {
+                    optionsHtml += `<option value="${c.CostCodeId}">${c.Code} - ${c.Description}</option>`;
+                });
+            }
+            
+            row.innerHTML = `
+                <td class="px-4 py-2">
+                    <select name="items[${index}].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="px-4 py-2">
+                    <input type="text" name="items[${index}].Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
+                </td>
+                <td class="px-4 py-2">
+                    <input type="number" name="items[${index}].Amount" step="0.01" value="0" oninput="calculateGrandTotal()" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                </td>
+                <td class="px-4 py-2 text-center">
+                    <button type="button" onclick="removeLineItem(this)" class="text-slate-400 hover:text-rose-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        };
+
+        window.removeLineItem = function(btn) {
+            const row = btn.closest('tr');
+            row.remove();
+            reindexRows();
+            calculateGrandTotal();
+        };
+
+        window.calculateGrandTotal = function() {
+            let total = 0;
+            document.querySelectorAll('#linesBody tr').forEach(row => {
+                const amount = parseFloat(row.querySelector('input[name*=".Amount"]').value) || 0;
+                total += amount;
+            });
+            document.getElementById('grandTotal').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        window.reindexRows = function() {
+            document.querySelectorAll('#linesBody tr').forEach((row, index) => {
+                const ccSelect = row.querySelector('select[name*=".CostCodeId"]');
+                if (ccSelect) ccSelect.name = `items[${index}].CostCodeId`;
+                
+                row.querySelector('input[name*=".Description"]').name = `items[${index}].Description`;
+                row.querySelector('input[name*=".Amount"]').name = `items[${index}].Amount`;
+            });
+        };
+
+        if (document.getElementById('linesBody').children.length === 0) {
+            addLineItem();
+        } else {
+            calculateGrandTotal();
+        }
+    })();
+</script>

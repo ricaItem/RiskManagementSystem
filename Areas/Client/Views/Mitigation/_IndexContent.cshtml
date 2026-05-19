@@ -1,0 +1,487 @@
+@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationRiskCardViewModel>
+@{
+    var currentFilter = ViewBag.Filter as string ?? "active";
+
+    string PriorityTone(string? p)
+    {
+        p ??= "";
+        if (p.Contains("Critical", StringComparison.OrdinalIgnoreCase)) return "critical";
+        if (p.Contains("High", StringComparison.OrdinalIgnoreCase)) return "high";
+        if (p.Contains("Medium", StringComparison.OrdinalIgnoreCase)) return "medium";
+        if (p.Contains("Low", StringComparison.OrdinalIgnoreCase)) return "low";
+        return "normal";
+    }
+
+    string PriorityLabel(string? p) => string.IsNullOrWhiteSpace(p) ? "NORMAL" : p.Trim();
+
+    int ClampPercent(int p) => Math.Max(0, Math.Min(100, p));
+
+    int PriorityRank(string? p)
+    {
+        p ??= "";
+        if (p.Contains("Critical", StringComparison.OrdinalIgnoreCase)) return 4;
+        if (p.Contains("High", StringComparison.OrdinalIgnoreCase)) return 3;
+        if (p.Contains("Medium", StringComparison.OrdinalIgnoreCase)) return 2;
+        if (p.Contains("Low", StringComparison.OrdinalIgnoreCase)) return 1;
+        return 0;
+    }
+
+    var total = Model.Count();
+    var avgProgress = total == 0 ? 0 : (int)Math.Round(Model.Average(x => ClampPercent(x.ProgressPercent)));
+    var criticalCount = Model.Count(x => (x.Priority ?? "").Contains("Critical", StringComparison.OrdinalIgnoreCase));
+    var archivedCount = Model.Count(x => x.IsArchived);
+    var activeCount = total - archivedCount;
+}
+
+@Html.AntiForgeryToken()
+
+<div class="animate-in fade-in slide-in-from-bottom-4 min-h-screen space-y-6 p-6">
+    <!-- Header Section -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Mitigation Planning
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and track risk treatment plans.</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+             <div class="pill-input flex items-center gap-2 px-4 py-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Status</span>
+                <select id="statusFilter" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer"
+                        onchange="window.location.href = '@Url.Action("Index", "Mitigation", new { area = "Client" })' + '?filter=' + this.value;">
+                    @if (currentFilter == "active") { <option value="active" selected>Active Plans</option> } else { <option value="active">Active Plans</option> }
+                    @if (currentFilter == "archived") { <option value="archived" selected>Archived</option> } else { <option value="archived">Archived</option> }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        <div class="proj-card p-6 flex flex-col justify-center">
+            <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Plans</p>
+            <p class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@total</p>
+        </div>
+        <div class="proj-card p-6 flex flex-col justify-center">
+            <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Avg Completion</p>
+            <div class="flex items-end gap-2 mt-2">
+                <p class="text-3xl font-extrabold text-slate-800 dark:text-white">@avgProgress<span class="text-lg text-slate-400">%</span></p>
+            </div>
+        </div>
+        <div class="proj-card p-6 flex flex-col justify-center">
+            <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Critical Risks</p>
+            <p class="mt-2 text-3xl font-extrabold text-rose-600 dark:text-rose-400">@criticalCount</p>
+        </div>
+        <div class="proj-card p-6 flex flex-col justify-center">
+            <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Active Plans</p>
+            <p class="mt-2 text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">@activeCount</p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+            <!-- Search -->
+            <div class="pill-input flex items-center gap-2 px-4 py-2">
+                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input type="text" id="riskSearch" placeholder="Search plans..." class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 placeholder:text-slate-400 dark:text-slate-300 w-48" />
+            </div>
+
+            <!-- Category Filter -->
+            <div class="pill-input flex items-center gap-2 px-4 py-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Category</span>
+                <select id="categoryFilter" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="">All</option>
+                    <option value="Operational">Operational</option>
+                    <option value="Financial">Financial</option>
+                    <option value="Safety">Safety</option>
+                </select>
+            </div>
+
+            <!-- Sort -->
+            <div class="pill-input flex items-center gap-2 px-4 py-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Sort</span>
+                <select id="sortBy" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="recent">Recent</option>
+                    <option value="title_asc">Title A–Z</option>
+                    <option value="priority_desc">Priority (High-Low)</option>
+                    <option value="progress_desc">Progress (High-Low)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- View Toggle & Count -->
+        <div class="flex items-center gap-4">
+            <span class="text-xs font-medium text-slate-500"><span id="visibleCount" class="text-slate-900 dark:text-white font-bold">@total</span> Results</span>
+            <div class="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+                <button type="button" onclick="switchView('grid')" id="gridBtn" class="rounded-md px-2.5 py-1.5 transition-all bg-white shadow-sm text-indigo-600 dark:bg-slate-700 dark:text-indigo-300" aria-label="Grid view">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                </button>
+                <button type="button" onclick="switchView('list')" id="listBtn" class="rounded-md px-2.5 py-1.5 text-slate-400 transition-all hover:text-slate-600 dark:hover:text-slate-200" aria-label="List view">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div>
+        <div id="noResults" class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <svg class="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <h3 class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">No plans found</h3>
+            <p class="mt-1 text-xs text-slate-500">Try adjusting your search or filters.</p>
+            <button type="button" onclick="clearFilters()" class="mt-6 inline-flex h-9 items-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white hover:bg-slate-800 transition-colors">
+                Clear Filters
+            </button>
+        </div>
+
+        <!-- Grid View -->
+        <div id="gridView" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            @foreach (var risk in Model)
+            {
+                var tone = PriorityTone(risk.Priority);
+                var pct = ClampPercent(risk.ProgressPercent);
+                var isComplete = pct == 100;
+                var boardUrl = risk.IsArchived ? "#" : Url.Action("Board", "Mitigation", new { area = "Client", riskId = risk.RiskId });
+                var priorityClass = tone == "critical" ? "text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/30" :
+                                    tone == "high" ? "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30" :
+                                    "text-slate-500 bg-slate-50 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+
+                <div class="mitigation-item proj-card group relative flex flex-col p-6 transition-all hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/50 @(isComplete ? "opacity-75 grayscale-[0.5]" : "")"
+                     data-title="@risk.Title"
+                     data-category="@risk.Category"
+                     data-plan-id="@risk.PlanId"
+                     data-priority="@PriorityLabel(risk.Priority)"
+                     data-priority-rank="@PriorityRank(risk.Priority)"
+                     data-progress="@pct">
+
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">@risk.Category</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border @priorityClass">
+                            @PriorityLabel(risk.Priority)
+                        </span>
+                    </div>
+
+                    <h3 class="mb-6 text-base font-bold text-slate-900 leading-snug dark:text-slate-100 line-clamp-2 min-h-[3rem]">
+                        <a href="@boardUrl" class="hover:text-indigo-600 transition-colors">@risk.Title</a>
+                    </h3>
+
+                    <div class="mt-auto space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-semibold uppercase text-slate-400">Progress</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">@pct%</span>
+                            </div>
+                            <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-500 @(isComplete ? "bg-emerald-500" : "bg-indigo-500")" style="width: @(pct + "%")"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                            <div class="flex -space-x-2">
+                                @foreach (var assignee in risk.AssignedUsers.Take(3))
+                                {
+                                    var displayName = assignee.DisplayName ?? "";
+                                    var initial = !string.IsNullOrWhiteSpace(displayName) ? displayName.Trim()[0].ToString().ToUpperInvariant() : "?";
+
+                                    @if (!string.IsNullOrWhiteSpace(assignee.ProfileImagePath))
+                                    {
+                                        <img src="@assignee.ProfileImagePath" alt="@displayName" class="h-7 w-7 rounded-full border-2 border-white dark:border-slate-800 object-cover" />
+                                    }
+                                    else
+                                    {
+                                        <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                                            @initial
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            
+                            @if (!risk.IsArchived) {
+                                <div class="relative">
+                                    <button type="button" onclick="event.stopPropagation(); toggleCardMenu(this)" class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                                    </button>
+                                    <div class="card-dropdown absolute right-0 bottom-full mb-2 hidden min-w-[140px] rounded-lg border border-slate-200 bg-white py-1 shadow-xl z-20 dark:border-slate-700 dark:bg-slate-800">
+                                        <button type="button" onclick="event.stopPropagation(); openArchivePlanConfirm(this)" class="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50">
+                                            Archive Plan
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="hidden proj-card overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50/50 border-b border-slate-100/50 dark:bg-slate-900/50 dark:border-slate-800">
+                    <tr>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Risk Strategy</th>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Priority</th>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Progress</th>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="listTbody">
+                    @foreach (var risk in Model)
+                    {
+                        var tone = PriorityTone(risk.Priority);
+                        var pct = ClampPercent(risk.ProgressPercent);
+                        var boardUrl = risk.IsArchived ? "#" : Url.Action("Board", "Mitigation", new { area = "Client", riskId = risk.RiskId });
+                        var priorityClass = tone == "critical" ? "text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/30" :
+                                            tone == "high" ? "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30" :
+                                            "text-slate-500 bg-slate-50 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+
+                        <tr class="mitigation-item hover:bg-slate-50/50 transition-colors group"
+                            data-title="@risk.Title"
+                            data-category="@risk.Category"
+                            data-priority="@PriorityLabel(risk.Priority)"
+                            data-priority-rank="@PriorityRank(risk.Priority)"
+                            data-progress="@pct">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 dark:bg-slate-800">
+                                        <span class="text-xs font-bold">#@risk.RiskId</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">@risk.Category</div>
+                                        <div class="text-sm font-medium text-slate-900 dark:text-white">@risk.Title</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border @priorityClass">
+                                    @PriorityLabel(risk.Priority)
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 w-1/4">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-1.5 flex-1 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-700">
+                                        <div class="h-full @(pct == 100 ? "bg-emerald-500" : "bg-indigo-500")" style="width: @(pct + "%")"></div>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-600 dark:text-slate-400 w-8 text-right">@pct%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="@boardUrl" class="inline-flex items-center justify-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                                    View Board
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="archivePlanConfirmModal" class="fixed inset-0 z-[70] hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeArchivePlanConfirm()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
+            <div class="text-center">
+                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                </div>
+                <h3 class="mt-4 text-lg font-bold text-slate-900 dark:text-white">Archive Plan?</h3>
+                <p class="mt-2 text-xs text-slate-500">The plan will be moved to the archive view. You can restore it later if needed.</p>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="button" onclick="closeArchivePlanConfirm()" class="flex-1 rounded-lg bg-slate-100 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="button" id="archivePlanConfirmBtn" class="flex-1 rounded-lg bg-amber-600 py-2.5 text-xs font-bold text-white hover:bg-amber-700 transition-colors shadow-lg shadow-amber-500/20">Archive</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchView(type) {
+        const gView = document.getElementById('gridView');
+        const lView = document.getElementById('listView');
+        const gBtn = document.getElementById('gridBtn');
+        const lBtn = document.getElementById('listBtn');
+
+        const activeClasses = ['bg-white', 'shadow-sm', 'text-indigo-600', 'dark:bg-slate-700', 'dark:text-indigo-300'];
+        const inactiveClasses = ['text-slate-400'];
+        
+        function setBtn(btn, active) { 
+            if(active) {
+                activeClasses.forEach(c => btn.classList.add(c)); 
+                inactiveClasses.forEach(c => btn.classList.remove(c));
+            } else {
+                activeClasses.forEach(c => btn.classList.remove(c)); 
+                inactiveClasses.forEach(c => btn.classList.add(c));
+            }
+        }
+
+        if (type === 'grid') {
+            gView.classList.remove('hidden');
+            lView.classList.add('hidden');
+            setBtn(gBtn, true);
+            setBtn(lBtn, false);
+        } else {
+            lView.classList.remove('hidden');
+            gView.classList.add('hidden');
+            setBtn(lBtn, true);
+            setBtn(gBtn, false);
+        }
+        updateVisibleCount();
+    }
+
+    const searchEl = document.getElementById('riskSearch');
+    const categoryEl = document.getElementById('categoryFilter');
+    const sortEl = document.getElementById('sortBy');
+
+    function applyFilters() {
+        const val = (searchEl.value || '').toLowerCase().trim();
+        const cat = (categoryEl.value || '').toLowerCase().trim();
+
+        document.querySelectorAll('.mitigation-item').forEach(item => {
+            const title = (item.dataset.title || '').toLowerCase();
+            const category = (item.dataset.category || '').toLowerCase();
+
+            const okSearch = !val || title.includes(val) || category.includes(val);
+            const okCat = !cat || category === cat;
+
+            item.style.display = (okSearch && okCat) ? '' : 'none';
+        });
+
+        updateVisibleCount();
+        toggleNoResults();
+    }
+
+    function updateVisibleCount() {
+        const visible = Array.from(document.querySelectorAll('.mitigation-item'))
+            .filter(el => el.style.display !== 'none').length;
+
+        const c = document.getElementById('visibleCount');
+        if (c) c.textContent = visible.toString();
+    }
+
+    function toggleNoResults() {
+        const box = document.getElementById('noResults');
+        if (!box) return;
+
+        const anyVisible = Array.from(document.querySelectorAll('#gridView .mitigation-item'))
+            .some(el => el.style.display !== 'none');
+
+        box.classList.toggle('hidden', anyVisible);
+    }
+
+    function sortItems() {
+        const mode = sortEl.value;
+
+        // grid sorting
+        const grid = document.getElementById('gridView');
+        if (grid) {
+            const cards = Array.from(grid.querySelectorAll('.mitigation-item'));
+            const sorted = sortArray(cards, mode);
+            sorted.forEach(n => grid.appendChild(n));
+        }
+
+        // list sorting
+        const tbody = document.getElementById('listTbody');
+        if (tbody) {
+            const rows = Array.from(tbody.querySelectorAll('.mitigation-item'));
+            const sortedRows = sortArray(rows, mode);
+            sortedRows.forEach(n => tbody.appendChild(n));
+        }
+    }
+
+    function sortArray(arr, mode) {
+        if (mode === 'recent') return arr;
+
+        const copy = arr.slice();
+        copy.sort((a, b) => {
+            const at = (a.dataset.title || '').toLowerCase();
+            const bt = (b.dataset.title || '').toLowerCase();
+
+            const apr = parseInt(a.dataset.priorityRank || '0', 10);
+            const bpr = parseInt(b.dataset.priorityRank || '0', 10);
+
+            const apg = parseInt(a.dataset.progress || '0', 10);
+            const bpg = parseInt(b.dataset.progress || '0', 10);
+
+            if (mode === 'title_asc') return at.localeCompare(bt);
+            if (mode === 'priority_desc') return bpr - apr;
+            if (mode === 'progress_desc') return bpg - apg;
+
+            return 0;
+        });
+        return copy;
+    }
+
+    function clearFilters() {
+        searchEl.value = '';
+        categoryEl.value = '';
+        sortEl.value = 'recent';
+        applyFilters();
+        sortItems();
+    }
+
+    searchEl.addEventListener('input', applyFilters);
+    categoryEl.addEventListener('change', applyFilters);
+    sortEl.addEventListener('change', () => { sortItems(); applyFilters(); });
+
+    function toggleCardMenu(btn) {
+        const dropdown = btn.nextElementSibling;
+        if (!dropdown || !dropdown.classList.contains('card-dropdown')) return;
+        
+        // Close others
+        document.querySelectorAll('.card-dropdown').forEach(d => {
+            if (d !== dropdown) d.classList.add('hidden');
+        });
+        
+        dropdown.classList.toggle('hidden');
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.card-dropdown') && !e.target.closest('button[onclick*="toggleCardMenu"]')) {
+             document.querySelectorAll('.card-dropdown').forEach(d => d.classList.add('hidden'));
+        }
+    });
+
+    const __archivePlanUrl = '@Url.Action("SoftDeletePlan", "Mitigation", new { area = "Client" })';
+    let __archivePlanId = null;
+
+    function openArchivePlanConfirm(btn) {
+        const card = btn.closest('.mitigation-item');
+        if (!card) return;
+        __archivePlanId = card.getAttribute('data-plan-id');
+        if (!__archivePlanId) return;
+        document.querySelectorAll('.card-dropdown').forEach(d => d.classList.add('hidden'));
+        document.getElementById('archivePlanConfirmModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeArchivePlanConfirm() {
+        document.getElementById('archivePlanConfirmModal').classList.add('hidden');
+        document.body.style.overflow = '';
+        __archivePlanId = null;
+    }
+    document.getElementById('archivePlanConfirmBtn').addEventListener('click', function() {
+        if (!__archivePlanId) return;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        if (!token) return;
+        const body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&planId=' + encodeURIComponent(__archivePlanId);
+        this.disabled = true;
+        this.textContent = 'Archiving...';
+        
+        fetch(__archivePlanUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(r => r.json())
+            .then(data => { if (data && data.ok) { closeArchivePlanConfirm(); window.location.reload(); } })
+            .finally(() => { 
+                this.disabled = false; 
+                this.textContent = 'Archive';
+            });
+    });
+
+    applyFilters();
+    sortItems();
+</script>

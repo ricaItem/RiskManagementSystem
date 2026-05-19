@@ -1,337 +1,183 @@
-@model IEnumerable<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
+@model Web_Sentro.Areas.Client.Models.PagedResult<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
 @{
     Layout = "_LayoutClient";
+    var isAdmin = ViewBag.IsAdmin == true;
+    var isRiskManager = ViewBag.IsRiskManager == true;
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    .glass-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+    }
+    .dark .glass-card {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .step-active {
+        color: var(--brand-accent);
+        border-bottom: 2px solid var(--brand-accent);
+    }
+</style>
 
-<div class="max-w-full mx-auto space-y-6 animate-in fade-in duration-700">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div id="risk-identification-skeleton" class="animate-pulse min-h-screen space-y-8 p-6">
+    <!-- Header Skeleton -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Risk <span class="text-emerald-600">Identification</span>
-            </h1>
+            <div class="h-8 w-64 bg-slate-200 rounded dark:bg-slate-700"></div>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="toggleNewRiskModal()" class="flex items-center gap-2 bg-gradient-to-br from-emerald-600 to-teal-600 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                New Risk Entry
-            </button>
+            <div class="h-10 w-32 bg-slate-200 rounded-xl dark:bg-slate-700"></div>
+            <div class="h-10 w-40 bg-slate-200 rounded-xl dark:bg-slate-700"></div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        @foreach (var stat in new[] {
-                new { Label = "Total Risks", Value = "10", Color = "emerald", Icon = "M2.25 18L9 11.25l4.306 4.307L15 13.5l3 3m-3-12h4.5m0 0v4.5m0-4.5L13.5 13.5" },
-                new { Label = "Uncategorized", Value = "03", Color = "amber", Icon = "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" },
-                new { Label = "Critical Priority", Value = "05", Color = "rose", Icon = "M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" },
-                new { Label = "Site Pins", Value = "10", Color = "blue", Icon = "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" }
-                })
+    <!-- KPI Cards Skeleton -->
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        @for (int i = 0; i < 4; i++)
         {
-            <div class="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm group transition-all hover:shadow-md">
-                <div class="relative z-10 flex justify-between items-start">
+            <div class="proj-card p-6">
+                <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">@stat.Label</p>
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">@stat.Value</h3>
+                        <div class="mb-2 h-3 w-20 bg-slate-100 rounded dark:bg-slate-800"></div>
+                        <div class="h-8 w-12 bg-slate-200 rounded dark:bg-slate-700"></div>
                     </div>
-                    <div class="h-10 w-10 rounded-xl bg-@stat.Color-500/10 flex items-center justify-center text-@stat.Color-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="@stat.Icon" />
-                        </svg>
-                    </div>
+                    <div class="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800"></div>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-0 bg-@stat.Color-500 group-hover:w-full transition-all duration-500"></div>
             </div>
         }
     </div>
 
-    <div class="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div class="flex-1 min-w-[240px] relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <input type="text" placeholder="Search risks, locations, or tags..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-normal focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
-        </div>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
-            <option>All Categories</option>
-            <option>Operational</option>
-            <option>Financial</option>
-            <option>Safety</option>
-        </select>
-        <select class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500">
-            <option>All Priorities</option>
-            <option>Critical</option>
-            <option>Medium</option>
-            <option>Low</option>
-        </select>
+    <!-- Filters Skeleton -->
+    <div class="flex flex-wrap items-center gap-3">
+        <div class="h-10 w-48 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
+        <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
+        <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
+        <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
     </div>
 
-    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                        <th class="px-6 py-4">Risk Detail</th>
-                        <th class="px-6 py-4">Category</th>
-                        <th class="px-6 py-4">Priority Level</th>
-                        <th class="px-6 py-4">Reported Date</th>
-                        <th class="px-6 py-4 text-right">Utility</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                    @foreach (var risk in Model)
-                    {
-                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-emerald-500/5 transition-all">
-                            <td class="px-6 py-5">
-                                <div class="font-medium text-slate-900 dark:text-white mb-0.5">@risk.Title</div>
-                                <div class="text-[10px] font-medium text-slate-400 uppercase tracking-tight">
-                                    <span class="text-emerald-500">📍</span> @risk.ProjectSite
-                                </div>
-                            </td>
-                            <td class="px-6 py-5">
-                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium uppercase tracking-tighter">@risk.Category</span>
-                            </td>
-                            <td class="px-6 py-5">
-                                <div class="flex items-center gap-2">
-                                    @{
-                                        var color = risk.Priority == "Critical" ? "rose" : "amber";
-                                    }
-                                    <div class="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <div class="bg-@color-500 h-full w-[@(risk.Priority == "Critical" ? "95" : "50")%]"></div>
-                                    </div>
-                                    <span class="text-[10px] font-semibold text-@color-500 uppercase">@risk.Priority</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-5">
-                                <span class="text-[10px] font-medium text-slate-500 uppercase">@DateTime.Now.ToString("MMM dd, yyyy")</span>
-                            </td>
-                            <td class="px-6 py-5 text-right">
-                                <button onclick="openEditModal('@risk.Title', '@risk.Category', '@risk.Priority', '@risk.ProjectSite', '@DateTime.Now.ToString("yyyy-MM-dd")')"
-                                        class="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all text-slate-400 hover:text-emerald-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                                    </svg>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <!-- Table Skeleton -->
+    <div class="proj-card overflow-hidden">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50">
+             <div class="h-4 w-full bg-slate-100 rounded dark:bg-slate-800"></div>
         </div>
-        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <p class="text-[10px] font-medium text-slate-400 uppercase">Showing 1 to 10 of 24 entries</p>
-            <div class="flex gap-2">
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Prev</button>
-                <button class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-semibold uppercase shadow-md shadow-emerald-500/20">1</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">2</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase text-slate-400 hover:bg-slate-50 transition-all">Next</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="newRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleNewRiskModal()"></div>
-    <div class="relative flex min-h-screen items-center justify-center p-4">
-        <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Identify New Risk</h2>
-                <button onclick="toggleNewRiskModal()" class="text-slate-400 hover:text-rose-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-            </div>
-            <form asp-action="IdentifyNewRisk" method="post" class="space-y-4" onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.innerHTML='<span class=\'save-btn-spinner\'></span> Saving...';">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Date Reported</label>
-                        <input type="date" name="ReportedDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
+        <div class="p-4 space-y-4">
+            @for (int i = 0; i < 5; i++)
+            {
+                <div class="flex items-center justify-between py-1">
+                    <div class="flex items-center gap-3 w-1/3">
+                        <div class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+                        <div class="space-y-1 w-full">
+                            <div class="h-3 w-3/4 bg-slate-100 rounded dark:bg-slate-800"></div>
+                            <div class="h-2 w-1/2 bg-slate-100 rounded dark:bg-slate-800"></div>
+                        </div>
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Risk Category</label>
-                        <select name="Category" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
-                            <option>Operational</option>
-                            <option>Financial</option>
-                            <option>Safety</option>
-                        </select>
-                    </div>
+                    <div class="h-5 w-16 rounded-full bg-slate-100 dark:bg-slate-800"></div>
+                    <div class="h-5 w-16 rounded-full bg-slate-100 dark:bg-slate-800"></div>
+                    <div class="h-3 w-20 bg-slate-100 rounded dark:bg-slate-800"></div>
                 </div>
-                <input type="text" name="Title" placeholder="Risk Description" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                <div class="space-y-2">
-                    <div class="relative">
-                        <input type="text" id="addProjectSite" name="ProjectSite" placeholder="Job Site Location" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                        <button type="button" onclick="autoDetectLocation('addProjectSite', 'addMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:scale-110 transition-transform">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" /><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" stroke-width="2" /></svg>
-                        </button>
-                    </div>
-                    <div id="addMap" class="h-40 w-full rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"></div>
-                </div>
-                <button type="submit" id="newRiskSubmitBtn" class="w-full rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-70">Log Risk Entry</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div id="editRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleEditModal()"></div>
-    <div class="relative flex min-h-screen items-center justify-center p-4">
-        <div class="w-full max-w-xl scale-100 transform rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase">Edit <span class="text-blue-600">Risk Details</span></h2>
-                <button onclick="toggleEditModal()" class="text-slate-400 hover:text-rose-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-            </div>
-            <form asp-action="UpdateRisk" method="post" class="space-y-4">
-                <input type="hidden" name="RiskId" id="editRiskId" />
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Reported Date</label>
-                        <input type="date" id="editDate" name="ReportedDate" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Risk Priority</label>
-                        <select id="editPriority" name="Priority" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800">
-                            <option value="Critical">Critical</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                </div>
-                <input type="text" id="editTitle" name="Title" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                <div class="space-y-1">
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Job Site</label>
-                    <div class="relative">
-                        <input type="text" id="editProjectSite" name="ProjectSite" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-bold dark:bg-slate-800 dark:border-slate-700" required />
-                        <button type="button" onclick="autoDetectLocation('editProjectSite', 'editMap')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" /><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" stroke-width="2" /></svg>
-                        </button>
-                    </div>
-                    <div id="editMap" class="h-40 w-full rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-2"></div>
-                </div>
-                <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="toggleEditModal()" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 py-3.5 text-xs font-black uppercase text-slate-500">Cancel</button>
-                    <button type="submit" class="flex-[2] rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 py-3.5 text-xs font-black uppercase text-white shadow-lg">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@* <script>
-    let addMap, editMap, addMarker, editMarker;
-
-    // Initialize Maps
-    function initMap(mapId, lat = 7.0707, lng = 125.6087) { 
-        const map = L.map(mapId).setView([lat, lng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-        const marker = L.marker([lat, lng]).addTo(map);
-        return { map, marker };
-    }
-
-    function toggleNewRiskModal() {
-        const modal = document.getElementById('newRiskModal');
-        modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden') && !addMap) {
-            setTimeout(() => {
-                const result = initMap('addMap');
-                addMap = result.map;
-                addMarker = result.marker;
-            }, 200);
-        }
-    }
-
-    function toggleEditModal() {
-        const modal = document.getElementById('editRiskModal');
-        modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden') && !editMap) {
-            setTimeout(() => {
-                const result = initMap('editMap');
-                editMap = result.map;
-                editMarker = result.marker;
-            }, 200);
-        }
-    }
-
-    function openEditModal(title, category, priority, site) {
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editCategory').value = category;
-        document.getElementById('editPriority').value = priority;
-        document.getElementById('editProjectSite').value = site;
-        toggleEditModal();
-    }
-
-    async function autoDetectLocation(inputId, mapKey) {
-        const inputField = document.getElementById(inputId);
-        const marker = mapKey === 'addMap' ? addMarker : editMarker;
-        const map = mapKey === 'addMap' ? addMap : editMap;
-
-        if (!navigator.geolocation) return alert("Geolocation not supported");
-
-        inputField.placeholder = "Detecting...";
-
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const { latitude, longitude } = pos.coords;
-
-            // Update Map
-            map.setView([latitude, longitude], 16);
-            marker.setLatLng([latitude, longitude]);
-
-            // Reverse Geocode via Nominatim
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                const data = await res.json();
-                inputField.value = data.display_name || `${latitude}, ${longitude}`;
-            } catch {
-                inputField.value = `${latitude}, ${longitude}`;
+                @if (i < 4)
+                {
+                    <div class="border-b border-slate-50 dark:border-slate-800"></div>
+                }
             }
-        });
-    }
-</script> *@
+        </div>
+    </div>
+</div>
+
+<div id="risk-identification-content" class="hidden"></div>
 
 <script>
-    let addMap, editMap, addMarker, editMarker;
+        function initRiskIdentificationPage() {
+            const contentDiv = document.getElementById('risk-identification-content');
+            if (!contentDiv) return;
+            if (contentDiv.dataset.loaded === '1') return;
 
-    function initMap(mapId, lat = 7.0707, lng = 125.6087) {
-        const map = L.map(mapId).setView([lat, lng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        const marker = L.marker([lat, lng]).addTo(map);
-        return { map, marker };
-    }
+            // Build the query string from the current URL to preserve filters
+            const searchParams = new URLSearchParams(window.location.search);
+            const url = '@Url.Action("IdentificationContent", "Risks", new { area = "Client" })' + '?' + searchParams.toString();
 
-    function toggleNewRiskModal() {
-        const modal = document.getElementById('newRiskModal');
-        modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden') && !addMap) {
-            setTimeout(() => { const res = initMap('addMap'); addMap = res.map; addMarker = res.marker; }, 200);
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`IdentificationContent request failed: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    contentDiv.innerHTML = html;
+
+                    // Execute scripts from the fetched HTML
+                    const scripts = contentDiv.getElementsByTagName('script');
+                    const scriptsToExecute = [];
+
+                    // Collect scripts first to avoid live collection issues if we modify DOM
+                    for (let i = 0; i < scripts.length; i++) {
+                        scriptsToExecute.push(scripts[i]);
+                    }
+
+                    for (let i = 0; i < scriptsToExecute.length; i++) {
+                        const oldScript = scriptsToExecute[i];
+                        const newScript = document.createElement('script');
+                        
+                        Array.from(oldScript.attributes).forEach(attr => {
+                            newScript.setAttribute(attr.name, attr.value);
+                        });
+                        
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                        } else {
+                            newScript.text = oldScript.innerHTML;
+                        }
+                        
+                        // Use appendChild on body or head to ensure execution
+                        document.body.appendChild(newScript);
+                        // Optional: remove the old script tag
+                        // oldScript.parentNode.removeChild(oldScript);
+                    }
+
+                    document.getElementById('risk-identification-skeleton').classList.add('hidden');
+                    contentDiv.classList.remove('hidden');
+                    contentDiv.dataset.loaded = '1';
+
+                    // Pre-fill form if needed
+                    @if (ViewBag.AutoOpenNewRiskModal == true)
+                    {
+                        <text>
+                        setTimeout(() => {
+                            const title = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.NewRiskTitle ?? ""));
+                            const desc = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.NewRiskDescription ?? ""));
+                            const siteId = "@ViewBag.NewRiskSiteId";
+                            const category = "@ViewBag.NewRiskCategory";
+                            const sourceType = "@ViewBag.NewRiskSourceType";
+
+                            if (document.getElementById('identifyRiskTitle')) document.getElementById('identifyRiskTitle').value = title + "\n\n" + desc;
+                            if (document.getElementById('identifyRiskCategory')) document.getElementById('identifyRiskCategory').value = category;
+                            if (document.getElementById('identifyRiskSourceType')) document.getElementById('identifyRiskSourceType').value = sourceType;
+                            if (document.getElementById('identifyRiskSiteId') && siteId) document.getElementById('identifyRiskSiteId').value = siteId;
+                            
+                            if (typeof toggleNewRiskModal === 'function') toggleNewRiskModal();
+                        }, 500);
+                        </text>
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching risk identification content:', error);
+                    const skeleton = document.getElementById('risk-identification-skeleton');
+                    if (skeleton) skeleton.classList.add('hidden');
+                    if (contentDiv) {
+                        contentDiv.classList.remove('hidden');
+                        contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load Risk Identification content. Please refresh the page.</div>';
+                        contentDiv.dataset.loaded = '1';
+                    }
+                });
         }
-    }
 
-    function toggleEditModal() {
-        const modal = document.getElementById('editRiskModal');
-        modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden') && !editMap) {
-            setTimeout(() => { const res = initMap('editMap'); editMap = res.map; editMarker = res.marker; }, 200);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initRiskIdentificationPage);
+        } else {
+            initRiskIdentificationPage();
         }
-    }
-
-    function openEditModal(title, category, priority, site, date) {
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editPriority').value = priority;
-        document.getElementById('editProjectSite').value = site;
-        document.getElementById('editDate').value = date;
-        toggleEditModal();
-    }
-
-    async function autoDetectLocation(inputId, mapKey) {
-        const inputField = document.getElementById(inputId);
-        const marker = mapKey === 'addMap' ? addMarker : editMarker;
-        const map = mapKey === 'addMap' ? addMap : editMap;
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const { latitude, longitude } = pos.coords;
-            map.setView([latitude, longitude], 16);
-            marker.setLatLng([latitude, longitude]);
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-            const data = await res.json();
-            inputField.value = data.display_name || `${latitude}, ${longitude}`;
-        });
-    }
 </script>

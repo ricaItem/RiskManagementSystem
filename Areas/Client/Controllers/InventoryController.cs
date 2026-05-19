@@ -9,7 +9,6 @@ namespace Web_Sentro.Areas.Client.Controllers
     [Authorize]
     public class InventoryController : Controller
     {
-        // GET: /Client/Inventory/Index
         public IActionResult Index()
         {
             var items = new List<dynamic> {
@@ -20,7 +19,6 @@ namespace Web_Sentro.Areas.Client.Controllers
             return View(items);
         }
 
-        // GET: /Client/Inventory/Expenses
         public IActionResult Expenses()
         {
             var expenses = new List<dynamic> {

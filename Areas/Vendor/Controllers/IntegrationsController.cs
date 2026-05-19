@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
     [Area("Vendor")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Policy = "SuperAdminOnly")]
     public class IntegrationsController : Controller
     {
         public IActionResult Index()

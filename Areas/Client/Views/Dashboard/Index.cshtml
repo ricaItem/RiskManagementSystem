@@ -3,175 +3,168 @@
     Layout = "~/Areas/Client/Views/Shared/_LayoutClient.cshtml";
 }
 
-<div class="space-y-6 animate-in fade-in duration-500 pb-12">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div id="dashboard-skeleton" class="animate-pulse min-h-screen space-y-6 p-6">
+
+    <!-- Header Section Skeleton -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white">BuildCraft <span class="text-emerald-600">Command</span></h1>
+            <!-- Title Skeleton -->
+            <div class="h-8 w-48 bg-slate-200 rounded-md dark:bg-slate-700"></div>
+            <div class="h-4 w-64 bg-slate-100 rounded-md mt-2 dark:bg-slate-800"></div>
         </div>
-        <div class="flex gap-2">
-            <select class="rounded-lg border-slate-200 bg-white px-3 py-2 text-[10px] font-medium uppercase shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <option>All Projects</option>
-                <option>Sky Tower</option>
-                <option>River Bridge</option>
-            </select>
-            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-[10px] font-semibold text-white hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20">
-                EXPORT DATA
-            </button>
+
+        <!-- Filter Bar Skeleton -->
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="h-10 w-72 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+            <div class="h-10 w-40 bg-slate-100 rounded-lg dark:bg-slate-800"></div>
+            <!-- Button Skeleton -->
+            <div class="h-10 w-32 bg-slate-200 rounded-lg dark:bg-slate-700"></div>
         </div>
     </div>
+
+    <!-- KPI Cards Skeleton -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Overdue Mitigations</p>
-            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">12</h3>
-            <p class="mt-2 text-[10px] font-medium text-rose-500 uppercase tracking-tighter italic">⚠️ Immediate Action</p>
-        </a>
-        <a href="@Url.Action("Expenses", "Inventory", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Pending Approvals</p>
-            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">08</h3>
-            <div class="mt-2 flex gap-1">
-                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[8px] font-semibold italic">6 NEW REQUESTS</span>
-            </div>
-        </a>
-        <a href="@Url.Action("Index", "Audit", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Compliance Health</p>
-            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">98.2%</h3>
-            <div class="mt-3 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                <div class="h-full bg-emerald-500 rounded-full" style="width: 98%"></div>
-            </div>
-        </a>
-        <a href="@Url.Action("Index", "Supplier", new { area = "Client" })" class="block rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50 transition hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor Incidents</p>
-            <h3 class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">02</h3>
-            <p class="mt-2 text-[10px] font-medium text-emerald-500 uppercase tracking-tighter">✔ Normal Range</p>
-        </a>
-    </div>
-
-    <div class="grid gap-6 lg:grid-cols-12 mt-6">
-        <div class="lg:col-span-8 rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-            <div class="mb-6">
-                <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Risk Exposure Trend</h3>
-                <p class="text-[10px] font-medium text-slate-400 uppercase">Monthly Critical vs Resolved Risks</p>
-            </div>
-            <div class="h-64">
-                <canvas id="riskTrendChart"></canvas>
-            </div>
-        </div>
-
-        <div class="lg:col-span-4 rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-            <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6">Distribution</h3>
-            <div class="h-64">
-                <canvas id="riskCategoryChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid gap-6 md:grid-cols-2 mt-6">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <h3 class="text-sm font-black uppercase tracking-widest mb-6">Mitigation Rate (By Dept)</h3>
-            <div class="space-y-5">
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold">Structural Engineering</span>
-                        <span class="text-xs font-black text-emerald-500 uppercase">92%</span>
+        @for (int i = 0; i < 4; i++)
+        {
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="mb-2 h-3 w-20 bg-slate-100 rounded dark:bg-slate-800"></div>
+                        <div class="h-8 w-12 bg-slate-200 rounded dark:bg-slate-700"></div>
                     </div>
-                    <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div class="h-full bg-emerald-500 rounded-full" style="width: 92%"></div>
-                    </div>
+                    <div class="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800"></div>
                 </div>
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold">Logistics & Supply</span>
-                        <span class="text-xs font-black text-amber-500 uppercase">64%</span>
+                <div class="mt-4 h-4 w-24 bg-slate-50 rounded-full dark:bg-slate-800"></div>
+            </div>
+        }
+    </div>
+
+    <!-- Charts Section Skeleton -->
+    <div class="grid gap-6 lg:grid-cols-12">
+        <!-- Main Chart Skeleton -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-8 dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="mb-6 flex justify-between">
+                <div class="h-5 w-48 bg-slate-200 rounded dark:bg-slate-700"></div>
+                <div class="h-4 w-20 bg-slate-100 rounded dark:bg-slate-800"></div>
+            </div>
+            <div class="h-64 w-full bg-slate-50 rounded-lg dark:bg-slate-800/50"></div>
+        </div>
+
+        <!-- Doughnut Chart Skeleton -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-4 dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="mb-6 h-5 w-32 bg-slate-200 rounded dark:bg-slate-700"></div>
+            <div class="mx-auto h-48 w-48 rounded-full border-8 border-slate-100 dark:border-slate-800"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Section Skeleton -->
+    <div class="grid gap-6 lg:grid-cols-2">
+        <!-- Table Skeleton -->
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+                <div class="h-5 w-32 bg-slate-200 rounded dark:bg-slate-700"></div>
+                <div class="h-5 w-16 rounded-full bg-slate-100 dark:bg-slate-800"></div>
+            </div>
+            <div class="p-4 space-y-4">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <div class="flex items-center justify-between py-1">
+                        <div class="h-4 w-1/3 bg-slate-100 rounded dark:bg-slate-800"></div>
+                        <div class="h-5 w-16 rounded bg-slate-100 dark:bg-slate-800"></div>
+                        <div class="h-3 w-20 bg-slate-100 rounded dark:bg-slate-800"></div>
                     </div>
-                    <div class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div class="h-full bg-amber-500 rounded-full" style="width: 64%"></div>
-                    </div>
-                </div>
+                    @if (i < 2)
+                    {
+                        <div class="border-b border-slate-50 dark:border-slate-800"></div>
+                    }
+                }
             </div>
         </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/50">
-            <h3 class="text-sm font-black uppercase tracking-widest mb-6">Supplier Alert Watch</h3>
-            <table class="w-full text-left text-xs">
-                <thead>
-                    <tr class="text-slate-400 font-black uppercase tracking-tighter">
-                        <th class="pb-3">Supplier</th>
-                        <th class="pb-3">Risk Rating</th>
-                        <th class="pb-3 text-right">Alerts</th>
-                    </tr>
-                </thead>
-                <tbody class="text-slate-900 dark:text-white">
-                    <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="py-3 font-bold">SteelCo Fabrication</td>
-                        <td class="py-3">
-                            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[9px] font-black">CRITICAL</span>
-                        </td>
-                        <td class="py-3 text-right font-bold text-slate-400">Insurance Expired</td>
-                    </tr>
-                    <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="py-3 font-bold">Apex Concrete</td>
-                        <td class="py-3">
-                            <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[9px] font-black">ELEVATED</span>
-                        </td>
-                        <td class="py-3 text-right font-bold text-slate-400">Audit Pending</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Progress Bars/Department Skeleton -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="mb-6 h-5 w-40 bg-slate-200 rounded dark:bg-slate-700"></div>
+            <div class="space-y-6">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <div>
+                        <div class="mb-2 flex justify-between">
+                            <div class="h-3 w-32 bg-slate-100 rounded dark:bg-slate-800"></div>
+                            <div class="h-3 w-8 bg-slate-100 rounded dark:bg-slate-800"></div>
+                        </div>
+                        <div class="h-2 w-full rounded-full bg-slate-50 dark:bg-slate-800/50"></div>
+                    </div>
+                }
+            </div>
         </div>
     </div>
+</div>
+
+<div id="dashboard-content" class="hidden"></div>
 
 <script>
-    // Initialize Trend Line Chart
-    const trendCtx = document.getElementById('riskTrendChart').getContext('2d');
-    new Chart(trendCtx, {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Critical Risks',
-                data: [12, 19, 15, 8, 22, 12],
-                borderColor: '#f43f5e',
-                backgroundColor: 'transparent',
-                borderWidth: 3,
-                tension: 0.4
-            }, {
-                label: 'Resolved',
-                data: [8, 12, 18, 14, 15, 20],
-                borderColor: '#10b981',
-                backgroundColor: 'transparent',
-                borderWidth: 3,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { display: false },
-                x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
+    (function() {
+        function initDashboard() {
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.font.family = "'Inter', sans-serif";
+                Chart.defaults.color = '#64748b';
             }
-        }
-    });
 
-    // Initialize Category Doughnut Chart
-    const catCtx = document.getElementById('riskCategoryChart').getContext('2d');
-    new Chart(catCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Safety', 'Financial', 'Legal'],
-            datasets: [{
-                data: [45, 30, 25],
-                backgroundColor: ['#f43f5e', '#3b82f6', '#f59e0b'],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10, weight: 'bold' } } } }
+            window.loadDashboardContent = function(url) {
+                if (!url) url = '@Url.Action("DashboardContent", "Dashboard", new { area = "Client" })';
+                
+                const contentDiv = document.getElementById('dashboard-content');
+                if (!contentDiv) return;
+                
+                if (contentDiv.innerHTML.trim() === '') {
+                     document.getElementById('dashboard-skeleton').classList.remove('hidden');
+                     contentDiv.classList.add('hidden');
+                } else {
+                     contentDiv.classList.add('opacity-50', 'pointer-events-none');
+                }
+
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`DashboardContent request failed: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        contentDiv.innerHTML = html;
+
+                        const scripts = contentDiv.getElementsByTagName('script');
+                        const scriptsToRun = [];
+                        for (let i = 0; i < scripts.length; i++) {
+                            scriptsToRun.push(scripts[i]);
+                        }
+                        
+                        scriptsToRun.forEach(oldScript => {
+                            const script = document.createElement('script');
+                            if (oldScript.src) {
+                                script.src = oldScript.src;
+                            } else {
+                                script.text = oldScript.textContent;
+                            }
+                            document.body.appendChild(script);
+                        });
+
+                        document.getElementById('dashboard-skeleton').classList.add('hidden');
+                        contentDiv.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching dashboard content:', error);
+                        contentDiv.classList.remove('opacity-50', 'pointer-events-none');
+                    });
+            };
+
+            loadDashboardContent();
         }
-    });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboard);
+        } else {
+            initDashboard();
+        }
+    })();
 </script>

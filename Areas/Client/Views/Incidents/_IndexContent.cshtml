@@ -1,0 +1,547 @@
+@model List<Web_Sentro.Areas.Client.Models.IncidentViewModel>
+@{
+    ViewData["Title"] = "HSE Incidents";
+    
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+        PropertyNamingPolicy = null
+    };
+
+    var sites = ViewBag.Sites as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+    var projects = ViewBag.Projects as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+}
+
+@if (TempData["Message"] != null)
+{
+    <div id="toastAlert" class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500" role="alert">
+        <div class="bg-rose-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="text-sm font-medium">@TempData["Message"]</span>
+        </div>
+    </div>
+}
+
+<div class="animate-in fade-in min-h-screen space-y-6 duration-700">
+    
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                HSE Incidents
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track safety incidents, near misses, and hazards</p>
+        </div>
+        <div>
+            <button onclick="openCreateModal()" class="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                Report Incident
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid gap-6 md:grid-cols-3">
+        <!-- Card 1: Total Incidents -->
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-rose-500/50">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Reported</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.TotalIncidents</h3>
+                </div>
+                <div class="rounded-full bg-slate-50 p-2 dark:bg-slate-800">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+             <div class="mt-4 flex items-center gap-2">
+                <span class="text-[10px] font-medium text-slate-400 uppercase tracking-widest">All time records</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Open / Investigating -->
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-amber-500/50">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Active Cases</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.OpenIncidents</h3>
+                </div>
+                <div class="rounded-full bg-amber-50 p-2 dark:bg-amber-900/20">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Requires attention</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Critical -->
+        <div class="proj-card p-5 group relative flex flex-col justify-center transition-all hover:border-rose-500/50">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Critical Severity</p>
+                    <h3 class="mt-2 text-3xl font-extrabold text-slate-800 dark:text-white">@ViewBag.CriticalIncidents</h3>
+                </div>
+                <div class="rounded-full bg-rose-50 p-2 dark:bg-rose-900/20">
+                    <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest">High priority</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" action="@Url.Action("Index", "Incidents", new { area = "Client" })" class="flex flex-wrap items-center gap-3">
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Site</span>
+            <select name="siteId" onchange="this.form.submit()" asp-items="sites" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer w-40">
+                <option value="">All Sites</option>
+            </select>
+        </div>
+
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Status</span>
+            <select name="status" onchange="this.form.submit()" asp-items="@(new SelectList(new[] { "Open", "Investigating", "Closed" }, ViewBag.StatusFilter))" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+        
+        <div class="pill-input flex items-center gap-2 px-4 py-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">From</span>
+            <input type="date" name="startDate" value="@ViewBag.StartDate" onchange="this.form.submit()" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer" />
+        </div>
+        
+        <a href="@Url.Action("Index", "Incidents", new { area = "Client" })" class="rounded-full bg-slate-100 px-3 py-2 text-slate-500 hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700" title="Reset Filters">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+    </form>
+
+    <!-- Table Card -->
+    <div class="proj-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100/50 bg-slate-50/30 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900/50">
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Title</th>
+                        <th class="px-6 py-4">Site</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4">Severity</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center mb-3 dark:bg-rose-900/20">
+                                        <svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">No incidents found</p>
+                                    <button onclick="openCreateModal()" class="mt-4 text-sm font-medium text-rose-600 hover:text-rose-700">Report Incident &rarr;</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            var itemJson = System.Text.Json.JsonSerializer.Serialize(item, jsonOptions);
+                            <tr onclick='openSidePanel(@Html.Raw(itemJson))' class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-slate-900 dark:text-slate-200">@item.IncidentDate.ToString("MMM d, yyyy")</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white">@item.Title</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-slate-600 dark:text-slate-400">@item.SiteName</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/20">
+                                        @item.Type
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    @{
+                                        var sevClass = item.Severity switch
+                                        {
+                                            "Critical" => "text-rose-600 bg-rose-50 ring-rose-500/10 dark:bg-rose-400/10 dark:text-rose-400 dark:ring-rose-400/20",
+                                            "High" => "text-orange-600 bg-orange-50 ring-orange-500/10 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/20",
+                                            "Medium" => "text-amber-600 bg-amber-50 ring-amber-500/10 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/20",
+                                            _ => "text-blue-600 bg-blue-50 ring-blue-500/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20"
+                                        };
+                                    }
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset @sevClass">
+                                        @item.Severity
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                     @{
+                                        var statusClass = item.Status switch
+                                        {
+                                            "Closed" => "text-emerald-600 bg-emerald-50 ring-emerald-500/10 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/20",
+                                            "Investigating" => "text-violet-600 bg-violet-50 ring-violet-500/10 dark:bg-violet-400/10 dark:text-violet-400 dark:ring-violet-400/20",
+                                            _ => "text-slate-600 bg-slate-50 ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/20"
+                                        };
+                                    }
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset @statusClass">
+                                        @item.Status
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="event.stopPropagation(); openEditModal(@Html.Raw(itemJson))" class="text-xs font-medium text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300">Edit</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Side Panel Overlay -->
+<div id="sidePanelOverlay" onclick="closeSidePanel()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300"></div>
+
+<!-- Side Panel -->
+<div id="sidePanel" class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800">
+    <div class="h-full flex flex-col p-6">
+        
+        <!-- Panel Header -->
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Incident Details</h2>
+                <div id="panelTypeBadge" class="mt-2 inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10"></div>
+            </div>
+            <button onclick="closeSidePanel()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors dark:hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" /></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+            
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <h3 id="panelTitle" class="text-lg font-bold text-slate-900 dark:text-white mb-2"></h3>
+                <p id="panelDescription" class="text-sm text-slate-600 dark:text-slate-300"></p>
+            </div>
+
+            <!-- Details -->
+            <div class="space-y-4">
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Date</span>
+                    <span id="panelDate" class="text-sm font-medium text-slate-900 dark:text-white"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Site</span>
+                    <span id="panelSite" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
+                <div id="panelProjectContainer" class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800 hidden">
+                    <span class="text-sm text-slate-500">Project</span>
+                    <span id="panelProject" class="text-sm font-medium text-slate-900 dark:text-white text-right"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Severity</span>
+                    <span id="panelSeverity" class="text-sm font-bold text-slate-900 dark:text-white text-right"></span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-sm text-slate-500">Status</span>
+                    <span id="panelStatus" class="text-sm font-bold text-slate-900 dark:text-white text-right"></span>
+                </div>
+            </div>
+
+            <div class="pt-4 flex gap-3">
+                 <a id="panelDetailsLink" href="#" class="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700">Full Details</a>
+                 <a id="panelConvertToRiskLink" href="#" class="flex-1 px-4 py-2 text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors text-center dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-900">Convert to Risk</a>
+            </div>
+        </div>
+        
+        <!-- Panel Footer -->
+        <div class="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
+            <button id="panelEditBtn" class="w-full block bg-slate-900 text-white py-3 rounded-lg text-sm font-semibold shadow hover:bg-slate-800 transition-colors text-center dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                Edit Incident
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Form Modal -->
+<div id="formModal" class="fixed inset-0 z-[80] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-2xl scale-100 transform rounded-[24px] bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-100/50 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-100/50 pb-4 dark:border-slate-800">
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-extrabold text-slate-800 dark:text-white">Report Incident</h2>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mt-1">Enter incident details</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-full transition-colors dark:bg-slate-800 dark:hover:bg-rose-900/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+
+            <form id="incidentForm" method="post" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="IncidentId" name="IncidentId" />
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="SiteId" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
+                        <select id="SiteId" name="SiteId" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                            <option value="">Select site...</option>
+                            @if (sites != null)
+                            {
+                                foreach (var site in sites)
+                                {
+                                    <option value="@site.Value">@site.Text</option>
+                                }
+                            }
+                        </select>
+                        <span id="error-SiteId" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label for="ProjectId" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Project</label>
+                        <select id="ProjectId" name="ProjectId" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                            <option value="">Select project...</option>
+                            @if (projects != null)
+                            {
+                                foreach (var project in projects)
+                                {
+                                    <option value="@project.Value">@project.Text</option>
+                                }
+                            }
+                        </select>
+                        <span id="error-ProjectId" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label for="IncidentDate" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Date & Time <span class="text-rose-500">*</span></label>
+                        <input type="datetime-local" id="IncidentDate" name="IncidentDate" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3" />
+                        <span id="error-IncidentDate" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="Type" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Type <span class="text-rose-500">*</span></label>
+                        <select id="Type" name="Type" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                            <option value="Near Miss">Near Miss</option>
+                            <option value="Injury">Injury</option>
+                            <option value="Property Damage">Property Damage</option>
+                            <option value="Environmental">Environmental</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <span id="error-Type" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label for="Severity" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Severity <span class="text-rose-500">*</span></label>
+                        <select id="Severity" name="Severity" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                        <span id="error-Severity" class="text-xs text-rose-500 mt-1 hidden"></span>
+                    </div>
+                </div>
+                
+                 <div>
+                    <label for="Title" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Title <span class="text-rose-500">*</span></label>
+                    <input type="text" id="Title" name="Title" required class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3" placeholder="Brief description..." />
+                    <span id="error-Title" class="text-xs text-rose-500 mt-1 hidden"></span>
+                </div>
+
+                <div>
+                    <label for="Description" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Description</label>
+                    <textarea id="Description" name="Description" rows="3" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3"></textarea>
+                    <span id="error-Description" class="text-xs text-rose-500 mt-1 hidden"></span>
+                </div>
+                
+                <div class="hidden" id="statusContainer">
+                     <label for="Status" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Status</label>
+                     <select id="Status" name="Status" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                        <option value="Open">Open</option>
+                        <option value="Investigating">Investigating</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <input type="hidden" name="Status" id="DefaultStatus" value="Open" />
+
+                <div class="pt-2">
+                    <button type="submit" id="btnSubmit" class="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-semibold shadow hover:bg-rose-700 transition-colors flex justify-center items-center gap-2">
+                        <span>Submit Report</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toast = document.getElementById('toastAlert');
+        if (toast) {
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+    });
+
+    function openSidePanel(item) {
+        document.getElementById('panelTitle').innerText = item.Title;
+        document.getElementById('panelDescription').innerText = item.Description || "No description provided.";
+        
+        const date = new Date(item.IncidentDate);
+        document.getElementById('panelDate').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        
+        document.getElementById('panelSite').innerText = item.SiteName;
+
+        const projectContainer = document.getElementById('panelProjectContainer');
+        if (item.ProjectName) {
+            document.getElementById('panelProject').innerText = item.ProjectName;
+            projectContainer.classList.remove('hidden');
+        } else {
+            projectContainer.classList.add('hidden');
+        }
+
+        document.getElementById('panelSeverity').innerText = item.Severity;
+        document.getElementById('panelStatus').innerText = item.Status;
+
+        document.getElementById('panelTypeBadge').innerText = item.Type;
+        
+        document.getElementById('panelDetailsLink').href = '@Url.Action("Details", "Incidents", new { area = "Client" })/' + item.IncidentId;
+        document.getElementById('panelConvertToRiskLink').href = '@Url.Action("Identification", "Risks", new { area = "Client" })?createFromIncidentId=' + item.IncidentId;
+
+        // Setup Edit Button in Panel
+        const editBtn = document.getElementById('panelEditBtn');
+        editBtn.onclick = function() {
+            closeSidePanel();
+            openEditModal(item);
+        };
+
+        const panel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('sidePanelOverlay');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+        panel.classList.remove('translate-x-full');
+    }
+
+    function closeSidePanel() {
+        const panel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('sidePanelOverlay');
+        panel.classList.add('translate-x-full');
+        overlay.classList.replace('opacity-100', 'opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+    }
+
+    // Modal Logic
+    function openCreateModal() {
+        const form = document.getElementById('incidentForm');
+        form.reset();
+        // Set IncidentId to 0 for creation to avoid validation error on empty string
+        document.getElementById('IncidentId').value = 0;
+        
+        form.action = '@Url.Action("Create", "Incidents", new { area = "Client" })';
+        document.getElementById('modalTitle').innerText = 'Report Incident';
+        
+        // Set default date to now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('IncidentDate').value = now.toISOString().slice(0, 16);
+        
+        document.getElementById('statusContainer').classList.add('hidden');
+        document.getElementById('Status').disabled = true;
+        document.getElementById('DefaultStatus').disabled = false;
+        
+        const modal = document.getElementById('formModal');
+        modal.classList.remove('hidden');
+    }
+
+    function openEditModal(item) {
+        const form = document.getElementById('incidentForm');
+        form.reset();
+        form.action = '@Url.Action("Edit", "Incidents", new { area = "Client" })';
+
+        document.getElementById('modalTitle').innerText = 'Edit Incident';
+
+        // Populate fields
+        document.getElementById('IncidentId').value = item.IncidentId;
+        
+        if (item.SiteId) document.getElementById('SiteId').value = item.SiteId;
+        if (item.ProjectId) document.getElementById('ProjectId').value = item.ProjectId;
+        
+        document.getElementById('Title').value = item.Title;
+        document.getElementById('Description').value = item.Description;
+        document.getElementById('Type').value = item.Type;
+        document.getElementById('Severity').value = item.Severity;
+        
+        if (item.IncidentDate) {
+             const date = new Date(item.IncidentDate);
+             date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+             document.getElementById('IncidentDate').value = date.toISOString().slice(0, 16);
+        }
+
+        document.getElementById('statusContainer').classList.remove('hidden');
+        document.getElementById('Status').value = item.Status;
+        document.getElementById('Status').disabled = false;
+        document.getElementById('DefaultStatus').disabled = true;
+
+        const modal = document.getElementById('formModal');
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('formModal').classList.add('hidden');
+    }
+
+    // AJAX Form Submission
+    document.getElementById('incidentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const btn = document.getElementById('btnSubmit');
+        
+        // Hide previous errors
+        document.querySelectorAll('[id^="error-"]').forEach(el => el.classList.add('hidden'));
+        
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (response.ok) {
+                // Success - reload page to show new item
+                window.location.reload();
+            } else if (response.status === 400) {
+                // Validation error
+                const errors = await response.json();
+                for (const [key, value] of Object.entries(errors)) {
+                    const errorEl = document.getElementById('error-' + key);
+                    if (errorEl) {
+                        errorEl.innerText = value[0];
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            } else {
+                alert('An error occurred while saving. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('A network error occurred.');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+</script>

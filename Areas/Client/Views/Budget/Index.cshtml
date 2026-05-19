@@ -1,0 +1,297 @@
+@model Web_Sentro.Areas.Client.Controllers.BudgetDashboardViewModel
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Budget Management";
+    
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = null
+    };
+}
+
+@if (TempData["Message"] != null)
+{
+    <div id="toastAlert" class="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-500" role="alert">
+        <div class="bg-emerald-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="text-sm font-medium">@TempData["Message"]</span>
+        </div>
+    </div>
+}
+
+<div id="budget-content" class="min-h-screen space-y-6 p-6">
+    
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Budget Management
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Financial planning and allocation across all sites</p>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <!-- Allocated -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Allocated</p>
+                    <h3 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">@Model.TotalAllocated.ToString("C0", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH"))</h3>
+                </div>
+                <div class="rounded-full bg-blue-50 p-2 dark:bg-blue-900/20">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Committed -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Committed (PO+CO)</p>
+                    <h3 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">@Model.TotalCommitted.ToString("C0", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH"))</h3>
+                </div>
+                <div class="rounded-full bg-indigo-50 p-2 dark:bg-indigo-900/20">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actual -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Actual (Paid)</p>
+                    <h3 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">@Model.TotalActual.ToString("C0", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH"))</h3>
+                </div>
+                <div class="rounded-full bg-rose-50 p-2 dark:bg-rose-900/20">
+                    <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remaining -->
+        <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Remaining Budget</p>
+                    <h3 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">@Model.RemainingBudget.ToString("C0", System.Globalization.CultureInfo.CreateSpecificCulture("en-PH"))</h3>
+                </div>
+                <div class="rounded-full bg-emerald-50 p-2 dark:bg-emerald-900/20">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid gap-6 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Spending Trend</h3>
+            <div class="h-64">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Budget vs Committed (Top 5 Sites)</h3>
+            <div class="h-64">
+                <canvas id="budgetVsActualChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Site Budgets</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3 font-medium">Site</th>
+                        <th class="px-6 py-3 font-medium text-right">Allocated</th>
+                        <th class="px-6 py-3 font-medium text-right">Committed</th>
+                        <th class="px-6 py-3 font-medium text-right">Actual</th>
+                        <th class="px-6 py-3 font-medium text-right">Remaining</th>
+                        <th class="px-6 py-3 font-medium w-1/4">Utilization</th>
+                        <th class="px-6 py-3 font-medium text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @foreach (var site in Model.Sites)
+                    {
+                        var util = site.UtilizationPercent ?? 0;
+                        var progressColor = util > 100 ? "bg-rose-500" : (util > 80 ? "bg-amber-500" : "bg-emerald-500");
+                        
+                        <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td class="px-6 py-4">
+                                <a asp-action="Details" asp-route-id="@site.SiteId" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">@site.SiteName</a>
+                                <div class="text-xs text-slate-500">@site.SiteCode</div>
+                            </td>
+                            <td class="px-6 py-4 text-right font-medium text-slate-900 dark:text-white">
+                                @site.BudgetAllocated.ToString("N0")
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-600 dark:text-slate-400">
+                                @site.TotalCommitted.ToString("N0")
+                            </td>
+                             <td class="px-6 py-4 text-right text-slate-600 dark:text-slate-400">
+                                @site.TotalActual.ToString("N0")
+                            </td>
+                            <td class="px-6 py-4 text-right font-bold @(site.RemainingBudget < 0 ? "text-rose-500" : "text-emerald-600")">
+                                @site.RemainingBudget.ToString("N0")
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
+                                        <div class="h-full rounded-full @progressColor" style="width: @Math.Min(util, 100)%"></div>
+                                    </div>
+                                    <span class="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">@util.ToString("F0")%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="openEditModal('@site.SiteId', '@site.SiteName', '@site.BudgetAllocated')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 uppercase tracking-wide">
+                                    Edit Budget
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Budget Modal -->
+<div id="editBudgetModal" class="fixed inset-0 z-[80] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-md scale-100 transform rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Edit Budget Allocation</h2>
+                    <p id="modalSiteName" class="text-xs text-slate-500 mt-1 font-mono font-medium"></p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+
+            <form method="post" asp-action="UpdateBudget" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editSiteId" name="siteId" />
+                
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Allocated Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                        <input type="number" id="editAmount" name="amount" step="0.01" required class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono" />
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-lg text-sm font-semibold shadow hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">Update Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels));
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendData));
+        const topSites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Sites.OrderByDescending(s => s.BudgetAllocated).Take(5).Select(s => new { s.SiteName, s.BudgetAllocated, s.TotalCommitted })));
+
+        function initBudgetPage() {
+            if (typeof Chart !== 'undefined') {
+                const trendCanvas = document.getElementById('trendChart');
+                if (trendCanvas) {
+                    new Chart(trendCanvas.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: trendLabels,
+                            datasets: [{
+                                label: 'Actual Spending',
+                                data: trendData,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+
+                const bvaCanvas = document.getElementById('budgetVsActualChart');
+                if (bvaCanvas) {
+                    new Chart(bvaCanvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: topSites.map(s => s.SiteName),
+                            datasets: [
+                                {
+                                    label: 'Budget',
+                                    data: topSites.map(s => s.BudgetAllocated),
+                                    backgroundColor: '#e2e8f0',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Committed',
+                                    data: topSites.map(s => s.TotalCommitted),
+                                    backgroundColor: '#6366f1',
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            const toast = document.getElementById('toastAlert');
+            if (toast) {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
+            }
+        }
+
+        window.openEditModal = function (id, name, amount) {
+            document.getElementById('editSiteId').value = id;
+            document.getElementById('modalSiteName').innerText = name;
+            document.getElementById('editAmount').value = amount;
+            document.getElementById('editBudgetModal').classList.remove('hidden');
+        };
+
+        window.closeModal = function () {
+            document.getElementById('editBudgetModal').classList.add('hidden');
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBudgetPage);
+        } else {
+            initBudgetPage();
+        }
+    })();
+</script>

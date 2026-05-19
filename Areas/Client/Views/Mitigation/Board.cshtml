@@ -1,0 +1,806 @@
+@model IEnumerable<Web_Sentro.Areas.Client.Models.MitigationTaskViewModel>
+@{
+    Layout = "_LayoutClient";
+    var statuses = new[] { "ToDo", "InProgress", "Review", "Done" };
+    var riskStatus = ViewBag.RiskStatus as string ?? "MitigationRequired";
+    var orgUsers = ViewBag.OrgUsers as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var riskId = ViewBag.RiskId as int? ?? 0;
+    var planId = ViewBag.PlanId as int? ?? 0;
+    var isAdmin = ViewBag.IsAdmin as bool? ?? false;
+    var canManageTasks = ViewBag.CanManageTasks as bool? ?? false;
+    var currentUserId = ViewBag.CurrentUserId as string ?? "";
+    var riskTitle = ViewBag.RiskTitle as string ?? "";
+
+    var totalTasks = Model.Count();
+    var doneTasks = Model.Count(t => t.Status == "Done");
+    var progressVal = totalTasks > 0 ? (int)((double)doneTasks / totalTasks * 100) : 0;
+    var mitigationComplete = totalTasks > 0 && doneTasks == totalTasks;
+
+    string Accent(string s) => s switch
+    {
+        "ToDo" => "bg-blue-500",
+        "InProgress" => "bg-amber-500",
+        "Review" => "bg-indigo-500",
+        "Done" => "bg-emerald-500",
+        _ => "bg-slate-400"
+    };
+
+    string Label(string s) => s switch
+    {
+        "ToDo" => "To Do",
+        "InProgress" => "In Progress",
+        "Review" => "Review",
+        "Done" => "Done",
+        _ => s
+    };
+}
+
+@Html.AntiForgeryToken()
+
+<div class="flex flex-col h-[calc(100vh-6rem)] w-full max-w-[1920px] mx-auto overflow-hidden animate-in fade-in duration-500">
+    <!-- Header Section -->
+    <div class="shrink-0 px-6 py-5 border-b border-slate-200/60 bg-white/50 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-900/50">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <!-- Left: Title & Breadcrumbs -->
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <a href="@Url.Action("Index", "Mitigation", new { area = "Client" })" class="hover:text-indigo-600 transition-colors">Mitigation</a>
+                    <span class="text-slate-300">/</span>
+                    <span>Risk #@riskId</span>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                    @riskTitle
+                </h1>
+            </div>
+
+            <!-- Right: KPIs -->
+            <div class="flex items-center gap-3 sm:gap-6">
+                <!-- Completion -->
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Completion</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl font-black text-slate-900 dark:text-white">@progressVal%</span>
+                        <div class="h-1.5 w-16 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: @progressVal%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+
+                <!-- Tasks -->
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tasks</span>
+                    <span class="text-xl font-black text-slate-900 dark:text-white">
+                        @doneTasks <span class="text-sm text-slate-400 font-semibold">/ @totalTasks</span>
+                    </span>
+                </div>
+
+                <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+
+                <!-- Status -->
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Risk Status</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 @(riskStatus == "MitigationRequired" ? "bg-amber-400" : "bg-emerald-400")"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 @(riskStatus == "MitigationRequired" ? "bg-amber-500" : "bg-emerald-500")"></span>
+                        </span>
+                        <span class="text-sm font-bold @(riskStatus == "MitigationRequired" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")">
+                            @riskStatus.Replace("_", " ")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3 flex-1">
+                <!-- Search -->
+                <div class="relative group w-full max-w-xs">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <input type="search" id="taskSearch" 
+                           class="block w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs font-semibold placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800/50 dark:placeholder-slate-500 dark:focus:bg-slate-900 transition-all" 
+                           placeholder="Filter tasks..." />
+                </div>
+
+                <!-- View Toggle -->
+                <div class="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+                    <button type="button" onclick="toggleBoardView('board')" id="boardTabBtn"
+                            class="flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 shadow-sm transition-all dark:bg-slate-700 dark:text-white">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+                        Board
+                    </button>
+                    <button type="button" onclick="toggleBoardView('list')" id="listTabBtn"
+                            class="flex items-center gap-2 rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        List
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3">
+                @if (mitigationComplete)
+                {
+                    <a href="@Url.Action("Assess", "Risks", new { area = "Client", id = riskId })"
+                       class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all dark:border-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Assess Residual Risk
+                    </a>
+                }
+                @if (canManageTasks)
+                {
+                    <button type="button" onclick="openNewTaskModal()"
+                            class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-900/20 hover:bg-indigo-600 hover:shadow-indigo-500/30 active:translate-y-0.5 transition-all dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-50">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        New Task
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Board Area -->
+    <div class="flex-1 min-h-0 overflow-hidden bg-slate-50/50 dark:bg-slate-900/20">
+        <!-- Kanban View -->
+        <div id="kanbanBoard" class="h-full overflow-x-auto overflow-y-hidden custom-scrollbar">
+            <div class="flex h-full gap-6 px-6 py-6 min-w-max">
+                @foreach (var status in statuses)
+                {
+                    var columnTasks = Model.Where(t => t.Status == status);
+                    var accent = Accent(status);
+                    var label = Label(status);
+
+                    <div class="kanban-column flex flex-col w-[340px] h-full rounded-2xl bg-slate-100/50 border border-slate-200/50 dark:bg-slate-800/20 dark:border-slate-800/50"
+                         data-status="@status" ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                        
+                        <!-- Column Header -->
+                        <div class="flex items-center justify-between px-4 py-3 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full @accent"></span>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">@label</h3>
+                                <span class="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-bold text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-300">
+                                    @columnTasks.Count()
+                                </span>
+                            </div>
+                            @if (canManageTasks)
+                            {
+                                <button type="button" onclick="openNewTaskModal()" class="text-slate-400 hover:text-indigo-600 transition-colors">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                </button>
+                            }
+                        </div>
+
+                        <!-- Column Body -->
+                        <div class="kanban-drop flex-1 overflow-y-auto px-3 pb-3 space-y-3 custom-scrollbar"
+                             ondrop="drop(event, '@status')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            @foreach (var task in columnTasks)
+                            {
+                                var initial = string.IsNullOrEmpty(task.AssignedTo) || task.AssignedTo == "—" ? "?" : task.AssignedTo.Substring(0, 1).ToUpper();
+                                var priorityLower = (task.Priority ?? "Low").ToLowerInvariant();
+                                var priorityClass = priorityLower.Contains("critical") ? "text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/30" :
+                                                    priorityLower.Contains("high") ? "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30" :
+                                                    "text-slate-500 bg-slate-50 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+
+                                <div id="task-@task.Id"
+                                     data-task-id="@task.Id"
+                                     data-task-title="@task.Title"
+                                     data-task-status="@task.Status"
+                                     data-task-assignee-id="@task.AssignedToUserId"
+                                     data-task-assignee="@task.AssignedTo"
+                                     draggable="true"
+                                     ondragstart="drag(event)"
+                                     onclick="onCardClick(event, @task.Id)"
+                                     class="mitigation-card group relative flex flex-col gap-3 rounded-xl bg-white border border-slate-200 p-4 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-indigo-300 transition-all duration-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-indigo-500/50 @(task.Status == "Done" ? "mitigation-card-done" : "")">
+                                    
+                                    <!-- Header -->
+                                    <div class="flex justify-between items-start gap-2">
+                                        <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border @priorityClass">
+                                            @((task.Priority ?? "Low"))
+                                        </span>
+                                        @if (canManageTasks) {
+                                            <button type="button" onclick="event.stopPropagation(); openDeleteTaskConfirm(this)" data-task-id="@task.Id" data-task-title="@task.Title" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition-colors">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <!-- Title -->
+                                    <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug line-clamp-2">
+                                        @task.Title
+                                    </h4>
+
+                                    <!-- Footer info -->
+                                    <div class="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(task.AssignedToProfileImagePath))
+                                            {
+                                                <img src="@task.AssignedToProfileImagePath" alt="@task.AssignedTo" class="h-6 w-6 rounded-full object-cover border border-white shadow-sm dark:border-slate-700" />
+                                            }
+                                            else
+                                            {
+                                                <div class="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-black border border-white shadow-sm dark:bg-indigo-900/50 dark:text-indigo-300 dark:border-slate-700">
+                                                    @initial
+                                                </div>
+                                            }
+                                            @if (task.DueDate.HasValue)
+                                            {
+                                                <div class="flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                    <span class="task-due-label">@task.DueDate.Value.ToString("MMM dd")</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        
+                                        <!-- Mini progress -->
+                                        <div class="flex items-center gap-1.5" title="Progress: @task.ProgressPercent%">
+                                            <div class="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-700">
+                                                <div class="h-full bg-emerald-500 rounded-full" style="width: @task.ProgressPercent%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="hidden h-full overflow-auto custom-scrollbar px-6 py-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200 dark:bg-slate-900/50 dark:border-slate-700">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Task</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Assignee</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                        @foreach (var task in Model)
+                        {
+                            <tr class="list-task-row hover:bg-slate-50/80 transition-colors cursor-pointer dark:hover:bg-slate-700/30"
+                                data-task-id="@task.Id"
+                                data-task-title="@task.Title"
+                                data-task-status="@task.Status"
+                                data-task-assignee-id="@task.AssignedToUserId"
+                                onclick="openTaskModal(@task.Id)">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-bold text-slate-800 dark:text-slate-200">@task.Title</div>
+                                    @if(task.DueDate.HasValue) {
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Due: @task.DueDate.Value.ToString("MMM dd")</div>
+                                    }
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(task.Status == "Done" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300")">
+                                        @Label(task.Status)
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">@task.AssignedTo</td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-700">
+                                            <div class="h-full bg-emerald-500 rounded-full" style="width: @task.ProgressPercent%"></div>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-600 dark:text-slate-400">@task.ProgressPercent%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Edit Modal -->
+<div id="taskEditModal" class="fixed inset-0 z-[60] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeTaskModal()"></div>
+    <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div class="pointer-events-auto w-screen max-w-md transform transition-all duration-300 ease-in-out">
+            <div class="flex h-full flex-col bg-white shadow-2xl dark:bg-slate-900">
+                <div class="px-6 py-6 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Edit Task</h2>
+                            <p class="mt-1 text-xs text-slate-500">Update task details and progress.</p>
+                        </div>
+                        <button type="button" onclick="closeTaskModal()" class="rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-slate-900 dark:hover:text-slate-300">
+                            <span class="sr-only">Close panel</span>
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto px-6 py-6">
+                    <input type="hidden" id="taskModalTaskId" />
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Title</label>
+                            <input type="text" id="taskModalTitle" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Status</label>
+                                <select id="taskModalStatus" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                    <option value="ToDo">To Do</option>
+                                    <option value="InProgress">In Progress</option>
+                                    <option value="Review">Review</option>
+                                    <option value="Done">Done</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Progress %</label>
+                                <div class="relative mt-1">
+                                    <input type="number" id="taskModalProgressInput" min="0" max="100" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <span class="text-slate-400 text-xs font-bold">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Assignee</label>
+                            <select id="taskModalAssignedTo" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                <option value="">Unassigned</option>
+                                @foreach (var u in orgUsers)
+                                {
+                                    <option value="@u.Id">@u.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Due Date</label>
+                            <input type="date" id="taskModalDueDate" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500">Description</label>
+                            <textarea id="taskModalDescription" rows="4" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-shrink-0 border-t border-slate-100 px-6 py-6 dark:border-slate-800">
+                    <div class="flex gap-3">
+                        <button type="button" onclick="closeTaskModal()" class="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+                        <button type="button" id="taskModalSaveBtn" class="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Task Modal (Centered) -->
+<div id="newTaskModal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeNewTaskModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Create New Task</h2>
+                    <p class="text-xs text-slate-500 mt-1">Add a mitigation action item.</p>
+                </div>
+                <button onclick="closeNewTaskModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Title</label>
+                    <input type="text" id="newTaskTitle" class="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold focus:border-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800" placeholder="e.g. Install fire suppression system" />
+                    <span id="newTaskTitleError" class="mt-1 hidden block text-xs font-bold text-rose-500"></span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Assign To</label>
+                        <select id="newTaskAssignedTo" class="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold focus:border-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800">
+                            <option value="">Unassigned</option>
+                            @foreach (var u in orgUsers)
+                            {
+                                <option value="@u.Id">@u.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Due Date</label>
+                        <input type="date" id="newTaskDueDate" class="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold focus:border-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Description</label>
+                    <textarea id="newTaskDescription" rows="3" class="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium focus:border-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800" placeholder="Optional details..."></textarea>
+                </div>
+
+                <div class="pt-2 flex gap-3">
+                    <button onclick="closeNewTaskModal()" class="flex-1 rounded-xl bg-slate-100 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-200 transition-colors">Cancel</button>
+                    <button id="newTaskCreateBtn" class="flex-[2] rounded-xl bg-slate-900 py-3.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-slate-800 transition-colors shadow-lg">Create Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteTaskConfirmModal" class="fixed inset-0 z-[70] hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeDeleteTaskConfirm()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
+            <div class="text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                    <svg class="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </div>
+                <h3 class="mt-4 text-lg font-black text-slate-900 dark:text-white">Delete Task?</h3>
+                <p class="mt-2 text-xs font-medium text-slate-500">
+                    Are you sure you want to delete "<span id="deleteTaskConfirmTitle" class="text-slate-800 dark:text-slate-200 font-bold"></span>"? This action cannot be undone.
+                </p>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="button" onclick="closeDeleteTaskConfirm()" class="flex-1 rounded-xl bg-slate-100 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-200">Cancel</button>
+                <button type="button" id="deleteTaskConfirmBtn" class="flex-1 rounded-xl bg-rose-600 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-700 shadow-md shadow-rose-500/20">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        window.__mitigationDragging = false;
+        window.__taskDetailsUrl = '@Url.Action("TaskDetails", "Mitigation", new { area = "Client" })';
+        window.__updateTaskUrl = '@Url.Action("UpdateTask", "Mitigation", new { area = "Client" })';
+        window.__moveTaskUrl = '@Url.Action("MoveTask", "Mitigation", new { area = "Client" })';
+        window.__createTaskUrl = '@Url.Action("CreateTask", "Mitigation", new { area = "Client" })';
+        window.__deleteTaskUrl = '@Url.Action("DeleteTask", "Mitigation", new { area = "Client" })';
+        window.__planId = @planId;
+        window.__riskId = @riskId;
+        window.__canManageTasks = @(canManageTasks.ToString().ToLowerInvariant());
+        window.__currentUserId = '@currentUserId';
+    })();
+
+    // Drag and Drop Logic
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('bg-slate-50', 'dark:bg-slate-800/40');
+    }
+    function dragLeave(ev) {
+        var related = ev.relatedTarget;
+        var el = ev.currentTarget;
+        if (el.contains(related)) return;
+        el.classList.remove('bg-slate-50', 'dark:bg-slate-800/40');
+    }
+    function drag(ev) {
+        if (!window.__canManageTasks) {
+            var assigneeId = ev.target.getAttribute('data-task-assignee-id') || '';
+            if (!assigneeId || assigneeId !== window.__currentUserId) {
+                ev.preventDefault();
+                return;
+            }
+        }
+        window.__mitigationDragging = true;
+        ev.dataTransfer.setData('text', ev.target.id);
+        ev.dataTransfer.setData('taskId', ev.target.getAttribute('data-task-id') || '');
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.target.classList.add('opacity-50', 'rotate-2');
+    }
+    function drop(ev, newStatus) {
+        ev.preventDefault();
+        document.querySelectorAll('.kanban-column, .kanban-drop').forEach(function(el) { el.classList.remove('bg-slate-50', 'dark:bg-slate-800/40'); });
+        window.__mitigationDragging = false;
+        
+        var id = ev.dataTransfer.getData('text');
+        var card = document.getElementById(id);
+        if (!card) return;
+        
+        card.classList.remove('opacity-50', 'rotate-2');
+        var taskId = card.getAttribute('data-task-id');
+        var assigneeId = card.getAttribute('data-task-assignee-id') || '';
+        if (!window.__canManageTasks && assigneeId !== window.__currentUserId) {
+            return;
+        }
+        
+        // Find the correct drop container
+        var columnBody = ev.target.closest('.kanban-drop') || document.querySelector('.kanban-column[data-status="' + newStatus + '"] .kanban-drop');
+        if (!columnBody) return;
+
+        var previousParent = card.parentElement;
+        var previousNext = card.nextElementSibling;
+
+        columnBody.appendChild(card);
+        card.setAttribute('data-task-status', newStatus);
+
+        // Optimistic UI update for Done status styling
+        if (newStatus === 'Done') card.classList.add('mitigation-card-done');
+        else card.classList.remove('mitigation-card-done');
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId) + '&newStatus=' + encodeURIComponent(newStatus);
+
+        fetch(window.__moveTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.ok && previousParent) {
+                    previousParent.insertBefore(card, previousNext);
+                    // Revert UI if failed
+                    if (card.getAttribute('data-task-status') === 'Done') card.classList.add('mitigation-card-done');
+                    else card.classList.remove('mitigation-card-done');
+                }
+            })
+            .catch(function() { if (previousParent) previousParent.insertBefore(card, previousNext); });
+    }
+
+    // Modal & View Logic
+    function toggleBoardView(type) {
+        var board = document.getElementById('kanbanBoard');
+        var list = document.getElementById('listView');
+        var bBtn = document.getElementById('boardTabBtn');
+        var lBtn = document.getElementById('listTabBtn');
+        
+        // Tailwind classes for active/inactive tabs
+        var activeClasses = ['bg-white', 'text-indigo-600', 'shadow-sm', 'dark:bg-slate-700', 'dark:text-white'];
+        var inactiveClasses = ['text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400', 'dark:hover:text-slate-200'];
+
+        function setBtn(btn, isActive) {
+            if (isActive) {
+                btn.classList.add(...activeClasses);
+                btn.classList.remove('text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400');
+            } else {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            }
+        }
+
+        if (type === 'board') {
+            board.classList.remove('hidden');
+            list.classList.add('hidden');
+            setBtn(bBtn, true);
+            setBtn(lBtn, false);
+        } else {
+            list.classList.remove('hidden');
+            board.classList.add('hidden');
+            setBtn(lBtn, true);
+            setBtn(bBtn, false);
+        }
+    }
+
+    function openDeleteTaskConfirm(btn) {
+        var taskId = btn.getAttribute('data-task-id');
+        var taskTitle = btn.getAttribute('data-task-title') || 'Task';
+        if (!taskId) return;
+        window.__deleteTaskId = taskId;
+        document.getElementById('deleteTaskConfirmTitle').textContent = taskTitle;
+        document.getElementById('deleteTaskConfirmModal').classList.remove('hidden');
+    }
+    function closeDeleteTaskConfirm() {
+        document.getElementById('deleteTaskConfirmModal').classList.add('hidden');
+        window.__deleteTaskId = null;
+    }
+    
+    // Delete action
+    document.getElementById('deleteTaskConfirmBtn').addEventListener('click', function() {
+        var taskId = window.__deleteTaskId;
+        if (!taskId) return;
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&taskId=' + encodeURIComponent(taskId);
+        this.disabled = true;
+        this.textContent = 'Deleting...';
+        
+        fetch(window.__deleteTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    closeDeleteTaskConfirm();
+                    var card = document.querySelector('.mitigation-card[data-task-id="' + taskId + '"]');
+                    if (card) card.remove();
+                    var listRow = document.querySelector('.list-task-row[data-task-id="' + taskId + '"]');
+                    if (listRow) listRow.remove();
+                    location.reload(); // To update stats
+                }
+            })
+            .finally(function() { 
+                var btn = document.getElementById('deleteTaskConfirmBtn');
+                btn.disabled = false;
+                btn.textContent = 'Delete';
+            });
+    });
+
+    function onCardClick(ev, taskId) {
+        if (window.__mitigationDragging) return;
+        if (ev.target.closest('button') || ev.target.closest('a')) return;
+        if (!window.__canManageTasks) {
+            var card = ev.currentTarget;
+            var assigneeId = card.getAttribute('data-task-assignee-id') || '';
+            if (assigneeId !== window.__currentUserId) return;
+        }
+        openTaskModal(taskId);
+    }
+
+    function openTaskModal(taskId) {
+        var modal = document.getElementById('taskEditModal');
+        document.getElementById('taskModalTaskId').value = taskId;
+        modal.classList.remove('hidden');
+        
+        fetch(window.__taskDetailsUrl + '?taskId=' + encodeURIComponent(taskId))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!window.__canManageTasks && data.assignedToUserId !== window.__currentUserId) {
+                    closeTaskModal();
+                    return;
+                }
+
+                document.getElementById('taskModalTitle').value = data.title || '';
+                document.getElementById('taskModalAssignedTo').value = data.assignedToUserId || '';
+                document.getElementById('taskModalDueDate').value = data.dueDate ? data.dueDate.substring(0, 10) : '';
+                document.getElementById('taskModalDescription').value = data.description || '';
+                document.getElementById('taskModalProgressInput').value = data.progressPercent ?? 0;
+                document.getElementById('taskModalStatus').value = data.status || 'ToDo';
+
+                var restricted = !window.__canManageTasks;
+                document.getElementById('taskModalTitle').disabled = restricted;
+                document.getElementById('taskModalAssignedTo').disabled = restricted;
+                document.getElementById('taskModalDueDate').disabled = restricted;
+            });
+    }
+
+    function closeTaskModal() {
+        document.getElementById('taskEditModal').classList.add('hidden');
+    }
+
+    // Update Task Action
+    document.getElementById('taskModalSaveBtn').addEventListener('click', function() {
+        var taskId = document.getElementById('taskModalTaskId').value;
+        var title = (document.getElementById('taskModalTitle').value || '').trim();
+        var status = document.getElementById('taskModalStatus').value;
+        var assignedToUserId = document.getElementById('taskModalAssignedTo').value;
+        var dueDateVal = document.getElementById('taskModalDueDate').value;
+        var description = document.getElementById('taskModalDescription').value;
+        var progressPercent = document.getElementById('taskModalProgressInput').value;
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token)
+            + '&taskId=' + encodeURIComponent(taskId)
+            + '&title=' + encodeURIComponent(title)
+            + '&status=' + encodeURIComponent(status)
+            + '&assignedToUserId=' + encodeURIComponent(assignedToUserId)
+            + '&dueDate=' + encodeURIComponent(dueDateVal)
+            + '&description=' + encodeURIComponent(description)
+            + '&progressPercent=' + encodeURIComponent(progressPercent);
+
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        fetch(window.__updateTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    closeTaskModal();
+                    location.reload(); // Easiest way to refresh all UI states
+                }
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            });
+    });
+
+    // New Task Modal
+    function openNewTaskModal() {
+        if (!window.__canManageTasks) return;
+        document.getElementById('newTaskModal').classList.remove('hidden');
+        document.getElementById('newTaskTitle').value = '';
+        document.getElementById('newTaskTitleError').classList.add('hidden');
+        document.getElementById('newTaskTitle').focus();
+    }
+    function closeNewTaskModal() {
+        document.getElementById('newTaskModal').classList.add('hidden');
+    }
+
+    // Create Task Action
+    document.getElementById('newTaskCreateBtn').addEventListener('click', function() {
+        var title = (document.getElementById('newTaskTitle').value || '').trim();
+        var errEl = document.getElementById('newTaskTitleError');
+        if (!title) { errEl.textContent = 'Title is required.'; errEl.classList.remove('hidden'); return; }
+        
+        var description = document.getElementById('newTaskDescription').value;
+        var assignedTo = document.getElementById('newTaskAssignedTo').value;
+        var dueDate = document.getElementById('newTaskDueDate').value;
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token)
+            + '&planId=' + window.__planId
+            + '&title=' + encodeURIComponent(title)
+            + '&description=' + encodeURIComponent(description)
+            + '&assignedToUserId=' + encodeURIComponent(assignedTo)
+            + '&dueDate=' + encodeURIComponent(dueDate);
+
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        fetch(window.__createTaskUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.ok) { 
+                    closeNewTaskModal(); 
+                    location.reload(); 
+                } else { 
+                    errEl.textContent = data.message || 'Error creating task.'; 
+                    errEl.classList.remove('hidden'); 
+                }
+            })
+            .catch(function() { errEl.textContent = 'Error creating task.'; errEl.classList.remove('hidden'); })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Create Task';
+            });
+    });
+
+    // Search
+    document.getElementById('taskSearch').addEventListener('input', function() {
+        var q = (this.value || '').toLowerCase().trim();
+        
+        // Filter cards
+        document.querySelectorAll('.mitigation-card').forEach(function(card) {
+            var title = (card.getAttribute('data-task-title') || '').toLowerCase();
+            var assignee = (card.getAttribute('data-task-assignee') || '').toLowerCase();
+            var show = !q || title.includes(q) || assignee.includes(q);
+            card.style.display = show ? '' : 'none';
+        });
+
+        // Filter list rows
+        document.querySelectorAll('.list-task-row').forEach(function(row) {
+            var title = (row.getAttribute('data-task-title') || '').toLowerCase();
+            var show = !q || title.includes(q);
+            row.style.display = show ? '' : 'none';
+        });
+    });
+
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTaskModal();
+            closeNewTaskModal();
+            closeDeleteTaskConfirm();
+        }
+    });
+
+</script>
+
+<style>
+    .mitigation-card-done {
+        opacity: 0.6;
+        background-color: #f8fafc;
+        border-style: dashed;
+    }
+    .dark .mitigation-card-done {
+        background-color: rgba(15, 23, 42, 0.4);
+        border-color: rgba(255,255,255,0.1);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(148,163,184, 0.5);
+        border-radius: 99px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(148,163,184, 0.8);
+    }
+</style>

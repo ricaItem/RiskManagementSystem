@@ -1,0 +1,134 @@
+@model WEB_Sentro.Areas.Client.Controllers.ProjectEditViewModel
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Edit Project";
+}
+
+<style>
+    .client-projects {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .proj-card {
+        background: #ffffff !important;
+        border: 1px solid rgba(0, 0, 0, 0.02) !important;
+        border-radius: 24px !important; 
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.02) !important;
+    }
+
+    .soft-input {
+        background: rgba(241, 245, 249, 0.6) !important;
+        border: 1px solid transparent !important;
+        border-radius: 12px !important;
+        transition: all 0.2s ease;
+    }
+    .soft-input:focus {
+        background: #ffffff !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+    }
+</style>
+
+<div class="client-projects max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
+    <div class="mb-8">
+        <a href="@Url.Action("Index", "Projects", new { area = "Client" })" class="text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors flex items-center gap-1 mb-3">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Back to Portfolio
+        </a>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800">Edit Project</h1>
+        <p class="mt-1 text-sm font-medium text-slate-400">Update project details, status, and assignments.</p>
+    </div>
+
+    <form method="post" asp-action="Edit" class="space-y-8">
+        <input type="hidden" asp-for="ProjectId" />
+        <div asp-validation-summary="ModelOnly" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300"></div>
+
+        <div class="proj-card p-6 md:p-8">
+            <h2 class="text-lg font-extrabold tracking-tight text-slate-800 mb-6">Project Details</h2>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div class="col-span-2">
+                    <label asp-for="Name" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Name</label>
+                    <input asp-for="Name" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 placeholder-slate-400" placeholder="e.g. Downtown Commercial Complex" />
+                    <span asp-validation-for="Name" class="text-xs font-medium text-rose-500 mt-1 block"></span>
+                </div>
+
+                <div>
+                    <label asp-for="ProjectCode" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Code</label>
+                    <input asp-for="ProjectCode" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 placeholder-slate-400" placeholder="e.g. PRJ-2024-001" />
+                    <span asp-validation-for="ProjectCode" class="text-xs font-medium text-rose-500 mt-1 block"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Status" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Status</label>
+                    <select asp-for="Status" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="OnHold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="col-span-2">
+                    <label asp-for="Description" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Description</label>
+                    <textarea asp-for="Description" rows="4" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 placeholder-slate-400"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="proj-card p-6 md:p-8">
+            <h2 class="text-lg font-extrabold tracking-tight text-slate-800 mb-6">Timeline & Budget</h2>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                    <label asp-for="StartDate" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Start Date</label>
+                    <input asp-for="StartDate" type="date" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer" />
+                </div>
+
+                <div>
+                    <label asp-for="EndDate" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">End Date</label>
+                    <input asp-for="EndDate" type="date" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer" />
+                </div>
+
+                <div>
+                    <label asp-for="Budget" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Total Budget</label>
+                    <div class="relative">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <span class="text-slate-400 font-medium sm:text-sm">₱</span>
+                        </div>
+                        <input asp-for="Budget" type="number" step="0.01" class="soft-input w-full pl-8 text-sm font-medium text-slate-800 px-4 py-3" placeholder="0.00" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="proj-card p-6 md:p-8">
+            <h2 class="text-lg font-extrabold tracking-tight text-slate-800 mb-6">Assignment</h2>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                    <label asp-for="SiteId" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Site</label>
+                    <select asp-for="SiteId" asp-items="Model.AvailableSites" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                        <option value="">-- Select a Site --</option>
+                    </select>
+                    <p class="mt-2 text-[10px] font-medium text-slate-400">The physical location where this project is taking place.</p>
+                </div>
+
+                <div>
+                    <label asp-for="ManagerUserId" class="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Project Manager</label>
+                    <select asp-for="ManagerUserId" asp-items="Model.AvailableManagers" class="soft-input w-full text-sm font-medium text-slate-800 px-4 py-3 cursor-pointer">
+                        <option value="">-- Select Manager --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4">
+            <a href="@Url.Action("Details", "Projects", new { area = "Client", id = Model.ProjectId })" class="rounded-full bg-white border border-slate-200 px-6 py-3 text-xs font-bold text-slate-600 transition-all hover:bg-slate-50 active:scale-95">Cancel</a>
+            <button type="submit" class="rounded-full bg-blue-600 px-8 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:scale-95">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Un-wrap validation scripts to ensure they work with soft-nav
+</script>
+@{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

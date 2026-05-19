@@ -1,0 +1,157 @@
+@model WEB_Sentro.Areas.Client.Models.SiteBudgetDetailsViewModel
+@{
+    ViewData["Title"] = "Budget Details - " + Model.SiteName;
+    var varianceClass = Model.BudgetVariance >= 0 ? "text-success" : "text-danger";
+    var utilization = Model.TotalBudget > 0 ? (Model.TotalCommitted / Model.TotalBudget) * 100 : 0;
+    var utilizationColor = utilization > 100 ? "bg-danger" : (utilization > 80 ? "bg-warning" : "bg-success");
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Budget Details: @Model.SiteName</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Budget Overview</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.SiteName</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Back to Overview
+            </a>
+            <a asp-controller="ChangeOrders" asp-action="Create" asp-route-siteId="@Model.SiteId" class="btn btn-primary btn-sm ms-2">
+                <i class="fas fa-plus me-1"></i> New Change Order
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <!-- Total Budget -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Budget (Allocated)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalBudget.ToString("C0")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Committed Costs -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Committed Costs (PO + CO)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalCommitted.ToString("C0")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actual Costs -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Actual Costs (Expenses)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalActual.ToString("C0")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-receipt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variance -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Remaining Budget</div>
+                            <div class="h5 mb-0 font-weight-bold @varianceClass">@Model.BudgetVariance.ToString("C0")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utilization Bar -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <h4 class="small font-weight-bold">Budget Utilization <span class="float-right">@utilization.ToString("F1")%</span></h4>
+            <div class="progress mb-4">
+                <div class="progress-bar @utilizationColor" role="progressbar" style="width: @Math.Min(utilization, 100)%"
+                    aria-valuenow="@utilization" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Code Breakdown Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Cost Code Breakdown</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Cost Code</th>
+                            <th>Description</th>
+                            <th class="text-end">Committed (PO+CO)</th>
+                            <th class="text-end">Actual (Exp)</th>
+                            <th class="text-end">Total Spent/Committed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.CostCode</td>
+                                <td>@item.Description</td>
+                                <td class="text-end">@item.CommittedAmount.ToString("C")</td>
+                                <td class="text-end">@item.ActualAmount.ToString("C")</td>
+                                <td class="text-end fw-bold">@item.TotalAmount.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold bg-light">
+                            <td colspan="2">Totals</td>
+                            <td class="text-end">@Model.TotalCommitted.ToString("C")</td>
+                            <td class="text-end">@Model.TotalActual.ToString("C")</td>
+                            <td class="text-end">@((Math.Max(Model.TotalCommitted, Model.TotalActual)).ToString("C"))</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

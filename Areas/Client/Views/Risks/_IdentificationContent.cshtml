@@ -1,0 +1,977 @@
+@model Web_Sentro.Areas.Client.Models.PagedResult<Web_Sentro.Areas.Client.Models.RiskIdentificationViewModel>
+@{
+    var isAdmin = ViewBag.IsAdmin == true;
+    var isRiskManager = ViewBag.IsRiskManager == true;
+    var query = Context.Request.Query;
+    var baseUrl = Url.Action("Identification", "Risks", new { area = "Client", search = query["search"], status = query["status"], category = query["category"], siteId = query["siteId"], showDeleted = query["showDeleted"] });
+    var siteFilterList = ViewBag.SiteFilterList as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var sitesForRiskForm = ViewBag.SitesForRiskForm as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var projectsForRiskForm = ViewBag.ProjectsForRiskForm as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+}
+
+<div class="animate-in fade-in min-h-screen space-y-8 duration-500 max-w-[1920px] mx-auto px-6 py-8">
+    <!-- Success Toast -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div id="successToast" class="fixed right-6 top-6 z-[100] flex w-full max-w-sm transform items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/90 p-4 shadow-xl backdrop-blur-md transition-all duration-500 animate-in slide-in-from-right-10 dark:border-emerald-900/30 dark:bg-emerald-900/40">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-emerald-900 dark:text-emerald-100 uppercase tracking-wide">Success</h4>
+                <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">@TempData["SuccessMessage"]</p>
+            </div>
+            <button onclick="document.getElementById('successToast').remove()" class="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-200 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <script>setTimeout(() => { const t = document.getElementById('successToast'); if(t) { t.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => t.remove(), 500); } }, 5000);</script>
+    }
+    
+    <!-- Error Toast -->
+    @if (TempData["RejectError"] != null || TempData["ReviewError"] != null || TempData["AssessmentError"] != null || TempData["AttachmentError"] != null)
+    {
+        var errMsg = TempData["RejectError"] ?? TempData["ReviewError"] ?? TempData["AssessmentError"] ?? TempData["AttachmentError"];
+        <div id="errorToast" class="fixed right-6 top-6 z-[100] flex w-full max-w-sm transform items-center gap-4 rounded-2xl border border-rose-100 bg-rose-50/90 p-4 shadow-xl backdrop-blur-md transition-all duration-500 animate-in slide-in-from-right-10 dark:border-rose-900/30 dark:bg-rose-900/40">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-rose-900 dark:text-rose-100 uppercase tracking-wide">Action Failed</h4>
+                <p class="text-xs font-medium text-rose-700 dark:text-rose-300">@errMsg</p>
+            </div>
+            <button onclick="document.getElementById('errorToast').remove()" class="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-200 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <script>setTimeout(() => { const t = document.getElementById('errorToast'); if(t) { t.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => t.remove(), 500); } }, 5000);</script>
+    }
+
+    <!-- Header Section -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Risk Registry
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Identify, assess, and manage operational risks.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="@Url.Action("ExportExcel", "Risks", new { area = "Client" })" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                Export Excel
+            </a>
+            <button onclick="toggleNewRiskModal()"
+                    class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800 transition-colors dark:bg-white dark:!text-slate-900 dark:hover:bg-slate-100">
+                + New Risk Entry
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        @{
+            var kpis = new[] {
+                new { Label = "Total Risks", Value = ViewBag.KpiTotalRisks, Color = "slate", Icon = "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" },
+                new { Label = "For Review", Value = ViewBag.KpiForReview, Color = "amber", Icon = "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" },
+                new { Label = "Critical Risks", Value = ViewBag.KpiCritical, Color = "rose", Icon = "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" },
+                new { Label = "Site Pins", Value = ViewBag.KpiSitePins, Color = "indigo", Icon = "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" }
+            };
+        }
+        @foreach (var stat in kpis)
+        {
+            <div class="proj-card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">@stat.Label</p>
+                        <h3 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">@stat.Value</h3>
+                    </div>
+                    <div class="rounded-full p-2 @(stat.Color == "rose" ? "bg-rose-50 dark:bg-rose-900/20" : stat.Color == "amber" ? "bg-amber-50 dark:bg-amber-900/20" : stat.Color == "indigo" ? "bg-indigo-50 dark:bg-indigo-900/20" : "bg-slate-50 dark:bg-slate-800")">
+                        <svg class="w-5 h-5 @(stat.Color == "rose" ? "text-rose-500" : stat.Color == "amber" ? "text-amber-500" : stat.Color == "indigo" ? "text-indigo-500" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@stat.Icon" /></svg>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="get" action="@Url.Action("Identification", "Risks", new { area = "Client" })" id="filterForm" class="contents">
+            
+            <!-- Search Filter -->
+            <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input type="text" name="search" value="@Context.Request.Query["search"]" placeholder="Search risks..." class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 placeholder:text-slate-400 dark:text-slate-300 w-48">
+            </div>
+
+            <!-- Status Filter -->
+            <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <span class="text-xs font-medium text-slate-500">Status</span>
+                <select name="status" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="">All</option>
+                    @if (isAdmin) { <option value="NeedsAction">Needs Action</option> }
+                    @if (Context.Request.Query["status"] == "Draft") { <option value="Draft" selected>Draft</option> } else { <option value="Draft">Draft</option> }
+                    @if (Context.Request.Query["status"] == "For_Review") { <option value="For_Review" selected>For Review</option> } else { <option value="For_Review">For Review</option> }
+                    @if (Context.Request.Query["status"] == "Monitoring") { <option value="Monitoring" selected>Monitoring</option> } else { <option value="Monitoring">Monitoring</option> }
+                    @if (Context.Request.Query["status"] == "MitigationRequired") { <option value="MitigationRequired" selected>Mitigation</option> } else { <option value="MitigationRequired">Mitigation</option> }
+                    @if (Context.Request.Query["status"] == "Closed_Controlled") { <option value="Closed_Controlled" selected>Closed</option> } else { <option value="Closed_Controlled">Closed</option> }
+                    @if (Context.Request.Query["status"] == "Rejected") { <option value="Rejected" selected>Rejected</option> } else { <option value="Rejected">Rejected</option> }
+                </select>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <span class="text-xs font-medium text-slate-500">Category</span>
+                <select name="category" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer">
+                    <option value="">All</option>
+                    @if (Context.Request.Query["category"] == "Operational") { <option value="Operational" selected>Operational</option> } else { <option value="Operational">Operational</option> }
+                    @if (Context.Request.Query["category"] == "Financial") { <option value="Financial" selected>Financial</option> } else { <option value="Financial">Financial</option> }
+                    @if (Context.Request.Query["category"] == "Safety") { <option value="Safety" selected>Safety</option> } else { <option value="Safety">Safety</option> }
+                </select>
+            </div>
+
+            <!-- Site Filter -->
+            <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <span class="text-xs font-medium text-slate-500">Site</span>
+                <select name="siteId" class="border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 focus:ring-0 dark:text-slate-300 cursor-pointer max-w-[150px] truncate">
+                    @foreach (var item in siteFilterList)
+                    {
+                        @if (item.Value == ViewBag.SelectedSiteId?.ToString()) { <option value="@item.Value" selected>@item.Text</option> } else { <option value="@item.Value">@item.Text</option> }
+                    }
+                </select>
+            </div>
+
+            @if (isAdmin)
+            {
+                <label class="flex items-center gap-2 pill-input px-4 py-2 cursor-pointer">
+                    <input type="checkbox" name="showDeleted" value="true" @(ViewBag.ShowDeleted == true ? "checked" : "") class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-slate-600 dark:bg-slate-700" />
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">Deleted</span>
+                </label>
+            }
+
+            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-500 transition-colors">
+                Apply Filters
+            </button>
+        </form>
+    </div>
+
+    <!-- Registry Table -->
+    <div class="proj-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="risksTable">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/50 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        <th class="px-6 py-3 font-medium">Risk Identity</th>
+                        <th class="px-6 py-3 font-medium">Priority</th>
+                        <th class="px-6 py-3 font-medium">Status</th>
+                        <th class="px-6 py-3 font-medium">Site</th>
+                        <th class="px-6 py-3 font-medium">Reported</th>
+                        <th class="px-6 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @foreach (var risk in Model.Items)
+                    {
+                        var status = risk.Status ?? "Draft";
+                        var statusDisplay = status == "Rejected" ? "Rejected" : status == "For_Review" || status == "Submitted" || status == "Reviewed" ? "For Review" : status == "Approved" ? "Monitoring" : status == "Closed_Invalid" ? "Closed (Invalid)" : status == "MitigationRequired" ? "Mitigation" : status;
+                        var actionStatus = status == "Submitted" || status == "Reviewed" ? "For_Review" : status;
+                        var dateReported = risk.DateReported ?? risk.DateLogged;
+                        var reportedBy = risk.ReportedBy ?? risk.DetectedBy ?? "";
+                        var isDeleted = risk.DeletedAt.HasValue;
+                        var priorityVal = risk.Priority ?? "Unassessed";
+                        var riskIdDisplay = risk.Id > 0 ? "R-" + risk.Id.ToString("D6") : "R-000000";
+                        
+                        var priorityBadgeClass = priorityVal == "Critical" ? "bg-rose-50 text-rose-700 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" : 
+                                                 priorityVal == "High" ? "bg-amber-50 text-amber-700 ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20" : 
+                                                 priorityVal == "Medium" ? "bg-yellow-50 text-yellow-700 ring-yellow-600/10 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-500/20" : 
+                                                 priorityVal == "Low" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/20" : 
+                                                 "bg-slate-50 text-slate-600 ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20";
+                                                 
+                        var statusBadgeClass = statusDisplay == "For Review" ? "bg-blue-50 text-blue-700 ring-blue-600/10 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20" :
+                                               statusDisplay == "Rejected" || statusDisplay.Contains("Invalid") ? "bg-rose-50 text-rose-700 ring-rose-600/10 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-500/20" :
+                                               statusDisplay == "Monitoring" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/20" :
+                                               statusDisplay == "Mitigation" ? "bg-amber-50 text-amber-700 ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/20" :
+                                               statusDisplay == "Closed (Controlled)" ? "bg-slate-100 text-slate-700 ring-slate-600/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20" :
+                                               "bg-slate-50 text-slate-600 ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20";
+
+                        var riskJson = System.Text.Json.JsonSerializer.Serialize(new {
+                            risk.Id,
+                            Title = risk.Title ?? "",
+                            risk.Category,
+                            Priority = priorityVal,
+                            Status = statusDisplay,
+                            RawStatus = status,
+                            risk.SourceType,
+                            ProjectSite = risk.ProjectSite ?? "",
+                            SiteId = risk.SiteId,
+                            SiteName = risk.SiteName ?? "Unassigned",
+                            ProjectId = risk.ProjectId,
+                            ProjectName = risk.ProjectName ?? "Unassigned",
+                            DateReported = dateReported.ToString("yyyy-MM-dd"),
+                            ReportedBy = reportedBy,
+                            ReportByUserId = risk.ReportByUserId,
+                            risk.OrgId,
+                            DeletedAt = risk.DeletedAt,
+                            Attachments = risk.Attachments ?? new List<string>(),
+                            NextReviewDate = risk.NextReviewDate?.ToString("yyyy-MM-dd"),
+                            OverdueFlag = risk.OverdueFlag
+                        });
+                        <tr id="risk-row-@risk.Id" class="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30 @(isDeleted ? "opacity-60 grayscale" : "")" data-risk="@Html.Raw(System.Net.WebUtility.HtmlEncode(riskJson))" data-status="@statusDisplay" data-priority="@priorityVal" data-deleted="@(isDeleted ? "1" : "0")">
+                            <td class="px-6 py-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-lg dark:bg-slate-800">
+                                        @(risk.Category == "Weather" ? "⛈️" : risk.Category == "Operational" ? "🏗️" : risk.Category == "Safety" ? "⛑️" : risk.Category == "Financial" ? "📉" : "📋")
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-sm text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 transition-colors" title="@risk.Title">@risk.Title</div>
+                                        <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                                            <span class="font-mono">@riskIdDisplay</span>
+                                            <span>&middot;</span>
+                                            <span>@risk.Category</span>
+                                            @if (risk.AttachmentsCount > 0) {
+                                                <span>&middot;</span>
+                                                <span class="flex items-center gap-1"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg> @risk.AttachmentsCount</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset @priorityBadgeClass">
+                                    @priorityVal
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset @statusBadgeClass">
+                                    @statusDisplay
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-600 dark:text-slate-400">
+                                @(risk.SiteName ?? "—")
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-xs font-medium text-slate-900 dark:text-slate-200">@dateReported.ToString("MMM dd, yyyy")</div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400">by @(reportedBy.Split(' ').FirstOrDefault() ?? "System")</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="relative inline-block text-left">
+                                    @if (!isDeleted)
+                                    {
+                                        <button type="button" onclick="toggleActionMenu(this, '@risk.Id')" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors focus:outline-none dark:hover:bg-slate-800 dark:hover:text-indigo-400" aria-label="Actions">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" /></svg>
+                                        </button>
+                                        <div id="actionMenu-@risk.Id" class="action-menu absolute right-0 z-10 mt-2 hidden w-48 origin-top-right rounded-xl border border-slate-100 bg-white p-1 shadow-xl focus:outline-none dark:border-slate-700 dark:bg-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                                            <button type="button" onclick="openViewModal('@risk.Id')" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                                <svg class="h-4 w-4 text-slate-400 group-hover:text-indigo-500 dark:text-slate-400 dark:group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                View Details
+                                            </button>
+                                            @if (actionStatus != "Draft")
+                                            {
+                                                <form action="@Url.Action("SoftDelete", "Risks", new { area = "Client" })" method="post" class="w-full">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@risk.Id" />
+                                                    <button type="submit" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                                        <svg class="h-4 w-4 text-slate-400 group-hover:text-rose-500 dark:text-slate-400 dark:group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                                        Archive
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (actionStatus == "Draft" && (risk.ReportByUserId == ViewBag.CurrentUserId || isAdmin))
+                                            {
+                                                <button type="button" onclick="confirmHardDelete(@risk.Id, @risk.OrgId)" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20">
+                                                    <svg class="h-4 w-4 group-hover:text-rose-700" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                                    Delete
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                    else if (isAdmin)
+                                    {
+                                        <button type="button" onclick="toggleActionMenu(this, '@risk.Id')" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus:outline-none dark:hover:bg-slate-800 dark:hover:text-slate-300">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" /></svg>
+                                        </button>
+                                        <div id="actionMenu-@risk.Id" class="action-menu absolute right-0 z-10 mt-2 hidden w-48 origin-top-right rounded-xl border border-slate-100 bg-white p-1 shadow-lg focus:outline-none dark:border-slate-700 dark:bg-slate-800">
+                                            <form action="@Url.Action("Restore", "Risks", new { area = "Client" })" method="post" class="w-full">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@risk.Id" />
+                                                <button type="submit" class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                                    Restore
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @{
+            ViewData["PageNumber"] = Model.PageNumber;
+            ViewData["TotalPages"] = Model.TotalPages;
+            ViewData["TotalCount"] = Model.TotalCount;
+            ViewData["PageSize"] = Model.PageSize;
+            ViewData["BaseUrl"] = baseUrl;
+        }
+        @await Html.PartialAsync("_Pagination")
+    </div>
+</div>
+
+<!-- New Risk Modal -->
+<div id="newRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleNewRiskModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-5xl max-h-[90vh] flex flex-col proj-card sm:w-full animate-in zoom-in-95 duration-200">
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Identify New Risk</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Fill in the details to register a new operational risk.</p>
+                </div>
+                <button type="button" onclick="toggleNewRiskModal()" class="rounded-lg p-2 text-slate-400 hover:text-rose-500 transition-colors" aria-label="Close"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <form id="identifyRiskForm" action="@Url.Action("IdentifyNewRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data" class="flex min-h-0 flex-1 flex-col" onsubmit="var btns=this.querySelectorAll('button[type=button][data-risk-submit]');btns.forEach(function(b){b.disabled=true;});">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="submitType" id="riskSubmitType" value="Draft" />
+                <input type="hidden" name="ProjectSite" value="" />
+                <div class="flex min-h-0 flex-1 flex-col sm:flex-row">
+                    <div class="w-full shrink-0 border-b border-slate-100 bg-slate-50/50 px-6 py-6 dark:border-slate-800 dark:bg-slate-800/50 sm:w-64 sm:border-b-0 sm:border-r">
+                        <p class="mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">Sections</p>
+                        <ul class="space-y-2">
+                            <li><button type="button" class="w-full text-left rounded-lg bg-white px-3 py-2 text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-indigo-400 dark:ring-slate-700">General Information</button></li>
+                        </ul>
+                    </div>
+                    <div class="min-w-0 flex-1 overflow-y-auto p-8">
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div>
+                                    <label for="identifyRiskReportedDate" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Date Reported</label>
+                                    <input type="date" id="identifyRiskReportedDate" name="ReportedDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" required />
+                                </div>
+                                <div>
+                                    <label for="identifyRiskCategory" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Risk Category</label>
+                                    <select id="identifyRiskCategory" name="Category" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                        <option>Operational</option>
+                                        <option>Financial</option>
+                                        <option>Safety</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="identifyRiskTitle" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Risk Description</label>
+                                <textarea id="identifyRiskTitle" name="Title" rows="3" placeholder="Describe the risk in detail..." class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white placeholder:text-slate-400" required></textarea>
+                            </div>
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div>
+                                    <label for="identifyRiskSourceType" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Source Type</label>
+                                    <select id="identifyRiskSourceType" name="SourceType" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                        <option value="Inspection">Inspection</option>
+                                        <option value="Incident">Incident</option>
+                                        <option value="Audit">Audit</option>
+                                        <option value="Observation">Observation</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Status</label>
+                                    <input type="text" readonly value="Draft" class="block w-full rounded-lg border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-500 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div>
+                                    <label for="identifyRiskProjectId" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Project</label>
+                                    <select id="identifyRiskProjectId" name="ProjectId" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                        @foreach (var item in projectsForRiskForm)
+                                        {
+                                            <option value="@item.Value">@item.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="identifyRiskSiteId" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Site</label>
+                                    <select id="identifyRiskSiteId" name="SiteId" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                        @foreach (var item in sitesForRiskForm)
+                                        {
+                                            <option value="@item.Value">@item.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Attachments</label>
+                                <input type="file" id="identifyRiskAttachments" name="Attachments" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="sr-only" />
+                                <div id="identifyRiskDropzone" role="button" tabindex="0" onclick="document.getElementById('identifyRiskAttachments').click()" class="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center hover:border-indigo-400 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500/50 dark:hover:bg-slate-800/80">
+                                    <div class="p-3 rounded-full bg-slate-200 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors mb-3 dark:bg-slate-700 dark:group-hover:bg-indigo-900/30 dark:group-hover:text-indigo-400">
+                                        <svg class="h-6 w-6 text-slate-400 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Click to upload or drag and drop</p>
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">PNG, JPG, WEBP up to 5MB</p>
+                                    <p id="identifyRiskAttachmentsLabel" class="mt-2 text-sm font-medium text-indigo-600 dark:text-indigo-400"></p>
+                                </div>
+                                <script>
+                                    (function() {
+                                        var input = document.getElementById('identifyRiskAttachments');
+                                        var label = document.getElementById('identifyRiskAttachmentsLabel');
+                                        if (input && label) {
+                                            input.addEventListener('change', function() {
+                                                label.textContent = this.files.length ? this.files.length + ' file(s) selected' : '';
+                                            });
+                                        }
+                                    })();
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex shrink-0 justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/50">
+                    <button type="button" onclick="toggleNewRiskModal()" class="rounded-lg px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors dark:text-slate-400 dark:hover:text-white">Cancel</button>
+                    <button type="button" data-risk-submit="Draft" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Save as Draft</button>
+                    <button type="button" data-risk-submit="Submit" class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800 transition-all dark:bg-white dark:!text-slate-900 dark:hover:bg-slate-100">Submit Risk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Risk Modal (Simplified and Modernized) -->
+<div id="viewRiskModal" class="fixed inset-0 z-[60] hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleViewModal()"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+        <div class="flex w-full max-w-5xl max-h-[85vh] flex-col proj-card animate-in zoom-in-95 duration-200">
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Risk Details</h2>
+                <button type="button" onclick="toggleViewModal()" class="rounded-lg p-2 text-slate-400 hover:text-rose-500 transition-colors"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+                <div class="w-full shrink-0 border-b border-slate-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-800/50 md:w-64 md:border-b-0 md:border-r">
+                    <nav class="space-y-1">
+                        <button id="viewTabDetails" class="view-tab w-full rounded-lg bg-white px-3 py-2 text-left text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-slate-200 transition-all dark:bg-slate-800 dark:text-indigo-400 dark:ring-slate-700" data-tab="details">Details</button>
+                        <button id="viewTabVersions" class="view-tab w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-colors dark:text-slate-400 dark:hover:bg-slate-800" data-tab="versions">Versions</button>
+                        <button id="viewTabControls" class="view-tab w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-colors dark:text-slate-400 dark:hover:bg-slate-800" data-tab="controls">Linked Controls</button>
+                    </nav>
+                </div>
+                <div class="min-w-0 flex-1 overflow-y-auto p-8">
+                    <div id="viewRiskContent" class="space-y-8">
+                        <!-- Tab Content: Details -->
+                        <div id="tab-content-details" class="animate-in fade-in duration-300">
+                            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2">
+                                <div>
+                                    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Risk Identity</h3>
+                                    <p id="viewTitle" class="mt-2 text-base font-bold text-slate-900 dark:text-white leading-snug"></p>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Category</h3>
+                                    <p id="viewCategory" class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300"></p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2">
+                                <div>
+                                    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Priority</h3>
+                                    <p id="viewPriority" class="mt-2 text-sm font-medium text-slate-900 dark:text-white"></p>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Status</h3>
+                                    <p id="viewStatus" class="mt-2 text-sm font-medium text-slate-900 dark:text-white"></p>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 pt-8 dark:border-slate-800">
+                                 <div class="grid grid-cols-1 gap-8 sm:grid-cols-2">
+                                    <div>
+                                        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Project</h3>
+                                        <p id="viewProjectName" class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Site</h3>
+                                        <p id="viewSiteName" class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500">Source</h3>
+                                        <p id="viewSourceType" class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="border-t border-slate-100 pt-8 dark:border-slate-800">
+                                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-500 mb-4">Attachments</h3>
+                                <div id="viewAttachmentsPreview"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Versions (Placeholder) -->
+                        <div id="tab-content-versions" class="hidden animate-in fade-in duration-300">
+                            <div class="flex flex-col items-center justify-center py-12 text-center">
+                                <div class="rounded-full bg-slate-100 p-3 dark:bg-slate-800">
+                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-medium text-slate-900 dark:text-white">No History Available</h3>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Version history tracking will be available in future updates.</p>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Controls (Placeholder) -->
+                        <div id="tab-content-controls" class="hidden animate-in fade-in duration-300">
+                            <div class="flex flex-col items-center justify-center py-12 text-center">
+                                <div class="rounded-full bg-slate-100 p-3 dark:bg-slate-800">
+                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-medium text-slate-900 dark:text-white">No Linked Controls</h3>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">There are no controls currently linked to this risk.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Edit Panel (Hidden by default) -->
+                    <div id="viewModalEditPanel" class="hidden space-y-8">
+                        <form id="viewModalEditForm" action="@Url.Action("UpdateRisk", "Risks", new { area = "Client" })" method="post" enctype="multipart/form-data">
+                             @Html.AntiForgeryToken()
+                             <input type="hidden" name="RiskId" id="viewEditRiskId" />
+                             <input type="hidden" name="ProjectSite" id="viewEditProjectSite" />
+                             <!-- Simplified Edit Form Layout -->
+                             <div class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Title</label>
+                                    <input type="text" id="viewEditTitle" name="Title" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                     <div>
+                                        <label class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Category</label>
+                                        <select id="viewEditCategory" name="Category" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                            <option value="Operational">Operational</option>
+                                            <option value="Financial">Financial</option>
+                                            <option value="Safety">Safety</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project</label>
+                                        <select id="viewEditProjectId" name="ProjectId" class="block w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                            @foreach (var item in projectsForRiskForm)
+                                            {
+                                                <option value="@item.Value">@item.Text</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Site</label>
+                                        <select id="viewEditSiteId" name="SiteId" class="block w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                            @foreach (var item in sitesForRiskForm)
+                                            {
+                                                <option value="@item.Value">@item.Text</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Source Type</label>
+                                        <select id="viewEditSourceType" name="SourceType" class="block w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                            <option value="Inspection">Inspection</option>
+                                            <option value="Incident">Incident</option>
+                                            <option value="Audit">Audit</option>
+                                            <option value="Observation">Observation</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Date Reported</label>
+                                         <input type="date" id="viewEditDate" name="ReportedDate" class="block w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                <button type="button" onclick="cancelEditRisk()" class="rounded-xl px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-colors">Cancel</button>
+                                <button type="submit" class="rounded-xl bg-slate-900 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest !text-white shadow-lg hover:bg-indigo-600 hover:shadow-indigo-500/30 transition-all">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Actions -->
+             <div class="flex shrink-0 items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4 dark:border-slate-800 dark:bg-slate-800/50">
+                <div class="flex gap-2">
+                    @if (isRiskManager || isAdmin)
+                    {
+                        <div id="viewAdminActions" class="hidden flex gap-2">
+                             <form id="viewApproveForm" action="@Url.Action("Approve", "Risks", new { area = "Client" })" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" id="approveRiskId" />
+                                <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-500 shadow-sm transition-colors">Approve</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+                <div class="flex gap-3">
+                     <button type="button" id="viewEditBtn" onclick="enableEditRisk()" class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Edit</button>
+                     
+                     @if (isRiskManager || isAdmin)
+                     {
+                         <div id="viewRejectActions" class="hidden">
+                             <form id="viewRejectForm" action="@Url.Action("Reject", "Risks", new { area = "Client" })" method="post" onsubmit="return promptReject()">
+                                 @Html.AntiForgeryToken()
+                                 <input type="hidden" name="id" id="rejectRiskId" />
+                                 <input type="hidden" name="RejectRemarks" id="rejectRemarks" />
+                                 <button type="submit" class="rounded-xl border border-rose-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 shadow-sm transition-colors dark:border-rose-900 dark:bg-rose-900/10 dark:text-rose-400">Reject</button>
+                             </form>
+                         </div>
+                     }
+
+                     <button type="button" id="viewAssessBtn" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900">Assess Risk</button>
+                     <button type="button" id="viewMitigateBtn" class="hidden rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900">Mitigation Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle New Risk Modal
+    function toggleNewRiskModal() {
+        const modal = document.getElementById('newRiskModal');
+        modal.classList.toggle('hidden');
+    }
+
+    function toggleActionMenu(btn, id) {
+        // Close all others
+        document.querySelectorAll('.action-menu').forEach(m => {
+            if(m.id !== 'actionMenu-' + id) m.classList.add('hidden');
+        });
+        const menu = document.getElementById('actionMenu-' + id);
+        if (!menu) return;
+        
+        if (menu.classList.contains('hidden')) {
+            // Append to body to avoid overflow clipping
+            document.body.appendChild(menu);
+            
+            // Show first to get width
+            menu.classList.remove('hidden');
+            
+            // Calculate position
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = rect.bottom + 'px';
+            menu.style.left = (rect.right - menu.offsetWidth) + 'px';
+            menu.style.right = 'auto';
+            menu.style.marginTop = '4px';
+            menu.style.zIndex = '9999';
+        } else {
+            menu.classList.add('hidden');
+        }
+    }
+
+    // Close menus on click outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('button[onclick^="toggleActionMenu"]') && !e.target.closest('.action-menu')) {
+            document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
+        }
+    });
+
+    // Reposition menus on scroll or resize
+    window.addEventListener('scroll', () => {
+        document.querySelectorAll('.action-menu:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    }, true);
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('.action-menu:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    });
+    
+    // View Risk Modal Logic
+    var currentViewRisk = null;
+    
+    function toggleViewModal() {
+        const modal = document.getElementById('viewRiskModal');
+        modal.classList.toggle('hidden');
+        if(modal.classList.contains('hidden')) {
+             cancelEditRisk(); // Reset state on close
+        }
+    }
+
+    function openViewModal(id) {
+        // Hide action menus
+        document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
+        
+        // Find the tr parent to get data
+        const tr = document.getElementById('risk-row-' + id);
+        if (!tr) return;
+        const riskData = JSON.parse(tr.getAttribute('data-risk'));
+        currentViewRisk = riskData;
+        
+        // Populate fields
+        document.getElementById('viewTitle').textContent = riskData.Title;
+        document.getElementById('viewCategory').textContent = riskData.Category;
+        document.getElementById('viewPriority').textContent = riskData.Priority || 'Unassessed';
+        document.getElementById('viewStatus').textContent = riskData.Status;
+        document.getElementById('viewProjectName').textContent = riskData.ProjectName || 'Unassigned';
+        document.getElementById('viewSiteName').textContent = riskData.SiteName;
+        document.getElementById('viewSourceType').textContent = riskData.SourceType;
+
+        // Attachments
+        const attachContainer = document.getElementById('viewAttachmentsPreview');
+        attachContainer.innerHTML = '';
+        if (riskData.Attachments && riskData.Attachments.length > 0) {
+            riskData.Attachments.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = "h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity";
+                img.onclick = () => window.open(url, '_blank');
+                attachContainer.appendChild(img);
+            });
+        } else {
+            attachContainer.innerHTML = '<span class="text-xs text-slate-400 italic">No attachments</span>';
+        }
+
+        // Setup Actions based on Status & Role
+        const assessBtn = document.getElementById('viewAssessBtn');
+        const mitigateBtn = document.getElementById('viewMitigateBtn');
+        const editBtn = document.getElementById('viewEditBtn');
+        const adminActions = document.getElementById('viewAdminActions');
+        const rejectActions = document.getElementById('viewRejectActions');
+        
+        // Reset visibility
+        assessBtn.classList.add('hidden');
+        assessBtn.classList.remove('inline-flex', 'items-center', 'justify-center');
+        mitigateBtn.classList.add('hidden');
+        mitigateBtn.classList.remove('inline-flex', 'items-center', 'justify-center');
+        editBtn.classList.add('hidden');
+        adminActions.classList.add('hidden');
+        if(rejectActions) rejectActions.classList.add('hidden');
+
+        // Logic
+        const status = riskData.RawStatus;
+        const currentUserId = '@ViewBag.CurrentUserId';
+        const isAdmin = @(isAdmin.ToString().ToLower());
+        const isManager = @(isRiskManager.ToString().ToLower());
+
+        // Assessment Link
+        assessBtn.onclick = () => window.location.href = '@Url.Action("Assess", "Risks", new { area = "Client" })/' + riskData.Id;
+        assessBtn.classList.remove('hidden'); // Always allow assessment if viewed? Or restrict? Assuming mostly visible for flow.
+        assessBtn.classList.add('inline-flex', 'items-center', 'justify-center');
+
+        // Mitigation Link
+        if (status === 'MitigationRequired' || status === 'Monitoring') {
+             mitigateBtn.onclick = () => window.location.href = '@Url.Action("Board", "Mitigation", new { area = "Client" })?riskId=' + riskData.Id;
+             mitigateBtn.classList.remove('hidden');
+             mitigateBtn.classList.add('inline-flex', 'items-center', 'justify-center');
+             // Keep assess button visible for re-assessment (residual risk)
+        }
+
+        // Edit
+        if (status === 'Draft' && (riskData.ReportByUserId === currentUserId || isAdmin)) {
+            editBtn.classList.remove('hidden');
+        } else if (isAdmin) {
+            editBtn.classList.remove('hidden'); // Admin can always edit?
+        }
+
+        // Approval / Review Flow
+        if ((status === 'For_Review' || status === 'Submitted') && (isManager || isAdmin)) {
+             if (document.getElementById('rejectRiskId')) document.getElementById('rejectRiskId').value = riskData.Id;
+             if (rejectActions) rejectActions.classList.remove('hidden');
+        }
+        if (status === 'Reviewed' && (isManager || isAdmin)) {
+             document.getElementById('approveRiskId').value = riskData.Id;
+             if (document.getElementById('rejectRiskId')) document.getElementById('rejectRiskId').value = riskData.Id;
+             adminActions.classList.remove('hidden');
+             if (rejectActions) rejectActions.classList.remove('hidden');
+        }
+
+        // Reset to Details Tab
+        if(document.getElementById('viewTabDetails')) {
+            document.getElementById('viewTabDetails').click();
+        }
+
+        toggleViewModal();
+    }
+    
+    function enableEditRisk() {
+        if(!currentViewRisk) return;
+        document.getElementById('viewRiskContent').classList.add('hidden');
+        document.getElementById('viewModalEditPanel').classList.remove('hidden');
+        document.getElementById('viewEditBtn').classList.add('hidden');
+        
+        // Populate Edit Form
+        document.getElementById('viewEditRiskId').value = currentViewRisk.Id;
+        document.getElementById('viewEditTitle').value = currentViewRisk.Title;
+        document.getElementById('viewEditCategory').value = currentViewRisk.Category;
+        document.getElementById('viewEditProjectId').value = currentViewRisk.ProjectId || '';
+        document.getElementById('viewEditSiteId').value = currentViewRisk.SiteId || '';
+        document.getElementById('viewEditSourceType').value = currentViewRisk.SourceType;
+        document.getElementById('viewEditProjectSite').value = currentViewRisk.ProjectSite;
+        document.getElementById('viewEditDate').value = currentViewRisk.DateReported;
+    }
+
+    function cancelEditRisk() {
+        document.getElementById('viewRiskContent').classList.remove('hidden');
+        document.getElementById('viewModalEditPanel').classList.add('hidden');
+        
+        // Re-show edit button if applicable
+        // ideally re-run the openViewModal logic but simpler to just show if it was shown before
+        // for now, strict reload of modal state isn't critical, just hiding the form
+        if (document.getElementById('viewAdminActions').classList.contains('hidden')) {
+             document.getElementById('viewEditBtn').classList.remove('hidden');
+        }
+    }
+
+    function promptReject() {
+        const reason = prompt("Please provide a reason for rejection:");
+        if (reason) {
+            document.getElementById('rejectRemarks').value = reason;
+            return true;
+        }
+        return false;
+    }
+
+    function confirmHardDelete(id, orgId) {
+        if(confirm('Are you sure you want to permanently delete this draft? This cannot be undone.')) {
+             // Create a form and submit
+             var form = document.createElement('form');
+             form.method = 'POST';
+             form.action = '@Url.Action("HardDelete", "Risks", new { area = "Client" })';
+             
+             var token = document.querySelector('input[name="__RequestVerificationToken"]').cloneNode(true);
+             form.appendChild(token);
+             
+             var idInput = document.createElement('input');
+             idInput.type = 'hidden';
+             idInput.name = 'id';
+             idInput.value = id;
+             form.appendChild(idInput);
+             
+             var orgInput = document.createElement('input');
+             orgInput.type = 'hidden';
+             orgInput.name = 'orgId';
+             orgInput.value = orgId;
+             form.appendChild(orgInput);
+             
+             document.body.appendChild(form);
+             form.submit();
+        }
+    }
+
+    // Submit handler for new risk
+    document.querySelectorAll('button[data-risk-submit]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            var type = this.getAttribute('data-risk-submit');
+            document.getElementById('riskSubmitType').value = type;
+            document.getElementById('identifyRiskForm').submit();
+        });
+    });
+
+    // Tab switching for View Modal
+    document.querySelectorAll('.view-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Update Tab Styles
+            document.querySelectorAll('.view-tab').forEach(t => {
+                t.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm', 'ring-1', 'ring-slate-200', 'dark:bg-slate-800', 'dark:text-indigo-400', 'dark:ring-slate-700');
+                t.classList.add('text-slate-500', 'hover:bg-slate-100', 'dark:text-slate-400', 'dark:hover:bg-slate-800');
+            });
+            this.classList.add('bg-white', 'text-indigo-600', 'shadow-sm', 'ring-1', 'ring-slate-200', 'dark:bg-slate-800', 'dark:text-indigo-400', 'dark:ring-slate-700');
+            this.classList.remove('text-slate-500', 'hover:bg-slate-100', 'dark:text-slate-400', 'dark:hover:bg-slate-800');
+            
+            // Toggle Content
+            const target = this.getAttribute('data-tab');
+            document.getElementById('tab-content-details').classList.add('hidden');
+            document.getElementById('tab-content-versions').classList.add('hidden');
+            document.getElementById('tab-content-controls').classList.add('hidden');
+            
+            const content = document.getElementById('tab-content-' + target);
+            if(content) {
+                content.classList.remove('hidden');
+                
+                // Load data if needed
+                if (currentViewRisk && !content.getAttribute('data-loaded')) {
+                    if (target === 'versions') loadRiskVersions(currentViewRisk.Id);
+                    else if (target === 'controls') loadRiskControls(currentViewRisk.Id);
+                }
+            }
+        });
+    });
+
+    function loadRiskVersions(riskId) {
+        const container = document.getElementById('tab-content-versions');
+        container.innerHTML = '<div class="flex justify-center p-8"><svg class="animate-spin h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+        
+        fetch('@Url.Action("GetRiskVersions", "Risks", new { area = "Client" })?id=' + riskId)
+            .then(response => response.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="flex flex-col items-center justify-center py-12 text-center"><div class="rounded-full bg-slate-100 p-3 dark:bg-slate-800"><svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><h3 class="mt-4 text-sm font-medium text-slate-900 dark:text-white">No History Available</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">No version history found for this risk.</p></div>';
+                } else {
+                    let html = '<div class="relative pl-4 border-l border-slate-200 dark:border-slate-700 space-y-8 ml-2">';
+                    data.forEach(v => {
+                        const date = new Date(v.changedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                        html += `
+                            <div class="relative">
+                                <div class="absolute -left-[21px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-indigo-600 dark:border-slate-900 shadow-sm ring-1 ring-indigo-600 dark:ring-indigo-500"></div>
+                                <div class="text-xs font-semibold text-slate-500 mb-1 dark:text-slate-400">${date}</div>
+                                <div class="text-sm font-medium text-slate-900 dark:text-white">${v.changeSummary || 'Update'}</div>
+                                <div class="text-xs text-slate-500 mt-0.5 dark:text-slate-500">by ${v.changedByDisplayName || 'System'}</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                }
+                container.setAttribute('data-loaded', 'true');
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="text-center py-8 text-rose-500 text-xs">Failed to load history. Please try again.</div>';
+                console.error(err);
+            });
+    }
+
+    function loadRiskControls(riskId) {
+        const container = document.getElementById('tab-content-controls');
+        container.innerHTML = '<div class="flex justify-center p-8"><svg class="animate-spin h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+        
+        fetch('@Url.Action("GetRiskControls", "Risks", new { area = "Client" })?id=' + riskId)
+            .then(response => response.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                     container.innerHTML = '<div class="flex flex-col items-center justify-center py-12 text-center"><div class="rounded-full bg-slate-100 p-3 dark:bg-slate-800"><svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg></div><h3 class="mt-4 text-sm font-medium text-slate-900 dark:text-white">No Linked Controls</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">There are no mitigation tasks currently linked to this risk.</p></div>';
+                } else {
+                    let html = '<div class="space-y-3">';
+                    data.forEach(task => {
+                        const statusColor = task.status === 'Done' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                                            task.status === 'InProgress' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                                            
+                        const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date';
+                        html += `
+                            <div class="flex items-start justify-between p-4 proj-card hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors">
+                                <div class="flex gap-3">
+                                    <div class="mt-0.5 h-2 w-2 rounded-full ${task.status === 'Done' ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white" title="${task.title}">${task.title}</div>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-xs text-slate-500 dark:text-slate-400">Due: ${dueDate}</span>
+                                            ${task.progressPercent > 0 ? `<span class="text-xs font-medium text-indigo-600 dark:text-indigo-400">${task.progressPercent}%</span>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${statusColor}">
+                                    ${task.status}
+                                </span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                }
+                container.setAttribute('data-loaded', 'true');
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="text-center py-8 text-rose-500 text-xs">Failed to load controls. Please try again.</div>';
+                console.error(err);
+            });
+    }
+
+    // Reset Tabs on Open
+    const originalOpenViewModal = openViewModal;
+    openViewModal = function(id) {
+        originalOpenViewModal(id);
+        
+        // Reset fetch state
+        if (document.getElementById('tab-content-versions')) document.getElementById('tab-content-versions').removeAttribute('data-loaded');
+        if (document.getElementById('tab-content-controls')) document.getElementById('tab-content-controls').removeAttribute('data-loaded');
+        
+        // Reset to Details Tab
+        if (document.getElementById('viewTabDetails')) {
+            document.getElementById('viewTabDetails').click();
+        }
+    };
+</script>

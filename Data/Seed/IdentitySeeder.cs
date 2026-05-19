@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using WEB_Sentro.Models.Identity;
 
@@ -11,7 +11,7 @@ namespace WEB_Sentro.Data.Seed
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
-            var roles = new[] { "SuperAdmin", "Admin", "Manager", "Employee", "ProcurementOfficer" };
+            var roles = new[] { "SuperAdmin", "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
             foreach (var role in roles)
             {
@@ -57,7 +57,6 @@ namespace WEB_Sentro.Data.Seed
                     throw new Exception(string.Join("; ", addRoleResult.Errors.Select(e => e.Description)));
             }
 
-            // Seed an Admin account 
             var adminEmail = config["Seed:AdminEmail"];
             var adminPassword = config["Seed:AdminPassword"];
 

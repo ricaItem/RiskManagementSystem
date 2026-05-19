@@ -4,13 +4,24 @@
     ViewData["Title"] = "Login";
     Layout = "/Views/Shared/_LayoutLanding.cshtml";
 }
-
-<section class="relative min-h-screen overflow-hidden bg-white dark:bg-slate-950">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-        <div class="absolute -top-32 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-200/55 via-emerald-200/35 to-indigo-200/45 blur-3xl dark:from-sky-500/15 dark:via-emerald-500/10 dark:to-indigo-500/15"></div>
-        <div class="absolute -bottom-40 right-[-140px] h-[480px] w-[480px] rounded-full bg-gradient-to-tr from-emerald-200/40 to-sky-200/40 blur-3xl dark:from-emerald-500/10 dark:to-sky-500/10"></div>
-    </div>
-
+<style>
+    #login-submit-btn { background-color: #0B1F33 !important; color: #fff !important; }
+    .dark #login-submit-btn { background-color: #fff !important; color: #0f172a !important; }
+    @@keyframes auth-spin {
+        to { transform: rotate(360deg); }
+    }
+    .auth-btn-spinner {
+        display: inline-block;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 9999px;
+        animation: auth-spin .8s linear infinite;
+    }
+    .auth-btn-spinner.hidden {
+        display: none;
+    }
+</style>
+<section class="relative min-h-screen overflow-hidden bg-[#F9FAFB] dark:bg-slate-950">
     <div class="relative flex min-h-screen items-center justify-center px-4 py-12">
 
         <div class="mx-auto w-full max-w-md">
@@ -19,7 +30,7 @@
                     <div class="flex items-center gap-3">
                         <img src="~/images/logo1.png"
                              alt="Sentro Logo"
-                             class="h-10 w-auto object-contain transition-all duration-300 dark:brightness-0 dark:invert" />
+                             class="h-10 w-auto object-contain transition-all duration-300" />
                         <span class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Sentro</span>
                     </div>
                     <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">ERP Risk Management</div>
@@ -33,9 +44,20 @@
                 Welcome back. Please enter your details.
             </p>
 
-            <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-lg ring-1 ring-slate-900/5
-                        dark:border-slate-800 dark:bg-slate-900 dark:ring-white/10">
-                <form method="post" class="space-y-5">
+            <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-lg
+                        dark:border-slate-800 dark:bg-slate-900">
+                <form id="loginForm" method="post" class="space-y-5">
+                    @if (Model.LockoutEndsAtUnixSeconds.HasValue)
+                    {
+                        <div id="lockout-countdown"
+                             data-lockout-end="@Model.LockoutEndsAtUnixSeconds.Value"
+                             class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200"
+                             role="status"
+                             aria-live="polite">
+                            Your account is temporarily locked. Try again in <span id="lockout-countdown-value" class="font-semibold">--</span>.
+                        </div>
+                    }
+
                     @if (ViewData.ModelState[""]?.Errors?.Count > 0)
                     {
                         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
@@ -47,46 +69,151 @@
                     <div>
                         <label asp-for="Input.Email" class="block text-sm font-medium text-slate-700 dark:text-slate-200"></label>
                         <input asp-for="Input.Email" autocomplete="username"
-                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
-                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
+                               class="mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-slate-900
+                                      focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
                                       dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
                         <span asp-validation-for="Input.Email" class="mt-1 block text-xs text-rose-600"></span>
                     </div>
 
                     <div>
                         <label asp-for="Input.Password" class="block text-sm font-medium text-slate-700 dark:text-slate-200"></label>
-                        <input asp-for="Input.Password" type="password" autocomplete="current-password"
-                               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
-                                      focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20
-                                      dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+                        <div class="relative mt-1">
+                            <input asp-for="Input.Password" id="loginPassword" type="password" autocomplete="current-password"
+                                   class="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 pr-11 text-sm text-slate-900
+                                          focus:border-[#0B1F33] focus:ring-2 focus:ring-[#0B1F33]/20
+                                          dark:border-slate-700 dark:bg-slate-950/40 dark:text-white" />
+                            <button type="button"
+                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    data-toggle-password
+                                    data-target="loginPassword"
+                                    aria-label="Show password">
+                                <svg data-eye-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg data-eye-closed xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.6 10.6a2 2 0 102.8 2.8" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.9 4.8A10.6 10.6 0 0112 4.5c6 0 9.75 7.5 9.75 7.5a18.9 18.9 0 01-4.1 5.1" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.2 6.2A18.9 18.9 0 002.25 12s3.75 7.5 9.75 7.5c1.8 0 3.4-.5 4.8-1.3" />
+                                </svg>
+                            </button>
+                        </div>
                         <span asp-validation-for="Input.Password" class="mt-1 block text-xs text-rose-600"></span>
                     </div>
 
                     <div class="flex items-center justify-between gap-3">
                         <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                             <input asp-for="Input.RememberMe"
-                                   class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-600" />
+                                   class="h-4 w-4 rounded border-[#E5E7EB] text-[#0B1F33] focus:ring-[#0B1F33] dark:border-slate-600" />
                             Remember me
                         </label>
 
                         <a asp-page="./ForgotPassword"
-                           class="text-sm font-medium text-sky-700 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200">
+                           class="text-sm font-medium text-[#059669] hover:text-[#047857] dark:text-emerald-400 dark:hover:text-emerald-300">
                             Forgot password?
                         </a>
                     </div>
 
-                    <button type="submit"
-                            class="w-full rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/15 transition hover:brightness-110
-                                   focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
-                        Log In
+                    <button type="submit" id="login-submit-btn"
+                            style="background-color: #0B1F33; color: #fff;"
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 dark:focus:ring-offset-slate-900">
+                        <span id="login-submit-spinner" class="auth-btn-spinner hidden h-4 w-4" aria-hidden="true"></span>
+                        <span id="login-submit-text">Log In</span>
                     </button>
 
                     <p class="text-center text-sm text-slate-600 dark:text-slate-300">
                         Don’t have an account?
-                        <a asp-page="./Register" class="font-medium text-slate-900 hover:underline dark:text-white">Register</a>
+                        <a asp-page="./Register" style="color: #059669;" class="font-medium hover:underline hover:opacity-90 dark:text-emerald-400">Register</a>
                     </p>
                 </form>
             </div>
         </div>
     </div>
 </section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            function togglePassword(button) {
+                const targetId = button.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (!input) return;
+
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+
+                const openIcon = button.querySelector('[data-eye-open]');
+                const closedIcon = button.querySelector('[data-eye-closed]');
+                if (openIcon && closedIcon) {
+                    openIcon.classList.toggle('hidden', show);
+                    closedIcon.classList.toggle('hidden', !show);
+                }
+
+                button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-toggle-password]');
+                if (!btn) return;
+                togglePassword(btn);
+            });
+
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = document.getElementById('login-submit-btn');
+            const loginSpinner = document.getElementById('login-submit-spinner');
+            const loginText = document.getElementById('login-submit-text');
+
+            if (loginForm && loginButton) {
+                loginForm.addEventListener('submit', function (e) {
+                    if (loginForm.dataset.submitting === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    loginForm.dataset.submitting = '1';
+                    loginButton.disabled = true;
+                    if (loginSpinner) loginSpinner.classList.remove('hidden');
+                    if (loginText) loginText.textContent = 'Logging in...';
+                });
+            }
+
+            const lockoutBanner = document.getElementById('lockout-countdown');
+            const lockoutValue = document.getElementById('lockout-countdown-value');
+
+            if (lockoutBanner && lockoutValue) {
+                const lockoutEndUnix = Number(lockoutBanner.getAttribute('data-lockout-end'));
+
+                if (Number.isFinite(lockoutEndUnix) && lockoutEndUnix > 0) {
+                    const updateCountdown = function () {
+                        const nowMs = Date.now();
+                        const endMs = lockoutEndUnix * 1000;
+                        const remainingSeconds = Math.max(0, Math.ceil((endMs - nowMs) / 1000));
+
+                        if (remainingSeconds <= 0) {
+                            lockoutValue.textContent = '0s';
+                            lockoutBanner.textContent = 'Lockout ended. You can try logging in again now.';
+                            return true;
+                        }
+
+                        const minutes = Math.floor(remainingSeconds / 60);
+                        const seconds = remainingSeconds % 60;
+                        lockoutValue.textContent = minutes > 0 ? minutes + 'm ' + seconds + 's' : seconds + 's';
+                        return false;
+                    };
+
+                    const done = updateCountdown();
+                    if (!done) {
+                        const timer = window.setInterval(function () {
+                            const finished = updateCountdown();
+                            if (finished) {
+                                window.clearInterval(timer);
+                            }
+                        }, 1000);
+                    }
+                }
+            }
+        })();
+    </script>
+}

@@ -1,23 +1,39 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using WEB_Sentro.Data;
+using WEB_Sentro.Services;
 using WEB_Sentro.Models.Identity;
 
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize(Policy = "AdminOrVendor")]
+    [Authorize(Policy = "MainAdminOnly")]
     public class EmployeesController : Controller
     {
-        private readonly ApplicationDbContext _db;
+        private readonly PlatformDbContext _platformDb;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _auditService;
 
-        public EmployeesController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public EmployeesController(PlatformDbContext platformDb, UserManager<ApplicationUser> userManager, IAuditService auditService)
         {
-            _db = db;
+            _platformDb = platformDb;
             _userManager = userManager;
+            _auditService = auditService;
+        }
+
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+            {
+                context.Result = RedirectToAction("Index", "MyWork", new { area = "Client" });
+                return;
+            }
+
+            await next();
         }
 
         private bool IsVendor() => User.IsInRole("SuperAdmin");
@@ -33,7 +49,7 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         private async Task<IQueryable<ApplicationUser>> TenantUsersQueryAsync()
         {
-            var q = _db.Users.AsQueryable();
+            var q = _platformDb.Users.AsQueryable();
 
             if (IsVendor())
                 return q;
@@ -72,6 +88,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     UserId = u.Id,
                     Name = $"{u.FirstName} {u.LastName}".Trim(),
                     Email = u.Email ?? "",
+                    ProfileImagePath = u.ProfileImagePath,
                     Role = roles.FirstOrDefault() ?? "Employee",
                     Status = u.IsActive ? "Active" : "Inactive",
                     OrganizationId = u.OrganizationId,
@@ -84,14 +101,14 @@ namespace Web_Sentro.Areas.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> Deploy(string firstName, string lastName, string email, string role, string department)
         {
             if (string.IsNullOrWhiteSpace(firstName) ||
                 string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(role))
             {
-                TempData["Alert"] = "Missing required fields (first name, email, role).";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Missing required fields (first name, email, role).";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -102,15 +119,43 @@ namespace Web_Sentro.Areas.Client.Controllers
             var existing = await _userManager.FindByEmailAsync(email);
             if (existing != null)
             {
-                TempData["Alert"] = "Email is already used by another account.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Email is already used by another account.";
                 return RedirectToAction(nameof(Index));
             }
 
             var me = await GetMeAsync();
             if (me == null) return Challenge();
 
+            // NOTE: If SuperAdmin (vendor) creates users, decide the org assignment rule.
+            // For now: keep orgId = 0 for vendor-created users (as your current logic does).
             var orgId = IsVendor() ? 0 : me.OrganizationId;
+
+            // Enforce Plan Limits (Max Seats)
+            if (!IsVendor() && orgId > 0)
+            {
+                var org = await _platformDb.Organizations.AsNoTracking()
+                    .FirstOrDefaultAsync(o => o.OrganizationId == orgId);
+
+                if (org != null)
+                {
+                    // Find the plan by code (PlanName)
+                    var plan = await _platformDb.Plans.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Code == org.PlanName);
+
+                    if (plan != null && plan.MaxAdminSeats.HasValue)
+                    {
+                        // Count active users in this org
+                        var currentCount = await _platformDb.Users
+                            .CountAsync(u => u.OrganizationId == orgId && u.IsActive);
+
+                        if (currentCount >= plan.MaxAdminSeats.Value)
+                        {
+                            TempData["ToastError"] = $"Plan limit reached. Your current plan ({plan.DisplayName}) allows a maximum of {plan.MaxAdminSeats.Value} active users. Please upgrade your plan to add more employees.";
+                            return RedirectToAction(nameof(Index));
+                        }
+                    }
+                }
+            }
 
             var user = new ApplicationUser
             {
@@ -124,25 +169,23 @@ namespace Web_Sentro.Areas.Client.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            var tempPassword = "Temp@12345"; 
+            var tempPassword = "Temp@12345678";
             var createRes = await _userManager.CreateAsync(user, tempPassword);
 
             if (!createRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", createRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", createRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
             if (!IsVendor())
             {
                 var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {  "Manager", "Employee", "ProcurementOfficer" };
+                { "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
                 if (!allowed.Contains(role))
                 {
-                    TempData["Alert"] = "You are not allowed to assign that role.";
-                    TempData["AlertType"] = "error";
+                    TempData["ToastError"] = "You are not allowed to assign that role.";
                     await _userManager.DeleteAsync(user);
                     return RedirectToAction(nameof(Index));
                 }
@@ -150,30 +193,38 @@ namespace Web_Sentro.Areas.Client.Controllers
 
             await _userManager.AddToRoleAsync(user, role);
 
+            await _auditService.LogAsync(
+                user.OrganizationId,
+                me.Id,
+                "Employee",
+                0, // No int ID for users
+                "EmployeeCreated",
+                $"Created employee {user.Email} with role {role}",
+                "Info",
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             var displayName = string.IsNullOrWhiteSpace(lName) ? fName : $"{fName} {lName}";
-            TempData["Alert"] =
-                $"Created employee account for {displayName}. Temporary password: {tempPassword}";
-            TempData["AlertType"] = "success";
+            TempData["ToastSuccess"] = $"Created employee account for {displayName}. Temporary password: {tempPassword}";
 
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateEmployee(string id, string name, string email, string role)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                TempData["Alert"] = "Invalid employee.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Invalid employee.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
-                TempData["Alert"] = "Employee not found.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Employee not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -194,8 +245,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                 var existing = await _userManager.FindByEmailAsync(newEmail);
                 if (existing != null && existing.Id != target.Id)
                 {
-                    TempData["Alert"] = "Email is already used by another account.";
-                    TempData["AlertType"] = "error";
+                    TempData["ToastError"] = "Email is already used by another account.";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -208,12 +258,11 @@ namespace Web_Sentro.Areas.Client.Controllers
                 if (!IsVendor())
                 {
                     var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                    { "Admin", "Manager", "Employee", "ProcurementOfficer" };
+                    { "Admin", "Manager", "Employee", "ProcurementOfficer", "RiskManager" };
 
                     if (!allowed.Contains(role))
                     {
-                        TempData["Alert"] = "You are not allowed to assign that role.";
-                        TempData["AlertType"] = "error";
+                        TempData["ToastError"] = "You are not allowed to assign that role.";
                         return RedirectToAction(nameof(Index));
                     }
                 }
@@ -231,61 +280,112 @@ namespace Web_Sentro.Areas.Client.Controllers
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Alert"] = "Employee updated successfully.";
-            TempData["AlertType"] = "success";
+            var me = await GetMeAsync();
+            if (me != null)
+            {
+                await _auditService.LogAsync(
+                    target.OrganizationId,
+                    me.Id,
+                    "Employee",
+                    0,
+                    "EmployeeUpdated",
+                    $"Updated employee {target.Email}",
+                    "Info",
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+
+            TempData["ToastSuccess"] = "Employee updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> UpdateStatus(string id, string newStatus, string reason)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                TempData["Alert"] = "Invalid employee.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Invalid employee.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var target = await _platformDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (target == null)
             {
-                TempData["Alert"] = "Employee not found.";
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = "Employee not found.";
                 return RedirectToAction(nameof(Index));
             }
 
             if (!await CanTouchUserAsync(target))
                 return Forbid();
 
-            if (!string.IsNullOrWhiteSpace(newStatus) &&
-                newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            bool intendedActive = !(
+                !string.IsNullOrWhiteSpace(newStatus) &&
+                newStatus.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (intendedActive && !target.IsActive)
             {
-                target.IsActive = false;
+                // We are activating an inactive user. Check Plan Limits.
+                if (!IsVendor() && target.OrganizationId > 0)
+                {
+                    var org = await _platformDb.Organizations.AsNoTracking()
+                        .FirstOrDefaultAsync(o => o.OrganizationId == target.OrganizationId);
+
+                    if (org != null)
+                    {
+                        var plan = await _platformDb.Plans.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.Code == org.PlanName);
+
+                        if (plan != null && plan.MaxAdminSeats.HasValue)
+                        {
+                            var currentCount = await _platformDb.Users
+                                .CountAsync(u => u.OrganizationId == target.OrganizationId && u.IsActive);
+
+                            if (currentCount >= plan.MaxAdminSeats.Value)
+                            {
+                                TempData["ToastError"] = $"Plan limit reached. Cannot activate user. Your plan ({plan.DisplayName}) allows max {plan.MaxAdminSeats.Value} active users.";
+                                return RedirectToAction(nameof(Index));
+                            }
+                        }
+                    }
+                }
             }
-            else
-            {
-                target.IsActive = true;
-            }
+
+            target.IsActive = intendedActive;
 
             var updateRes = await _userManager.UpdateAsync(target);
             if (!updateRes.Succeeded)
             {
-                TempData["Alert"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
-                TempData["AlertType"] = "error";
+                TempData["ToastError"] = string.Join(" | ", updateRes.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Alert"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";
-            TempData["AlertType"] = "success";
+            var me = await GetMeAsync();
+            if (me != null)
+            {
+                await _auditService.LogAsync(
+                    target.OrganizationId,
+                    me.Id,
+                    "Employee",
+                    0,
+                    "EmployeeStatusChanged",
+                    $"Status changed to {target.IsActive} for {target.Email}",
+                    "Info",
+                    HttpContext.Connection.RemoteIpAddress?.ToString()
+                );
+            }
+
+            TempData["ToastSuccess"] = $"Employee status updated: {(target.IsActive ? "Active" : "Inactive")}.";
             return RedirectToAction(nameof(Index));
         }
 
+        [Authorize(Policy = "MainAdminOnly")]
         public async Task<IActionResult> Archive()
         {
             var q = await TenantUsersQueryAsync();
@@ -305,6 +405,7 @@ namespace Web_Sentro.Areas.Client.Controllers
                     UserId = u.Id,
                     Name = $"{u.FirstName} {u.LastName}".Trim(),
                     Email = u.Email ?? "",
+                    ProfileImagePath = u.ProfileImagePath,
                     Role = roles.FirstOrDefault() ?? "Employee",
                     Status = u.IsActive ? "Active" : "Inactive",
                     OrganizationId = u.OrganizationId,
@@ -321,6 +422,7 @@ namespace Web_Sentro.Areas.Client.Controllers
         public string UserId { get; set; } = "";
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
+        public string? ProfileImagePath { get; set; }
         public string Role { get; set; } = "";
         public string Status { get; set; } = "";
         public int OrganizationId { get; set; }

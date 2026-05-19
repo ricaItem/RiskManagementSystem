@@ -1,25 +1,137 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using WEB_Sentro.Data;
+using WEB_Sentro.Services;
+using Web_Sentro.Areas.Client.Models;
 
 namespace Web_Sentro.Areas.Client.Controllers
 {
     [Area("Client")]
-    [Authorize]
+    [Authorize(Policy = "MainAdminOnly")]
     public class AuditController : Controller
     {
-        // GET: /Client/Audit/Index
+        private readonly ITenantDbFactory _tenantDbFactory;
+        private readonly PlatformDbContext _platformDb;
+
+        public AuditController(ITenantDbFactory tenantDbFactory, PlatformDbContext platformDb)
+        {
+            _tenantDbFactory = tenantDbFactory;
+            _platformDb = platformDb;
+        }
+
         public IActionResult Index()
         {
-            var logs = new List<dynamic> {
-                new { Id = 1001, User = "Admin_Mark", Action = "Approved Expense", Module = "Finance", Details = "Approved #EXP-2026-001 ($15,400.00)", Timestamp = DateTime.Now.AddMinutes(-15), IpAddress = "192.168.1.45", Status = "Success" },
-                new { Id = 1002, User = "Site_Eng_Jane", Action = "Updated Stock", Module = "Inventory", Details = "Reduced Portland Cement by 50 bags", Timestamp = DateTime.Now.AddHours(-2), IpAddress = "192.168.1.88", Status = "Success" },
-                new { Id = 1003, User = "Foreman_Mike", Action = "Deleted Record", Module = "Archive", Details = "Moved Diesel Fuel Invoice to Archive", Timestamp = DateTime.Now.AddHours(-5), IpAddress = "192.168.1.12", Status = "Warning" },
-                new { Id = 1004, User = "System", Action = "Failed Login", Module = "Auth", Details = "Unauthorized access attempt from unknown IP", Timestamp = DateTime.Now.AddDays(-1), IpAddress = "104.22.11.5", Status = "Critical" }
-            };
+            return View();
+        }
 
-            return View(logs);
+        public async Task<IActionResult> AuditContent(DateTime? from, DateTime? to, string? search, string? severity, string? logType = "Audit", int page = 1, int pageSize = 10, CancellationToken ct = default)
+        {
+            if (string.Equals(logType, "Security", StringComparison.OrdinalIgnoreCase))
+            {
+                logType = AuditLogClassifier.System;
+            }
+
+            var user = await _platformDb.Users.AsNoTracking()
+                .Where(u => u.UserName == User.Identity!.Name)
+                .Select(u => new { u.OrganizationId })
+                .FirstOrDefaultAsync(ct);
+            if (user == null)
+                return Challenge();
+
+            var orgId = user.OrganizationId;
+            var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
+            var toDate = to ?? DateTime.UtcNow.AddDays(1);
+            
+            if (orgId <= 0)
+            {
+                ViewBag.From = fromDate;
+                ViewBag.To = null;
+                return PartialView("_AuditContent", new List<AuditLogEntryViewModel>());
+            }
+
+            await using var db = await _tenantDbFactory.CreateAsync(orgId);
+            
+            var query = db.AuditLogs.AsNoTracking()
+                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+                // Note: For EF Core, translation to SQL for complex searches might be tricky.
+                // Assuming simple contains. For UserId, we might need a join or subquery if we want to search by name, 
+                // but since UserId is a string GUID in AuditLog, we can search by that or other text fields.
+                // Searching by User Name requires joining with PlatformDb which is cross-context.
+                // For now, let's search in the available fields in AuditLog.
+                query = query.Where(a => a.UserId.Contains(search) 
+                                      || a.ActionType.Contains(search) 
+                                      || a.EntityType.Contains(search) 
+                                      || (a.Message != null && a.Message.Contains(search))
+                                      || (a.IpAddress != null && a.IpAddress.Contains(search)));
+            }
+
+            if (!string.IsNullOrEmpty(severity))
+            {
+                if (severity.Equals("success", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(a => a.Level == null || a.Level == "Success");
+                else if (severity.Equals("warning", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(a => a.Level == "Warning");
+                else if (severity.Equals("critical", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(a => a.Level == "Error" || a.Level == "Critical");
+            }
+
+            var logs = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Select(a => new { a.AuditId, a.UserId, a.EntityType, a.EntityId, a.ActionType, a.Level, a.Message, a.IpAddress, a.CreatedAt })
+                .ToListAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(logType))
+            {
+                logs = logs
+                    .Where(a => AuditLogClassifier.DetermineCategory(a.EntityType, a.ActionType)
+                        .Equals(logType, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            var totalCount = logs.Count;
+            logs = logs
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var userIds = logs.Select(l => l.UserId).Distinct().ToList();
+            var users = await _platformDb.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FirstName, u.LastName })
+                .ToListAsync(ct);
+            var userDisplay = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
+
+            var model = logs.Select(a => new AuditLogEntryViewModel
+            {
+                Id = a.AuditId,
+                User = userDisplay.TryGetValue(a.UserId, out var name) ? name : a.UserId,
+                Action = a.ActionType,
+                Module = a.EntityType,
+                Details = a.Message ?? $"{a.EntityType} #{a.EntityId}",
+                Timestamp = DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc),
+                IpAddress = AuditLogClassifier.NormalizeIp(a.IpAddress),
+                Category = AuditLogClassifier.DetermineCategory(a.EntityType, a.ActionType),
+                Status = string.IsNullOrEmpty(a.Level) ? "Success" : (a.Level == "Warning" ? "Warning" : a.Level == "Error" ? "Critical" : a.Level)
+            }).ToList();
+
+            ViewBag.From = fromDate;
+            ViewBag.To = toDate == DateTime.UtcNow.AddDays(1) ? (DateTime?)null : toDate;
+            
+            // Pagination Data
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            ViewBag.Search = search;
+            ViewBag.Severity = severity;
+            ViewBag.LogType = logType;
+
+            return PartialView("_AuditContent", model);
         }
     }
 }

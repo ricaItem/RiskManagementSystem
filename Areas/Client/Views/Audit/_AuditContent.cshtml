@@ -1,0 +1,165 @@
+@model IEnumerable<Web_Sentro.Areas.Client.Models.AuditLogEntryViewModel>
+
+<div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Audit Log</h3>
+        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            @if(ViewBag.TotalCount != null) {
+                <span>@ViewBag.TotalCount Records</span>
+            } else {
+                <span>Real-time</span>
+            }
+        </span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left" id="auditTable">
+            <thead>
+                <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <th class="px-6 py-3 font-medium">Event Details</th>
+                    <th class="px-6 py-3 font-medium">Actor</th>
+                    <th class="px-6 py-3 font-medium">Category</th>
+                    <th class="px-6 py-3 font-medium">Action Taken</th>
+                    <th class="px-6 py-3 font-medium text-right">Severity</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @if (!Model.Any())
+                {
+                    <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
+                                No audit logs found matching your criteria.
+                            </td>
+                    </tr>
+                }
+                @{
+                    DateTime? currentDate = null;
+                }
+                @foreach (var log in Model)
+                {
+                    var rowDate = log.Timestamp.Date;
+                    if (currentDate != rowDate)
+                    {
+                        currentDate = rowDate;
+                        <tr class="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-100/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
+                            <td colspan="5" class="px-6 py-2 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                <span class="local-date-header" data-utc="@log.Timestamp.ToString("O")">@log.Timestamp.ToString("MMMM dd, yyyy")</span>
+                            </td>
+                        </tr>
+                    }
+
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-slate-900 dark:text-white local-time" data-utc="@log.Timestamp.ToString("O")">
+                                @log.Timestamp.ToString("hh:mm tt")
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-semibold text-indigo-600 uppercase">
+                                    @(log.User.Length >= 2 ? log.User.Substring(0, 2) : log.User)
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-slate-900 dark:text-white">@log.User</div>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400">@(string.IsNullOrWhiteSpace(log.IpAddress) ? "N/A" : log.IpAddress)</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-900/20 dark:text-sky-300 dark:ring-sky-500/30">
+                                @log.Category
+                            </span>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">@log.Module</div>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-slate-900 dark:text-white">@log.Action</div>
+                            <p class="text-xs text-slate-500 mt-0.5 line-clamp-1" title="@log.Details">@log.Details</p>
+                        </td>
+
+                        <td class="px-6 py-4 text-right">
+                            @{
+                                var statusValue = (log.Status ?? string.Empty).Trim();
+                                var statusLower = statusValue.ToLowerInvariant();
+                                var isLocked = statusLower.Contains("lock") || (log.Action ?? string.Empty).ToLowerInvariant().Contains("lock");
+                                var statusClass = statusLower switch
+                                {
+                                    "info" => "bg-sky-50 text-sky-800 ring-sky-700/20 dark:bg-sky-900/30 dark:text-sky-200 dark:ring-sky-500/40",
+                                    "success" => "bg-emerald-50 text-emerald-800 ring-emerald-700/20 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-500/40",
+                                    "warning" => "bg-amber-50 text-amber-900 ring-amber-800/25 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-500/45",
+                                    "critical" => "bg-rose-50 text-rose-900 ring-rose-800/25 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-500/45",
+                                    _ => "bg-slate-100 text-slate-800 ring-slate-700/20 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-500/40"
+                                };
+                                if (isLocked)
+                                {
+                                    statusClass = "bg-rose-50 text-rose-900 ring-rose-800/25 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-500/45";
+                                }
+                            }
+                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ring-1 ring-inset @statusClass">
+                                @log.Status
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    @{
+        int pageNumber = ViewBag.CurrentPage ?? 1;
+        int totalPages = ViewBag.TotalPages ?? 1;
+        int totalCount = ViewBag.TotalCount ?? 0;
+        int pageSize = ViewBag.PageSize ?? 10;
+    }
+    @if (totalPages > 1 || totalCount > 0)
+    {
+        <div class="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row bg-slate-50/50 dark:bg-slate-900/20">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Showing <span class="text-slate-700 dark:text-slate-300">@(totalCount == 0 ? 0 : (pageNumber - 1) * pageSize + 1)</span>–<span class="text-slate-700 dark:text-slate-300">@(Math.Min(pageNumber * pageSize, totalCount))</span> of <span class="text-slate-700 dark:text-slate-300">@totalCount</span>
+            </p>
+            @if (totalPages > 1)
+            {
+                <nav class="flex items-center gap-1" aria-label="Pagination">
+                    @if (pageNumber > 1)
+                    {
+                        <button onclick="changePage(@(pageNumber - 1))"
+                           class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700">
+                            Prev
+                        </button>
+                    }
+                    else
+                    {
+                        <button disabled class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600">
+                            Prev
+                        </button>
+                    }
+                    
+                    @for (var i = Math.Max(1, pageNumber - 2); i <= Math.Min(totalPages, pageNumber + 2); i++)
+                    {
+                        var current = i == pageNumber;
+                        <button onclick="changePage(@i)"
+                           class="rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all @(current ? "border-emerald-500 bg-emerald-500 text-white dark:bg-emerald-600" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700")">
+                            @i
+                        </button>
+                    }
+                    
+                    @if (pageNumber < totalPages)
+                    {
+                        <button onclick="changePage(@(pageNumber + 1))"
+                           class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700">
+                            Next
+                        </button>
+                    }
+                    else
+                    {
+                        <button disabled class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600">
+                            Next
+                        </button>
+                    }
+                </nav>
+            }
+        </div>
+    }
+</div>

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using WEB_Sentro.Models.Identity;
+using WEB_Sentro.Services;
 
 namespace WEB_Sentro.Areas.Identity.Pages.Account
 {
@@ -20,15 +21,18 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly IAuditService _auditService;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            ILogger<LoginModel> logger)
+            ILogger<LoginModel> logger,
+            IAuditService auditService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
+            _auditService = auditService;
         }
 
         [BindProperty]
@@ -37,6 +41,8 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
         public string ReturnUrl { get; set; }
+
+        public long? LockoutEndsAtUnixSeconds { get; set; }
 
         [TempData]
         public string ErrorMessage { get; set; }
@@ -61,6 +67,8 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 if (User.IsInRole("SuperAdmin")) return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
                 if (User.IsInRole("Admin")) return LocalRedirect(Url.Content("~/Client/Dashboard"));
+                if (User.IsInRole("RiskManager")) return LocalRedirect(Url.Content("~/Client/Risks/Identification"));
+                if (User.IsInRole("ProcurementOfficer")) return LocalRedirect(Url.Content("~/Client/Supplier/Index"));
                 if (User.IsInRole("Employee")) return LocalRedirect(Url.Content("~/Client/MyWork"));
                 return LocalRedirect(Url.Content("~/Client/Dashboard"));
             }
@@ -97,33 +105,60 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: false);
-            if (!check.Succeeded)
+            var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+            if (result.RequiresTwoFactor)
             {
-                if (check.IsLockedOut)
+                return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+            }
+
+            if (!result.Succeeded)
+            {
+                if (result.IsLockedOut)
                 {
-                    ModelState.AddModelError(string.Empty, "Your account has been locked. Please contact administrator.");
+                    await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
+                    var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+                    if (lockoutEnd.HasValue)
+                    {
+                        LockoutEndsAtUnixSeconds = lockoutEnd.Value.ToUnixTimeSeconds();
+                    }
+
+                    ModelState.AddModelError(string.Empty, "Your account has been temporarily locked due to multiple failed login attempts.");
                     return Page();
                 }
-                if (check.IsNotAllowed)
+                if (result.IsNotAllowed)
                 {
                     ModelState.AddModelError(string.Empty, "Login not allowed. Please confirm your email first.");
                     return Page();
                 }
 
-                ModelState.AddModelError(string.Empty, "Invalid credentials.");
+                await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginFailed", "Invalid password attempt", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
+                
+                var maxAttempts = _signInManager.Options.Lockout.MaxFailedAccessAttempts;
+                var currentAttempts = await _userManager.GetAccessFailedCountAsync(user);
+                var attemptsLeft = maxAttempts - currentAttempts;
+
+                if (attemptsLeft > 0)
+                {
+                    ModelState.AddModelError(string.Empty, $"Invalid credentials. You have {attemptsLeft} attempt(s) remaining before a temporary lockout.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid credentials.");
+                }
+
                 return Page();
             }
 
             if (!user.IsActive)
             {
+                await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginFailed", "Inactive user attempt", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                 _logger.LogWarning("Inactive user attempted login. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
                 ModelState.AddModelError(string.Empty, "This account has been deactivated. You are not able to log in. Please contact your administrator.");
                 return Page();
             }
 
-            await _signInManager.SignInAsync(user, Input.RememberMe);
-            _logger.LogInformation("User logged in (explicit sign-in). UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
+            await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginSuccess", "User logged in successfully", "Success", HttpContext.Connection.RemoteIpAddress?.ToString());
+            _logger.LogInformation("User logged in. UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
 
             var roles = await _userManager.GetRolesAsync(user);
             _logger.LogDebug("Roles for user {UserName}: {Roles}", user.UserName, string.Join(",", roles));
@@ -135,6 +170,14 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             if (roles.Contains("Admin"))
             {
                 return LocalRedirect(Url.Content("~/Client/Dashboard"));
+            }
+            if (roles.Contains("RiskManager"))
+            {
+                return LocalRedirect(Url.Content("~/Client/Risks/Identification"));
+            }
+            if (roles.Contains("ProcurementOfficer"))
+            {
+                return LocalRedirect(Url.Content("~/Client/Supplier/Index"));
             }
             if (roles.Contains("Employee"))
             {

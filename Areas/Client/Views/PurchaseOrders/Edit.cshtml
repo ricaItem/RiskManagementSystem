@@ -1,0 +1,269 @@
+@model WEB_Sentro.Data.Entities.PurchaseOrder
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Edit Purchase Order";
+    var sites = ViewBag.Sites as IEnumerable<WEB_Sentro.Data.Entities.Site> ?? new List<WEB_Sentro.Data.Entities.Site>();
+    var suppliers = ViewBag.Suppliers as IEnumerable<WEB_Sentro.Data.Entities.Supplier> ?? new List<WEB_Sentro.Data.Entities.Supplier>();
+    var costCodes = ViewBag.CostCodes as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<div class="animate-in fade-in min-h-screen flex items-center justify-center p-4 duration-500">
+    <div class="w-full max-w-4xl proj-card overflow-hidden">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Edit Purchase Order</h2>
+                    <p class="text-xs text-slate-500 mt-1">Update details for <span class="font-mono font-medium">@Model.OrderNumber</span></p>
+                </div>
+                <a href="@Url.Action("Details", "PurchaseOrders", new { area = "Client", id = Model.PurchaseOrderId })" class="text-slate-400 hover:text-slate-500 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" /></svg>
+                </a>
+            </div>
+
+            <form method="post" asp-action="Edit" asp-controller="PurchaseOrders" asp-area="Client" class="space-y-8">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                
+                <!-- Top Section: PO Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Site Selection -->
+                    <div>
+                        <label for="SiteId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Site <span class="text-rose-500">*</span></label>
+                        <select id="SiteId" name="SiteId" required class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            @foreach (var s in sites) { <option value="@s.SiteId" selected="@(Model.SiteId == s.SiteId)">@s.SiteName (@s.SiteCode)</option> }
+                        </select>
+                    </div>
+
+                    <!-- Supplier Selection -->
+                    <div>
+                        <label for="SupplierId" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Supplier <span class="text-rose-500">*</span></label>
+                        <select id="SupplierId" name="SupplierId" required class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="" data-reliability-score="100">Select supplier...</option>
+                            @foreach (var s in suppliers) { <option value="@s.SupplierId" data-reliability-score="@s.ReliabilityScore" selected="@(Model.SupplierId == s.SupplierId)">@s.Name</option> }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Risk Warning (Hidden by default) -->
+                <div id="SupplierRiskWarning" class="hidden rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-200 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <div>
+                        <p class="font-medium">Supplier Risk Warning</p>
+                        <p class="text-xs mt-0.5 opacity-90">This supplier has a reliability score of <span id="SupplierRiskScoreValue" class="font-bold"></span>. Consider mitigation strategies.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="OrderNumber" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Order Number <span class="text-rose-500">*</span></label>
+                        <input type="text" id="OrderNumber" name="OrderNumber" value="@Model.OrderNumber" required class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono" />
+                    </div>
+                    <div>
+                        <label for="Status" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Status</label>
+                        <select id="Status" name="Status" class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer">
+                            <option value="Draft" selected="@(Model.Status == "Draft")">Draft</option>
+                            <option value="Sent" selected="@(Model.Status == "Sent")">Sent</option>
+                            <option value="Received" selected="@(Model.Status == "Received")">Received</option>
+                            <option value="Cancelled" selected="@(Model.Status == "Cancelled")">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="OrderDate" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Order Date</label>
+                        <input type="date" id="OrderDate" name="OrderDate" value="@Model.OrderDate.ToString("yyyy-MM-dd")" class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" />
+                    </div>
+                    <div>
+                        <label for="ExpectedDeliveryDate" class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Expected Delivery <span class="text-slate-400 font-normal">(Optional)</span></label>
+                        <input type="date" id="ExpectedDeliveryDate" name="ExpectedDeliveryDate" value="@(Model.ExpectedDeliveryDate?.ToString("yyyy-MM-dd"))" class="w-full soft-input px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" />
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Line Items</h3>
+                        <button type="button" onclick="addLineItem()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            Add Item
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-hidden border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700" id="linesTable">
+                            <thead class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[20%]">Cost Code</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[30%]">Description</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Qty</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Unit Cost</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[15%]">Total</th>
+                                    <th scope="col" class="px-4 py-3 w-[5%]"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700" id="linesBody">
+                                @if (Model.LineItems != null)
+                                {
+                                    for (int i = 0; i < Model.LineItems.Count; i++)
+                                    {
+                                        var item = Model.LineItems.ElementAt(i);
+                                        <tr>
+                                            <td class="px-4 py-2">
+                                                <select name="items[@i].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                                                    <option value="">Select Code...</option>
+                                                    @foreach (var c in costCodes)
+                                                    {
+                                                        <option value="@c.CostCodeId" selected="@(item.CostCodeId == c.CostCodeId)">@c.Code - @c.Description</option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="text" name="items[@i].Description" value="@item.Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" name="items[@i].Quantity" value="@item.Quantity.ToString("F2")" step="0.01" min="0" oninput="calculateRowTotal(this)" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" name="items[@i].UnitCost" value="@item.UnitCost.ToString("F2")" step="0.01" min="0" oninput="calculateRowTotal(this)" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                                            </td>
+                                            <td class="px-4 py-2 text-right text-sm font-medium text-slate-700 dark:text-slate-300 row-total">
+                                                @((item.Quantity * item.UnitCost).ToString("N2"))
+                                            </td>
+                                            <td class="px-4 py-2 text-center">
+                                                <button type="button" onclick="removeLineItem(this)" class="text-slate-400 hover:text-rose-500 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                            <tfoot class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-right text-xs font-bold text-slate-900 dark:text-white uppercase">Grand Total</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400" id="grandTotal">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-4 flex gap-3">
+                    <a href="@Url.Action("Details", "PurchaseOrders", new { area = "Client", id = Model.PurchaseOrderId })" class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700">Cancel</a>
+                    <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-sm transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        var costCodeOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(costCodes));
+
+        // Risk Warning Logic
+        var sel = document.getElementById('SupplierId');
+        var warn = document.getElementById('SupplierRiskWarning');
+        var scoreSpan = document.getElementById('SupplierRiskScoreValue');
+        var threshold = 60;
+        
+        if (sel && warn) {
+            function updateWarning() {
+                var opt = sel.options[sel.selectedIndex];
+                var score = opt ? parseInt(opt.getAttribute('data-reliability-score') || '100', 10) : 100;
+                
+                if (score < threshold) {
+                    warn.classList.remove('hidden');
+                    if (scoreSpan) scoreSpan.textContent = score;
+                } else {
+                    warn.classList.add('hidden');
+                }
+            }
+            sel.addEventListener('change', updateWarning);
+            updateWarning();
+        }
+
+        // Line Items Logic
+        window.addLineItem = function() {
+            const tbody = document.getElementById('linesBody');
+            const index = tbody.children.length;
+            const row = document.createElement('tr');
+            
+            let optionsHtml = '<option value="">Select Code...</option>';
+            if (costCodeOptions && costCodeOptions.length) {
+                costCodeOptions.forEach(c => {
+                    optionsHtml += `<option value="${c.CostCodeId}">${c.Code} - ${c.Description}</option>`;
+                });
+            }
+            
+            row.innerHTML = `
+                <td class="px-4 py-2">
+                    <select name="items[${index}].CostCodeId" required class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white appearance-none cursor-pointer">
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="px-4 py-2">
+                    <input type="text" name="items[${index}].Description" required placeholder="Item description" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 dark:text-white" />
+                </td>
+                <td class="px-4 py-2">
+                    <input type="number" name="items[${index}].Quantity" step="0.01" min="0" value="0" oninput="calculateRowTotal(this)" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                </td>
+                <td class="px-4 py-2">
+                    <input type="number" name="items[${index}].UnitCost" step="0.01" min="0" value="0" oninput="calculateRowTotal(this)" class="w-full bg-transparent border-0 border-b border-slate-200 dark:border-slate-700 focus:ring-0 focus:border-indigo-500 text-sm py-1 px-0 text-right dark:text-white" />
+                </td>
+                <td class="px-4 py-2 text-right text-sm font-medium text-slate-700 dark:text-slate-300 row-total">
+                    0.00
+                </td>
+                <td class="px-4 py-2 text-center">
+                    <button type="button" onclick="removeLineItem(this)" class="text-slate-400 hover:text-rose-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        };
+
+        window.removeLineItem = function(btn) {
+            const row = btn.closest('tr');
+            row.remove();
+            reindexRows();
+            calculateGrandTotal();
+        };
+
+        window.calculateRowTotal = function(input) {
+            const row = input.closest('tr');
+            const qty = parseFloat(row.querySelector('input[name*=".Quantity"]').value) || 0;
+            const cost = parseFloat(row.querySelector('input[name*=".UnitCost"]').value) || 0;
+            const total = qty * cost;
+            
+            row.querySelector('.row-total').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            calculateGrandTotal();
+        };
+
+        window.calculateGrandTotal = function() {
+            let total = 0;
+            document.querySelectorAll('#linesBody tr').forEach(row => {
+                const qty = parseFloat(row.querySelector('input[name*=".Quantity"]').value) || 0;
+                const cost = parseFloat(row.querySelector('input[name*=".UnitCost"]').value) || 0;
+                total += (qty * cost);
+            });
+            document.getElementById('grandTotal').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        window.reindexRows = function() {
+            document.querySelectorAll('#linesBody tr').forEach((row, index) => {
+                const ccSelect = row.querySelector('select[name*=".CostCodeId"]');
+                if (ccSelect) ccSelect.name = `items[${index}].CostCodeId`;
+
+                row.querySelector('input[name*=".Description"]').name = `items[${index}].Description`;
+                row.querySelector('input[name*=".Quantity"]').name = `items[${index}].Quantity`;
+                row.querySelector('input[name*=".UnitCost"]').name = `items[${index}].UnitCost`;
+            });
+        };
+
+        // Initialize total
+        calculateGrandTotal();
+    })();
+</script>

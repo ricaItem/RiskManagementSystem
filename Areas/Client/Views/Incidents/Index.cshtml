@@ -1,0 +1,85 @@
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "HSE Incidents";
+}
+
+<div id="incidents-skeleton" class="animate-pulse min-h-screen space-y-6">
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div class="space-y-2">
+            <div class="h-8 w-56 rounded bg-slate-200 dark:bg-slate-700"></div>
+            <div class="h-4 w-80 rounded bg-slate-100 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-10 w-36 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-3">
+        <div class="h-28 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+        <div class="h-28 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+        <div class="h-28 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40"></div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+        <div class="h-10 w-56 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-10 w-40 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-10 w-40 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/40 overflow-hidden">
+        <div class="h-12 border-b border-slate-100 bg-slate-50/30 dark:border-slate-800 dark:bg-slate-800/20"></div>
+        <div class="space-y-3 p-4">
+            @for (var i = 0; i < 6; i++)
+            {
+                <div class="h-14 rounded-lg bg-slate-100 dark:bg-slate-800"></div>
+            }
+        </div>
+    </div>
+</div>
+
+<div id="incidents-content" class="hidden"></div>
+
+<script>
+    function initIncidentsPage() {
+        const contentDiv = document.getElementById('incidents-content');
+        if (!contentDiv || contentDiv.dataset.loaded === '1') return;
+
+        const searchParams = new URLSearchParams(window.location.search);
+        const url = '@Url.Action("IndexContent", "Incidents", new { area = "Client" })' + '?' + searchParams.toString();
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error(`Incident content request failed: ${response.status}`);
+                return response.text();
+            })
+            .then(html => {
+                contentDiv.innerHTML = html;
+
+                const scripts = Array.from(contentDiv.getElementsByTagName('script'));
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    if (oldScript.src) newScript.src = oldScript.src;
+                    else newScript.text = oldScript.innerHTML;
+                    document.body.appendChild(newScript);
+                });
+
+                const skeleton = document.getElementById('incidents-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.dataset.loaded = '1';
+            })
+            .catch(error => {
+                console.error('Error loading incident content:', error);
+                const skeleton = document.getElementById('incidents-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">Failed to load HSE Incidents. Please refresh the page.</div>';
+                contentDiv.dataset.loaded = '1';
+            });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initIncidentsPage);
+    } else {
+        initIncidentsPage();
+    }
+</script>

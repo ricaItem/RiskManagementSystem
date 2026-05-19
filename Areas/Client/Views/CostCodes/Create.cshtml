@@ -1,0 +1,54 @@
+@model WEB_Sentro.Data.Entities.CostCode
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "New Cost Code";
+}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="@Url.Action("Index", "CostCodes", new { area = "Client" })" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors dark:hover:bg-slate-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">New Cost Code</h1>
+    </div>
+
+    <form asp-action="Create" method="post" class="space-y-6">
+        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="grid gap-6">
+                <!-- Code -->
+                <div>
+                    <label asp-for="Code" class="block text-sm font-medium text-slate-900 dark:text-slate-200">Code</label>
+                    <div class="mt-2">
+                        <input asp-for="Code" class="block w-full rounded-lg border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-slate-800 dark:text-white dark:ring-slate-700 dark:placeholder:text-slate-500" placeholder="e.g. 03-300" />
+                    </div>
+                    <span asp-validation-for="Code" class="mt-2 text-xs text-red-500"></span>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label asp-for="Description" class="block text-sm font-medium text-slate-900 dark:text-slate-200">Description</label>
+                    <div class="mt-2">
+                        <input asp-for="Description" class="block w-full rounded-lg border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-slate-800 dark:text-white dark:ring-slate-700 dark:placeholder:text-slate-500" placeholder="e.g. Cast-in-Place Concrete" />
+                    </div>
+                    <span asp-validation-for="Description" class="mt-2 text-xs text-red-500"></span>
+                </div>
+
+                <!-- Parent Cost Code -->
+                <div>
+                    <label asp-for="ParentCostCodeId" class="block text-sm font-medium text-slate-900 dark:text-slate-200">Parent Division (Optional)</label>
+                    <div class="mt-2">
+                        <select asp-for="ParentCostCodeId" asp-items="ViewBag.ParentCostCodes" class="block w-full rounded-lg border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-slate-800 dark:text-white dark:ring-slate-700">
+                            <option value="">None (Top Level)</option>
+                        </select>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Select a parent division if this is a sub-code.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="@Url.Action("Index", "CostCodes", new { area = "Client" })" class="rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700">Cancel</a>
+            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Create Cost Code</button>
+        </div>
+    </form>
+</div>

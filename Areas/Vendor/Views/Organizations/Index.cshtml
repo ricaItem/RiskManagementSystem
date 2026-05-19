@@ -1,10 +1,24 @@
+@model WEB_Sentro.Areas.Vendor.Models.OrganizationsIndexViewModel
 @{
     ViewData["Title"] = "Organization Management";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
 }
 
 <div class="space-y-8 animate-in fade-in duration-500">
-    <div class="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/50 p-8 shadow-sm backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-900/50">
+    @if (TempData["Success"] != null)
+    {
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400">
+            <strong>Success:</strong> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400">
+            <strong>Error:</strong> @TempData["Error"]
+        </div>
+    }
+
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-8 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/50">
         <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white lg:text-3xl">
@@ -28,45 +42,47 @@
 
     <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Revenue (MRR)</p>
-            <p class="text-2xl font-black text-slate-900 dark:text-white">$42,500.00</p>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Revenue</p>
+            <p class="text-2xl font-black text-slate-900 dark:text-white">@Model.TotalRevenueDisplay</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Tenants</p>
-            <p class="text-2xl font-black text-emerald-600">128 Firms</p>
+            <p class="text-2xl font-black text-emerald-600">@Model.ActiveTenantsCount Firms</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/50">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">System Availability</p>
-            <p class="text-2xl font-black text-sky-500">99.98%</p>
+            <p class="text-2xl font-black text-sky-500">@Model.SystemAvailabilityDisplay</p>
         </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-12">
+    <form method="get" class="grid gap-4 md:grid-cols-12">
         <div class="relative md:col-span-6 lg:col-span-8">
             <span class="absolute inset-y-0 left-4 flex items-center text-slate-400">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </span>
-            <input type="text" placeholder="Search by Firm Name, ID, or Admin..." class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-900/50 dark:text-white" />
+            <input type="text" name="search" value="@Model.Search" placeholder="Search by Firm Name or Code..." class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-900/50 dark:text-white" />
         </div>
         <div class="md:col-span-3 lg:col-span-2">
-            <select class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option>All Plans</option>
-                <option>Enterprise</option>
-                <option>Professional</option>
-                <option>Basic</option>
+            <select name="plan" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
+                <option value="">All Plans</option>
+                <option value="Enterprise" selected="@(Model.PlanFilter == "Enterprise")">Enterprise</option>
+                <option value="Professional" selected="@(Model.PlanFilter == "Professional")">Professional</option>
+                <option value="Basic" selected="@(Model.PlanFilter == "Basic")">Basic</option>
             </select>
         </div>
         <div class="md:col-span-3 lg:col-span-2">
-            <select class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
-                <option>All Status</option>
-                <option>Active</option>
-                <option>Pending</option>
-                <option>Suspended</option>
+            <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm font-bold dark:border-slate-800 dark:bg-slate-900/50 dark:text-white">
+                <option value="">All Status</option>
+                <option value="Active" selected="@(Model.StatusFilter == "Active")">Active</option>
+                <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+                <option value="Suspended" selected="@(Model.StatusFilter == "Suspended")">Suspended</option>
+                <option value="Archived" selected="@(Model.StatusFilter == "Archived")">Archived</option>
             </select>
         </div>
-
-
-    </div>
+        <div class="md:col-span-12 flex justify-end">
+            <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white">Apply filters</button>
+        </div>
+    </form>
 
     <div class="rounded-3xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800/70 dark:bg-slate-900/50 overflow-hidden">
         <div class="overflow-x-auto">
@@ -78,60 +94,91 @@
                         <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Admins</th>
                         <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Risk Load</th>
                         <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                        <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Subscription</th>
+                        <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Next Billing</th>
                         <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    @{
-                        var firms = new[] {
-                                        new { Name = "BuildCraft Solutions", Type = "Enterprise", Admins = 3, Risks = 142, Status = "Active", Color = "emerald" },
-                                        new { Name = "Skyline Heights Const.", Type = "Professional", Admins = 2, Risks = 89, Status = "Active", Color = "emerald" },
-                                        new { Name = "Terraform Infrastructure", Type = "Basic", Admins = 1, Risks = 12, Status = "Pending", Color = "amber" },
-                                        new { Name = "Apex Residential Ltd.", Type = "Enterprise", Admins = 5, Risks = 312, Status = "Suspended", Color = "rose" }
-                                        };
-                    }
-
-                    @foreach (var firm in firms)
+                    @foreach (var org in Model.Organizations)
                     {
                         <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500">
-                                        @firm.Name.Substring(0, 1)
+                                        @(org.OrgName.Length > 0 ? org.OrgName[0].ToString().ToUpperInvariant() : "—")
                                     </div>
                                     <div>
-                                        <div class="text-sm font-bold text-slate-900 dark:text-white">@firm.Name</div>
-                                        <div class="text-[10px] text-slate-500 font-medium">ID: ORG-9921-@firm.Name.Substring(0, 2).ToUpper()</div>
+                                        <div class="text-sm font-bold text-slate-900 dark:text-white">@org.OrgName</div>
+                                        <div class="text-[10px] text-slate-500 font-medium">@org.OrgCode</div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                                    @firm.Type
+                                    @org.PlanName
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-400">
-                                @firm.Admins Accounts
+                                @org.AdminCount Account@(org.AdminCount != 1 ? "s" : "")
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                        <div class="h-full bg-emerald-500" style="width: @(firm.Risks / 4)%"></div>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-500">@firm.Risks</span>
+                                    @if (org.RiskLoad.HasValue && org.RiskLoad > 0)
+                                    {
+                                        <div class="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                            <div class="h-full bg-emerald-500" style="width: @(Math.Min(100, org.RiskLoad.Value / 4))%"></div>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-500">@org.RiskLoad</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs font-bold text-slate-400">—</span>
+                                    }
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-@firm.Color-500"></span>
-                                    <span class="text-xs font-bold text-@firm.Color-600">@firm.Status</span>
+                                    <span class="h-1.5 w-1.5 rounded-full bg-@(org.StatusColor)-500"></span>
+                                    <span class="text-xs font-bold text-@(org.StatusColor)-600">@org.Status</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="flex gap-2">
-                                    <button class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all dark:bg-slate-800">
+                                <span class="text-xs font-bold @(org.SubscriptionStatus == "Active" ? "text-emerald-600" : "text-amber-500")">@org.SubscriptionStatus</span>
+                            </td>
+                            <td class="px-6 py-4 text-xs font-bold text-slate-500">@org.NextBillingDisplay</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <a asp-action="Edit" asp-route-id="@org.OrganizationId" class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all dark:bg-slate-800" title="Edit">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    </button>
+                                    </a>
+                                    <form asp-action="ToggleStatus" asp-route-id="@org.OrganizationId" method="post" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-@(org.Status == "Active" ? "rose" : "emerald")-500 hover:text-white transition-all dark:bg-slate-800" title="@(org.Status == "Active" ? "Suspend" : "Activate")">
+                                            @if (org.Status == "Active") {
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            } else {
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            }
+                                        </button>
+                                    </form>
+                                    <form asp-action="ToggleSubscriptionStatus" method="post" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@org.OrganizationId" />
+                                        <button type="submit" class="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition-all dark:bg-slate-800" title="Toggle Subscription">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                        </button>
+                                    </form>
+                                    <form asp-action="UpdateSubscriptionPlan" method="post" class="inline-flex items-center gap-1">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@org.OrganizationId" />
+                                        <select name="planCode" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold dark:border-slate-700 dark:bg-slate-900">
+                                            <option value="Basic">Basic</option>
+                                            <option value="Professional">Professional</option>
+                                            <option value="Enterprise">Enterprise</option>
+                                        </select>
+                                        <button type="submit" class="rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-bold text-white">Update</button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -141,11 +188,7 @@
         </div>
 
         <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">Showing 4 of 128 Organizations</span>
-            <div class="flex gap-2">
-                <button class="px-3 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-400 cursor-not-allowed">Previous</button>
-                <button class="px-3 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Next</button>
-            </div>
+            <span class="text-xs font-bold text-slate-500">Showing @Model.Organizations.Count of @Model.TotalCount Organizations</span>
         </div>
     </div>
 </div>
@@ -166,23 +209,22 @@
                 </button>
             </div>
 
-            <form class="space-y-6">
+            <form asp-action="Create" method="post" class="space-y-6">
+                @Html.AntiForgeryToken()
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-4">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400">Organization Info</label>
-                        <input type="text" placeholder="Construction Firm Name" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
-                        <select class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white">
-                            <option>Select Subscription Plan</option>
-                            <option>Basic (50 Risks)</option>
-                            <option>Professional (200 Risks)</option>
-                            <option>Enterprise (Unlimited)</option>
+                        <input name="OrgName" type="text" placeholder="Construction Firm Name" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:ring-0 dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                        <select name="PlanName" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white">
+                            <option value="Basic">Basic (50 Risks)</option>
+                            <option value="Professional">Professional (200 Risks)</option>
+                            <option value="Enterprise">Enterprise (Unlimited)</option>
                         </select>
                     </div>
 
                     <div class="space-y-4">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Admin Account</label>
-                        <input type="email" placeholder="Admin Email Address" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
-                        <input type="password" placeholder="Temporary Password" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                        <input name="AdminEmail" type="email" placeholder="Admin Email Address" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
                     </div>
                 </div>
 
@@ -190,7 +232,7 @@
                     <div class="flex gap-3">
                         <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <p class="text-xs font-medium text-emerald-800 dark:text-emerald-400">
-                            Provisioning will automatically send a welcome email with onboarding instructions to the designated admin.
+                            Provisioning will automatically send a secure password setup link to the designated admin.
                         </p>
                     </div>
                 </div>
@@ -204,11 +246,9 @@
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function toggleModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.toggle('hidden');
-        }
-    </script>
-}
+<script>
+    function toggleModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.toggle('hidden');
+    }
+</script>

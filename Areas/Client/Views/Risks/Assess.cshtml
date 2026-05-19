@@ -1,128 +1,359 @@
-﻿@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
+@model Web_Sentro.Areas.Client.Models.RiskAssessmentViewModel
 @{
     Layout = "_LayoutClient";
+    var category = ViewBag.Category as string ?? "—";
+    var reportedBy = ViewBag.ReportedBy as string ?? "—";
 }
 
-<div class="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="animate-in fade-in slide-in-from-bottom-4 min-h-screen space-y-6 p-6">
+    <!-- Header Section -->
+    <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Risk <span class="text-indigo-600">Assessment</span>
+            <div class="flex items-center gap-2 mb-1">
+                <a href="@Url.Action("Identification", "Risks")" class="text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors">Risk Register</a>
+                <span class="text-xs text-slate-300">/</span>
+                <span class="text-xs font-medium text-slate-900 dark:text-white">Assessment</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Assess Risk <span class="text-slate-400">#@Model.RiskId</span>
             </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@Model.RiskTitle</p>
         </div>
-        <div class="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Assessing Risk:</span>
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-200">@Model.RiskTitle</span>
+
+        <div class="flex items-center gap-3">
+             <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <span class="text-xs font-medium text-slate-500">Category</span>
+                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">@category</span>
+            </div>
+            <div class="flex items-center gap-2 pill-input px-4 py-2">
+                <span class="text-xs font-medium text-slate-500">Reporter</span>
+                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">@reportedBy</span>
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl">
-            <div class="flex justify-between items-end mb-6">
-                <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Probability vs. Severity Matrix</h3>
-                <div class="flex gap-4">
-                    <div class="flex items-center gap-2"><div class="h-3 w-3 bg-rose-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Critical</span></div>
-                    <div class="flex items-center gap-2"><div class="h-3 w-3 bg-emerald-500 rounded"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Acceptable</span></div>
+    @if (TempData["AssessmentError"] != null)
+    {
+        <div class="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 shadow-sm dark:border-rose-900/30 dark:bg-rose-900/20 dark:text-rose-300 animate-in slide-in-from-top-2">
+            <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                @TempData["AssessmentError"]
+            </div>
+        </div>
+    }
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+        
+        <!-- Left Column: Inputs -->
+        <div class="lg:col-span-5 space-y-6">
+            
+            <!-- AI Forecast Card -->
+            <div class="proj-card p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900/30">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <h2 class="text-base font-semibold text-indigo-900 dark:text-indigo-300">AI Risk Forecast</h2>
+                    </div>
+                    <button type="button" id="btnGenerateAi" class="rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">
+                        ✨ Generate
+                    </button>
+                </div>
+                
+                <div id="aiForecastResult" class="text-sm text-indigo-800 dark:text-indigo-200 hidden">
+                    <!-- Text will be typed here -->
+                </div>
+                
+                <div id="aiLoadingState" class="hidden flex items-center justify-center py-4">
+                    <svg class="h-6 w-6 animate-spin text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="ml-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium">Analyzing trends...</span>
                 </div>
             </div>
 
-            <div class="relative">
-                <div class="absolute -left-12 top-1/2 -rotate-90 origin-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Impact</div>
-
-                <div class="grid grid-cols-5 gap-2">
-                    @for (int i = 5; i >= 1; i--)
-                    { // Impact
-                        @for (int l = 1; l <= 5; l++)
-                        { // Likelihood
-                            var score = i * l;
-                            var colorClass = score >= 15 ? "bg-rose-500 hover:bg-rose-600 text-white" :
-                            score >= 10 ? "bg-orange-400 hover:bg-orange-500 text-white" :
-                            score >= 5 ? "bg-amber-300 hover:bg-amber-400 text-slate-900" :
-                            "bg-emerald-500 hover:bg-emerald-600 text-white";
-
-                            <button type="button"
-                                    onclick="updateScore(@l, @i, @score)"
-                                    class="@colorClass h-20 rounded-xl transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:scale-105 active:scale-95 group">
-                                <span class="text-lg font-black">@score</span>
-                                <span class="text-[8px] font-bold opacity-0 group-hover:opacity-100 uppercase">L:@l I:@i</span>
-                            </button>
-                        }
-                    }
+            <div class="proj-card p-6">
+                <div class="mb-6">
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">Assessment Parameters</h2>
+                    <p class="text-xs text-slate-500 mt-1">Define impact and likelihood to calculate risk score.</p>
                 </div>
-                <div class="text-center mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Likelihood / Probability</div>
+
+                <form id="assessmentForm" action="@Url.Action("SaveAssessment", "Risks")" method="post" class="space-y-6">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RiskId" value="@Model.RiskId" />
+                    <input type="hidden" name="Likelihood" id="hiddenL" value="1" />
+                    <input type="hidden" name="Impact" id="hiddenI" value="1" />
+                    <input type="hidden" name="IsInherent" id="isInherentField" value="@(Model.IsInherent ? "true" : "false")" />
+
+                    <!-- Type Toggle -->
+                    <div class="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="assessmentTypeToggle" value="inherent" class="peer sr-only" @(Model.IsInherent ? "checked" : "") onclick="setAssessmentType(true)" />
+                            <div class="rounded-md py-2 text-center text-xs font-medium text-slate-500 transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm dark:text-slate-400 dark:peer-checked:bg-slate-700 dark:peer-checked:text-white">
+                                Inherent (Pre)
+                            </div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="assessmentTypeToggle" value="residual" class="peer sr-only" @(!Model.IsInherent ? "checked" : "") onclick="setAssessmentType(false)" />
+                            <div class="rounded-md py-2 text-center text-xs font-medium text-slate-500 transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm dark:text-slate-400 dark:peer-checked:bg-slate-700 dark:peer-checked:text-white">
+                                Residual (Post)
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="impactSelect" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Impact</label>
+                            <select id="impactSelect" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                <option value="1">1 - Minor</option>
+                                <option value="2">2 - Moderate</option>
+                                <option value="3">3 - Major</option>
+                                <option value="4">4 - Severe</option>
+                                <option value="5">5 - Catastrophic</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="likelihoodSelect" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Likelihood</label>
+                            <select id="likelihoodSelect" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                <option value="1">1 - Remote</option>
+                                <option value="2">2 - Unlikely</option>
+                                <option value="3">3 - Possible</option>
+                                <option value="4">4 - Likely</option>
+                                <option value="5">5 - Very Likely</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-6 dark:border-slate-800">
+                        <div class="mb-4">
+                            <label for="treatmentDecision" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Treatment Decision</label>
+                            <select name="TreatmentDecision" id="treatmentDecision" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                <option value="Mitigate">Mitigate (Reduce)</option>
+                                <option value="Transfer">Transfer (Share)</option>
+                                <option value="Accept">Accept (Monitor)</option>
+                                <option value="Avoid">Avoid (Eliminate)</option>
+                            </select>
+                        </div>
+
+                        <div id="justificationWrap">
+                            <label for="treatmentJustification" class="block text-xs font-medium text-slate-700 mb-1.5 dark:text-slate-300">Justification</label>
+                            <textarea name="TreatmentJustification" id="treatmentJustification" rows="3" class="block w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="Required for Accept/Transfer decisions..."></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                        Finalize Assessment
+                    </button>
+                </form>
             </div>
         </div>
 
-        <div class="space-y-6">
-            <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
-                <svg class="absolute -right-10 -top-10 h-40 w-40 text-white/5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-
-                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Calculated Risk Index</p>
-                <div class="flex items-baseline gap-2">
-                    <span id="displayScore" class="text-7xl font-black italic">1</span>
-                    <span id="displayLevel" class="text-sm font-black uppercase tracking-widest text-emerald-400">Low</span>
+        <!-- Right Column: Matrix & Calc -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Score Card -->
+            <div class="proj-card p-6">
+                 <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-900 dark:text-white">Risk Rating</h2>
+                        <p class="text-xs text-slate-500 mt-1">Calculated score based on selection.</p>
+                    </div>
+                    <div id="displayLevel" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Low</div>
                 </div>
 
-                <div class="mt-8 space-y-4">
-                    <div class="flex justify-between text-xs border-b border-white/10 pb-2">
-                        <span class="text-slate-400 font-bold uppercase">Likelihood Score</span>
-                        <span id="valL" class="font-black">1</span>
-                    </div>
-                    <div class="flex justify-between text-xs border-b border-white/10 pb-2">
-                        <span class="text-slate-400 font-bold uppercase">Impact Score</span>
-                        <span id="valI" class="font-black">1</span>
-                    </div>
+                <div class="flex items-end gap-2">
+                    <span id="displayScore" class="text-4xl font-bold text-slate-900 dark:text-white">1</span>
+                    <span class="text-sm font-medium text-slate-400 mb-1">/ 25</span>
+                </div>
+                <div class="mt-4 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="scoreProgress" class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: 4%"></div>
                 </div>
             </div>
 
-            <form asp-action="SaveAssessment" method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                <input type="hidden" asp-for="RiskId" />
-                <input type="hidden" asp-for="Likelihood" id="hiddenL" value="1" />
-                <input type="hidden" asp-for="Impact" id="hiddenI" value="1" />
-
-                <div class="space-y-4">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Risk Response Strategy</label>
-                    <select class="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black dark:border-slate-800 dark:bg-slate-800 transition-all outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option>Avoid (Eliminate Threat)</option>
-                        <option>Mitigate (Reduce Likelihood/Impact)</option>
-                        <option>Transfer (Insurance/Third Party)</option>
-                        <option>Accept (Monitor Only)</option>
-                    </select>
+            <!-- Matrix -->
+            <div class="proj-card p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Risk Matrix</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+                        <span class="text-xs font-medium text-slate-500">Critical Zone</span>
+                    </div>
                 </div>
 
-                <button type="submit" class="w-full mt-6 bg-indigo-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all">
-                    Finalize Assessment
-                </button>
-            </form>
+                <div class="relative flex">
+                     <!-- Y Axis Label -->
+                    <div class="flex flex-col justify-center mr-4 h-[300px]">
+                        <span class="vertical-text text-xs font-semibold text-slate-400" style="writing-mode: vertical-rl; transform: rotate(180deg);">Impact Severity</span>
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="grid grid-cols-5 gap-2" id="riskMatrixGrid">
+                            @for (int i = 5; i >= 1; i--)
+                            {
+                                @for (int l = 1; l <= 5; l++)
+                                {
+                                    var score = i * l;
+                                    var colorClass = score >= 20 ? "bg-rose-500 text-white" :
+                                    score >= 15 ? "bg-orange-500 text-white" :
+                                    score >= 8 ? "bg-amber-400 text-amber-950" :
+                                    "bg-emerald-500 text-white";
+
+                                    <button type="button"
+                                            data-impact="@i"
+                                            data-likelihood="@l"
+                                            onclick="updateScore(@l, @i, @score, this)"
+                                            class="matrix-cell group relative flex h-14 w-full items-center justify-center rounded-lg transition-all hover:opacity-90 active:scale-95 @colorClass">
+                                        <span class="text-sm font-bold opacity-90 group-hover:opacity-100">@score</span>
+                                        <div class="absolute inset-0 rounded-lg ring-2 ring-white opacity-0 transition-opacity" id="cell-ring-@i-@l"></div>
+                                    </button>
+                                }
+                            }
+                        </div>
+                        
+                        <!-- X Axis Label -->
+                        <div class="mt-4 text-center">
+                            <span class="text-xs font-semibold text-slate-400">Likelihood Probability</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-slate-900/50 backdrop-blur-sm transition-opacity">
+    <div class="flex flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-2xl dark:bg-slate-800">
+        <svg class="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p id="loadingMessage" class="mt-4 text-sm font-medium text-slate-700 dark:text-slate-300">Saving assessment...</p>
+    </div>
+</div>
+
 <script>
-    function updateScore(l, i, score) {
-        // HCI: Provide immediate visual feedback (Automation)
-        document.getElementById('displayScore').innerText = score;
-        document.getElementById('valL').innerText = l;
-        document.getElementById('valI').innerText = i;
-
-        // Update Hidden Inputs for Server
-        document.getElementById('hiddenL').value = l;
-        document.getElementById('hiddenI').value = i;
-
-        // Automated Level Detection
-        const levelSpan = document.getElementById('displayLevel');
+    document.getElementById('assessmentForm').addEventListener('submit', function() {
+        var modal = document.getElementById('loadingModal');
+        var loadingMessage = document.getElementById('loadingMessage');
+        var l = parseInt(document.getElementById('hiddenL').value, 10);
+        var i = parseInt(document.getElementById('hiddenI').value, 10);
+        var score = l * i;
+        
         if (score >= 15) {
-            levelSpan.innerText = "Critical";
-            levelSpan.className = "text-sm font-black uppercase tracking-widest text-rose-500";
-        } else if (score >= 10) {
-            levelSpan.innerText = "High";
-            levelSpan.className = "text-sm font-black uppercase tracking-widest text-orange-400";
-        } else if (score >= 5) {
-            levelSpan.innerText = "Medium";
-            levelSpan.className = "text-sm font-black uppercase tracking-widest text-amber-300";
+            loadingMessage.innerText = 'Saving assessment and creating mitigation plans...';
         } else {
-            levelSpan.innerText = "Low";
-            levelSpan.className = "text-sm font-black uppercase tracking-widest text-emerald-400";
+            loadingMessage.innerText = 'Saving assessment...';
         }
+        
+        modal.classList.remove('hidden');
+    });
+
+    (function() {
+        window.updateScore = function(l, i, score, element) {
+            // UI Updates
+            document.querySelectorAll('.matrix-cell div').forEach(function(ring) {
+                ring.classList.add('opacity-0');
+            });
+            
+            // Highlight selected cell
+            let selectedRing = document.getElementById(`cell-ring-${i}-${l}`);
+            if(selectedRing) selectedRing.classList.remove('opacity-0');
+
+            // Data Updates
+            document.getElementById('hiddenL').value = l;
+            document.getElementById('hiddenI').value = i;
+
+            // Score Display
+            document.getElementById('displayScore').innerText = score;
+            document.getElementById('scoreProgress').style.width = (score / 25 * 100) + '%';
+
+            // Level Display Logic
+            var level = { text: 'Low', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', color: 'bg-emerald-500' };
+            if (score >= 20) level = { text: 'Critical', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400', color: 'bg-rose-500' };
+            else if (score >= 15) level = { text: 'High', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400', color: 'bg-orange-500' };
+            else if (score >= 8) level = { text: 'Medium', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', color: 'bg-amber-500' };
+
+            var displayLevel = document.getElementById('displayLevel');
+            displayLevel.innerText = level.text;
+            displayLevel.className = 'px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-300 ' + level.cls;
+            
+            document.getElementById('scoreProgress').className = 'h-full rounded-full transition-all duration-500 ' + level.color;
+
+            // Sync Selects
+            var impactSelect = document.getElementById('impactSelect');
+            var likelihoodSelect = document.getElementById('likelihoodSelect');
+            if (impactSelect && impactSelect.value != i) impactSelect.value = String(i);
+            if (likelihoodSelect && likelihoodSelect.value != l) likelihoodSelect.value = String(l);
+        };
+
+        function syncFromDropdowns() {
+            var i = parseInt(document.getElementById('impactSelect').value, 10);
+            var l = parseInt(document.getElementById('likelihoodSelect').value, 10);
+            var score = i * l;
+            updateScore(l, i, score, null);
+        }
+
+        document.getElementById('impactSelect').addEventListener('change', syncFromDropdowns);
+        document.getElementById('likelihoodSelect').addEventListener('change', syncFromDropdowns);
+        
+        // Initial load
+        syncFromDropdowns();
+    })();
+
+    function setAssessmentType(isInherent) {
+        var field = document.getElementById('isInherentField');
+        if (field) field.value = isInherent ? 'true' : 'false';
     }
+
+    document.getElementById('btnGenerateAi').addEventListener('click', function() {
+        var btn = this;
+        var resultBox = document.getElementById('aiForecastResult');
+        var loading = document.getElementById('aiLoadingState');
+        
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        resultBox.classList.add('hidden');
+        resultBox.innerText = '';
+        loading.classList.remove('hidden');
+
+        fetch(`@Url.Action("GetAiForecast", "Risks", new { area = "Client" })?riskId=@Model.RiskId`)
+            .then(res => res.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                resultBox.classList.remove('hidden');
+                
+                if (data.error) {
+                    resultBox.innerText = data.error;
+                } else if (data.forecast) {
+                    // Typewriter effect
+                    let text = data.forecast;
+                    let i = 0;
+                    function typeWriter() {
+                        if (i < text.length) {
+                            resultBox.innerHTML += text.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, 20);
+                        } else {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            btn.innerText = '✨ Regenerate';
+                        }
+                    }
+                    typeWriter();
+                } else {
+                    resultBox.innerText = 'Unable to generate forecast at this time.';
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                loading.classList.add('hidden');
+                resultBox.classList.remove('hidden');
+                resultBox.innerText = 'An error occurred while communicating with the AI service.';
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+    });
 </script>

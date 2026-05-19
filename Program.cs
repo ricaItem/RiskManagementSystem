@@ -1,21 +1,40 @@
-
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WEB_Sentro.Data;
+using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
 using WEB_Sentro.Data.Seed;
 using WEB_Sentro.Services;
+using WEB_Sentro.Services.PayMongo;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using WEB_Sentro.Filters;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Connection String
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// --------------------
+// Platform DB (shared)
+// --------------------
+var platformConnectionString = builder.Configuration.GetConnectionString("PlatformDb")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'PlatformDb' (or legacy 'DefaultConnection') not found.");
 
-// Database Service (Added retry handling for hosting environments)
+var securityDefaults = LoadSecurityDefaults(platformConnectionString);
+
+builder.Services.AddDbContext<PlatformDbContext>(options =>
+    options.UseSqlServer(platformConnectionString, sql =>
+    {
+        sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null);
+    }));
+
+// Legacy; NOT used for Risk Monitoring (tenant data). Monitoring uses ITenantDbFactory only.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString, sql =>
+    options.UseSqlServer(platformConnectionString, sql =>
     {
         sql.EnableRetryOnFailure(
             maxRetryCount: 5,
@@ -25,23 +44,29 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Identity Configuration
+// Identity uses PlatformDbContext
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequiredLength = securityDefaults?.PasswordMinLength ?? 12;
+    options.Password.RequireUppercase = securityDefaults?.RequireUppercase ?? true;
+    options.Password.RequireLowercase = securityDefaults?.RequireLowercase ?? true;
+    options.Password.RequireDigit = securityDefaults?.RequireDigit ?? true;
+    options.Password.RequireNonAlphanumeric = securityDefaults?.RequireNonAlphanumeric ?? true;
+    options.Lockout.MaxFailedAccessAttempts = securityDefaults?.LockoutMaxFailedAccessAttempts ?? 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(securityDefaults?.LockoutWindowMinutes ?? 1);
 })
 .AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddEntityFrameworkStores<PlatformDbContext>()
 .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
-// Force Session-Only Authentication
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Identity/Account/Login";
     options.LogoutPath = "/Identity/Account/Logout";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(securityDefaults?.SessionTimeoutMinutes ?? 60);
     options.SlidingExpiration = true;
 
     options.Events.OnSigningIn = context =>
@@ -56,31 +81,134 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("VendorOnly", p => p.RequireRole("SuperAdmin"));
     options.AddPolicy("AdminOrVendor", p => p.RequireRole("SuperAdmin", "Admin"));
+    options.AddPolicy("NonEmployee", p => p.RequireAssertion(ctx => !ctx.User.IsInRole("Employee")));
+
+    options.AddPolicy("SuperAdminOnly", p => p.RequireRole("SuperAdmin"));
+    options.AddPolicy("MainAdminOnly", p => p.RequireRole("SuperAdmin", "Admin"));
+    options.AddPolicy("RiskGovernance", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager"));
+    options.AddPolicy("ProcurementAccess", p => p.RequireRole("SuperAdmin", "Admin", "ProcurementOfficer"));
+    options.AddPolicy("EmployeeWorkspace", p => p.RequireRole("Employee"));
+    options.AddPolicy("RiskContributors", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager", "Employee"));
+    options.AddPolicy("ClientReports", p => p.RequireRole("SuperAdmin", "Admin", "RiskManager"));
 });
 
-builder.Services.AddControllersWithViews();
+// --------------------
+// Tenant DB resolution
+// --------------------
+builder.Services.AddScoped<ITenantConnectionProvider, ConfigTenantConnectionProvider>();
+builder.Services.AddScoped<ITenantDbFactory, TenantDbFactory>();
+
+// App services
+builder.Services.AddScoped<RiskService>();
+builder.Services.AddScoped<RiskForecastingService>();
+builder.Services.AddScoped<RiskAnalyticsService>();
+builder.Services.AddScoped<RiskAnalyticsPdfService>();
+builder.Services.AddScoped<RiskAttachmentService>();
+builder.Services.AddScoped<RiskEvaluationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IRiskVersionService, RiskVersionService>();
+builder.Services.AddScoped<IRiskMatrixService, RiskMatrixService>();
+builder.Services.AddScoped<ControlService>();
+builder.Services.AddScoped<RiskExportService>();
+builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+builder.Services.Configure<PayMongoOptions>(builder.Configuration.GetSection(PayMongoOptions.SectionName));
+builder.Services.AddScoped<IPayMongoService, PayMongoService>();
+builder.Services.AddScoped<IOpenWeatherService, WeatherApiService>();
+builder.Services.AddScoped<MonitoringHubService>();
+builder.Services.AddScoped<IProcurementOverdueService, ProcurementOverdueService>();
+builder.Services.AddScoped<SupplierRiskService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IGlobalSettingsService, GlobalSettingsService>();
+builder.Services.AddScoped<IOrganizationGovernanceService, OrganizationGovernanceService>();
+builder.Services.AddScoped<IRevenueAnalyticsService, RevenueAnalyticsService>();
+builder.Services.AddScoped<IIncidentService, IncidentService>();
+builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<OrganizationAnalyticsSnapshotRefreshService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHostedService<MonitoringSyncHostedService>();
+builder.Services.AddHostedService<RiskReviewReminderHostedService>();
+builder.Services.AddHostedService<OrganizationAnalyticsSnapshotHostedService>();
+
+builder.Services.AddScoped<OrganizationWriteAccessFilter>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.AddService<OrganizationWriteAccessFilter>();
+});
+builder.Services.AddRazorPages();
+
+//SMTP --start--
+
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+
+//SMTP --end--
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+    
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+
+    options.ForwardLimit = 2;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
+app.UseMiddleware<WEB_Sentro.Middlewares.GlobalExceptionMiddleware>();
+app.UseForwardedHeaders();
 
-
+// --------------------S
+// Auto migrate (Platform)
+// --------------------
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
-
     var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
 
     if (autoMigrate)
     {
-        var db = services.GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
+        // Platform DB migration (Identity + platform tables)
+        var platformDb = services.GetRequiredService<PlatformDbContext>();
+        await platformDb.Database.MigrateAsync();
+
         await IdentitySeeder.SeedAsync(services, app.Configuration);
+
+        // OPTIONAL: tenant migration bootstrap (OFF by default)
+        // This only migrates one tenant (ex: orgId=1) if enabled.
+        var autoMigrateTenant = app.Configuration.GetValue<bool>("Database:AutoMigrateTenantOrg1");
+        if (autoMigrateTenant)
+        {
+            var tenantFactory = services.GetRequiredService<ITenantDbFactory>();
+            await using var tenantDb = await tenantFactory.CreateAsync(1);
+            await tenantDb.Database.MigrateAsync();
+            
+            // Seed Cost Codes
+            await WEB_Sentro.Data.Seed.CostCodeSeeder.SeedAsync(tenantDb, 1);
+        }
     }
+
+    await PlatformSeeder.SeedPlansAsync(services);
 }
 
-
-// HTTP Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -92,14 +220,27 @@ else
 }
 
 app.UseHttpsRedirection();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+
+    await next();
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Routing Patterns
+app.MapControllers();
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
@@ -111,3 +252,31 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 app.Run();
+
+static SecurityPolicyDefaults? LoadSecurityDefaults(string connectionString)
+{
+    try
+    {
+        var dbOptions = new DbContextOptionsBuilder<PlatformDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        using var db = new PlatformDbContext(dbOptions);
+        var json = db.PlatformSettings
+            .AsNoTracking()
+            .Where(x => x.Key == GlobalSettingKeys.SecurityPolicies)
+            .Select(x => x.JsonValue)
+            .FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<SecurityPolicyDefaults>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    }
+    catch
+    {
+        return null;
+    }
+}

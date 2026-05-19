@@ -1,0 +1,25 @@
+@model WEB_Sentro.Data.Entities.Supplier
+@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Delete Supplier";
+}
+
+<div class="animate-in fade-in min-h-screen flex items-center justify-center p-4 duration-500">
+    <div class="w-full max-w-md proj-card overflow-hidden">
+        <div class="p-8 text-center">
+            <div class="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4 dark:bg-rose-900/20">
+                <svg class="w-6 h-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">Delete Supplier</h2>
+            <p class="text-sm text-slate-500 mt-2">Are you sure you want to delete <strong class="text-slate-900 dark:text-white">@Model.Name</strong>? This action cannot be undone.</p>
+
+            <form method="post" asp-action="Delete" asp-controller="Suppliers" asp-area="Client" class="mt-8 flex gap-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.SupplierId" />
+                <a href="@Url.Action("Index", "Suppliers", new { area = "Client" })" class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700">Cancel</a>
+                <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 shadow-sm transition-colors">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>

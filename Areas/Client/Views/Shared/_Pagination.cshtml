@@ -1,0 +1,57 @@
+@* Model: { PageNumber, TotalPages, TotalCount, PageSize, BaseUrl } or pass ViewData["Pagination"] *@
+@{
+    int pageNumber, totalPages, totalCount, pageSize;
+    string baseUrl;
+    if (ViewData["Pagination"] is var pagination && pagination != null)
+    {
+        var d = (dynamic)pagination;
+        pageNumber = (int)d.PageNumber;
+        totalPages = (int)d.TotalPages;
+        totalCount = (int)d.TotalCount;
+        pageSize = (int)d.PageSize;
+        baseUrl = (string)d.BaseUrl ?? "";
+    }
+    else
+    {
+        pageNumber = (int)(ViewData["PageNumber"] ?? 1);
+        totalPages = (int)(ViewData["TotalPages"] ?? 1);
+        totalCount = (int)(ViewData["TotalCount"] ?? 0);
+        pageSize = (int)(ViewData["PageSize"] ?? 10);
+        baseUrl = (string?)ViewData["BaseUrl"] ?? "";
+    }
+}
+@if (totalPages > 1 || totalCount > 0)
+{
+    <div class="flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 dark:border-slate-800 sm:flex-row">
+        <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+            Showing <span class="text-slate-700 dark:text-slate-300">@(totalCount == 0 ? 0 : (pageNumber - 1) * pageSize + 1)</span>–<span class="text-slate-700 dark:text-slate-300">@(Math.Min(pageNumber * pageSize, totalCount))</span> of <span class="text-slate-700 dark:text-slate-300">@totalCount</span>
+        </p>
+        @if (totalPages > 1)
+        {
+            <nav class="flex items-center gap-1" aria-label="Pagination">
+                @if (pageNumber > 1)
+                {
+                    <a href="@(baseUrl + (baseUrl.Contains("?") ? "&" : "?") + "page=" + (pageNumber - 1))"
+                       class="rounded-xl border border-slate-200 bg-[#fcfcfc] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700">
+                        Prev
+                    </a>
+                }
+                @for (var i = Math.Max(1, pageNumber - 2); i <= Math.Min(totalPages, pageNumber + 2); i++)
+                {
+                    var current = i == pageNumber;
+                    <a href="@(baseUrl + (baseUrl.Contains("?") ? "&" : "?") + "page=" + i)"
+                       class="rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all @(current ? "border-emerald-500 bg-emerald-500 text-white dark:bg-emerald-600" : "border-slate-200 bg-[#fcfcfc] text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700")">
+                        @i
+                    </a>
+                }
+                @if (pageNumber < totalPages)
+                {
+                    <a href="@(baseUrl + (baseUrl.Contains("?") ? "&" : "?") + "page=" + (pageNumber + 1))"
+                       class="rounded-xl border border-slate-200 bg-[#fcfcfc] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-700">
+                        Next
+                    </a>
+                }
+            </nav>
+        }
+    </div>
+}

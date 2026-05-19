@@ -107,6 +107,8 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
             {
                 if (User.IsInRole("SuperAdmin")) return LocalRedirect(Url.Content("~/Vendor/Dashboard"));
                 if (User.IsInRole("Admin")) return LocalRedirect(Url.Content("~/Client/Dashboard"));
+                if (User.IsInRole("RiskManager")) return LocalRedirect(Url.Content("~/Client/Risks/Identification"));
+                if (User.IsInRole("ProcurementOfficer")) return LocalRedirect(Url.Content("~/Client/Supplier/Index"));
                 if (User.IsInRole("Employee")) return LocalRedirect(Url.Content("~/Client/MyWork"));
                 return LocalRedirect(Url.Content("~/Client/Dashboard"));
             }
