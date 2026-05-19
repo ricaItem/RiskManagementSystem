@@ -47,6 +47,17 @@
             <div class="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-7 shadow-lg
                         dark:border-slate-800 dark:bg-slate-900">
                 <form id="loginForm" method="post" class="space-y-5">
+                    @if (Model.LockoutEndsAtUnixSeconds.HasValue)
+                    {
+                        <div id="lockout-countdown"
+                             data-lockout-end="@Model.LockoutEndsAtUnixSeconds.Value"
+                             class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200"
+                             role="status"
+                             aria-live="polite">
+                            Your account is temporarily locked. Try again in <span id="lockout-countdown-value" class="font-semibold">--</span>.
+                        </div>
+                    }
+
                     @if (ViewData.ModelState[""]?.Errors?.Count > 0)
                     {
                         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700
@@ -166,6 +177,42 @@
                     if (loginSpinner) loginSpinner.classList.remove('hidden');
                     if (loginText) loginText.textContent = 'Logging in...';
                 });
+            }
+
+            const lockoutBanner = document.getElementById('lockout-countdown');
+            const lockoutValue = document.getElementById('lockout-countdown-value');
+
+            if (lockoutBanner && lockoutValue) {
+                const lockoutEndUnix = Number(lockoutBanner.getAttribute('data-lockout-end'));
+
+                if (Number.isFinite(lockoutEndUnix) && lockoutEndUnix > 0) {
+                    const updateCountdown = function () {
+                        const nowMs = Date.now();
+                        const endMs = lockoutEndUnix * 1000;
+                        const remainingSeconds = Math.max(0, Math.ceil((endMs - nowMs) / 1000));
+
+                        if (remainingSeconds <= 0) {
+                            lockoutValue.textContent = '0s';
+                            lockoutBanner.textContent = 'Lockout ended. You can try logging in again now.';
+                            return true;
+                        }
+
+                        const minutes = Math.floor(remainingSeconds / 60);
+                        const seconds = remainingSeconds % 60;
+                        lockoutValue.textContent = minutes > 0 ? minutes + 'm ' + seconds + 's' : seconds + 's';
+                        return false;
+                    };
+
+                    const done = updateCountdown();
+                    if (!done) {
+                        const timer = window.setInterval(function () {
+                            const finished = updateCountdown();
+                            if (finished) {
+                                window.clearInterval(timer);
+                            }
+                        }, 1000);
+                    }
+                }
             }
         })();
     </script>

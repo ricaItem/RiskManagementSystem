@@ -42,6 +42,8 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
 
         public string ReturnUrl { get; set; }
 
+        public long? LockoutEndsAtUnixSeconds { get; set; }
+
         [TempData]
         public string ErrorMessage { get; set; }
 
@@ -114,7 +116,13 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 if (result.IsLockedOut)
                 {
                     await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
-                    ModelState.AddModelError(string.Empty, "Your account has been locked for 1 minute due to multiple failed login attempts.");
+                    var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+                    if (lockoutEnd.HasValue)
+                    {
+                        LockoutEndsAtUnixSeconds = lockoutEnd.Value.ToUnixTimeSeconds();
+                    }
+
+                    ModelState.AddModelError(string.Empty, "Your account has been temporarily locked due to multiple failed login attempts.");
                     return Page();
                 }
                 if (result.IsNotAllowed)

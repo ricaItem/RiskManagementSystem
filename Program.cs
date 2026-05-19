@@ -53,7 +53,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.Password.RequireDigit = securityDefaults?.RequireDigit ?? true;
     options.Password.RequireNonAlphanumeric = securityDefaults?.RequireNonAlphanumeric ?? true;
     options.Lockout.MaxFailedAccessAttempts = securityDefaults?.LockoutMaxFailedAccessAttempts ?? 5;
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(securityDefaults?.LockoutWindowMinutes ?? 15);
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(securityDefaults?.LockoutWindowMinutes ?? 1);
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<PlatformDbContext>()
