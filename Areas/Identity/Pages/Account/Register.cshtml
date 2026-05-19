@@ -1,8 +1,11 @@
 @page
 @model RegisterModel
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Register";
     Layout = "/Views/Shared/_LayoutLanding.cshtml";
+    var recaptchaSiteKey = Configuration["ReCaptcha:SiteKey"] ?? string.Empty;
+    var recaptchaEnabled = bool.TryParse(Configuration["ReCaptcha:Enabled"], out var parsedReCaptchaEnabled) && parsedReCaptchaEnabled;
 }
 
 <style>
@@ -608,6 +611,13 @@
                             </div>
                         </div>
 
+                        @if (recaptchaEnabled && !string.IsNullOrWhiteSpace(recaptchaSiteKey))
+                        {
+                            <div>
+                                <div class="g-recaptcha" data-sitekey="@recaptchaSiteKey"></div>
+                            </div>
+                        }
+
                         <div class="flex gap-3 pt-1">
                             <button type="button" data-back="4" class="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Back</button>
                             <button type="button" data-next="6"
@@ -900,6 +910,11 @@
     </div>
 </section>
 
+@if (recaptchaEnabled && !string.IsNullOrWhiteSpace(recaptchaSiteKey))
+{
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+}
+
 <script>
     // ── Plan card selector (global so onclick attrs can reach it) ──
     function selectPlan(plan) {
@@ -915,6 +930,7 @@
     (function () {
         let currentStep = 1;
         let orgCodeManuallyEdited = false;
+        const recaptchaEnabled = @recaptchaEnabled.ToString().ToLowerInvariant();
 
         function humanizeError(errorMessage, fallback) {
             const text = String(errorMessage || '').trim();
@@ -1191,6 +1207,13 @@
                     if (!ok) return;
                 }
 
+                if (currentStep === 5 && next === 6 && recaptchaEnabled) {
+                    if (!window.grecaptcha || !window.grecaptcha.getResponse || !window.grecaptcha.getResponse()) {
+                        showToast('Please complete the reCAPTCHA checkbox before continuing.');
+                        return;
+                    }
+                }
+
                 if (currentStep === 1 || currentStep === 2) syncEmails();
                 if (currentStep === 3) syncPlanSummary();
 
@@ -1258,6 +1281,9 @@
                 const adminPassword = document.getElementById('adminPassword')?.value;
                 const paymentEmail = document.getElementById('paymentEmail')?.value?.trim();
                 const agreeTerms = document.getElementById('agreeTerms');
+                const recaptchaToken = recaptchaEnabled && window.grecaptcha && window.grecaptcha.getResponse
+                    ? window.grecaptcha.getResponse()
+                    : '';
                 if (!email) { showToast('Please enter your email address in Step 1.'); return; }
                 if (!orgName) { showToast('Please enter your organization name.'); return; }
                 if (!orgCode) { showToast('Please provide your organization code.'); return; }
@@ -1276,6 +1302,10 @@
                 }
                 if (agreeTerms && !agreeTerms.checked) {
                     showToast('Please accept the terms to continue with payment.');
+                    return;
+                }
+                if (recaptchaEnabled && !recaptchaToken) {
+                    showToast('Please complete the reCAPTCHA checkbox before processing payment.');
                     return;
                 }
                 const amountCentavos = plan === 'Professional' ? 14900 : plan === 'Enterprise' ? 39900 : 10000;
@@ -1309,6 +1339,7 @@
                         adminMiddleName: adminMiddleName || '',
                         adminLastName: adminLastName,
                         password: adminPassword,
+                        recaptchaToken: recaptchaToken,
                         paymentIntentId: paymentIntentId,
                         useTestPayment: isLocalDev
                     };

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
 using WEB_Sentro.Data;
 using WEB_Sentro.Data.Entities;
 using WEB_Sentro.Models.Identity;
@@ -29,6 +30,8 @@ public class RegistrationController : ControllerBase
     private readonly IPayMongoService _payMongo;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<RegistrationController> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
     private const string VerifyCacheKeyPrefix = "reg_verify:";
     private static readonly TimeSpan VerifyCodeExpiry = TimeSpan.FromMinutes(15);
     private static readonly string[] AllowedPlans = { "Basic", "Professional", "Enterprise" };
@@ -41,7 +44,9 @@ public class RegistrationController : ControllerBase
         PlatformDbContext db,
         IPayMongoService payMongo,
         IWebHostEnvironment env,
-        ILogger<RegistrationController> logger)
+        ILogger<RegistrationController> logger,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _cache = cache;
         _emailSender = emailSender;
@@ -51,6 +56,8 @@ public class RegistrationController : ControllerBase
         _payMongo = payMongo;
         _env = env;
         _logger = logger;
+        _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>Send a 6-digit verification code to the email. Stores in cache for 15 minutes.</summary>
@@ -126,6 +133,18 @@ public class RegistrationController : ControllerBase
         var email = request.Email?.Trim();
         if (string.IsNullOrEmpty(email) || !IsValidEmail(email))
             return BadRequest(new { error = "Valid email is required." });
+
+        var recaptchaEnabled = _configuration.GetValue<bool>("ReCaptcha:Enabled");
+        if (recaptchaEnabled)
+        {
+            var recaptchaToken = request.RecaptchaToken?.Trim();
+            if (string.IsNullOrEmpty(recaptchaToken))
+                return BadRequest(new { error = "reCAPTCHA verification is required." });
+
+            var isRecaptchaValid = await VerifyRecaptchaAsync(recaptchaToken, ct);
+            if (!isRecaptchaValid)
+                return BadRequest(new { error = "reCAPTCHA verification failed. Please try again." });
+        }
 
         var plan = request.Plan?.Trim();
         if (string.IsNullOrEmpty(plan) || !AllowedPlans.Contains(plan))
@@ -343,6 +362,39 @@ public class RegistrationController : ControllerBase
         try { var addr = new System.Net.Mail.MailAddress(email); return addr.Address == email; }
         catch { return false; }
     }
+
+    private async Task<bool> VerifyRecaptchaAsync(string token, CancellationToken ct)
+    {
+        var secret = _configuration["ReCaptcha:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            _logger.LogWarning("ReCaptcha is enabled but secret key is missing.");
+            return false;
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["secret"] = secret,
+                ["response"] = token
+            });
+
+            using var response = await client.PostAsync("https://www.google.com/recaptcha/api/siteverify", content, ct);
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var verification = await JsonSerializer.DeserializeAsync<RecaptchaVerifyResponse>(stream, cancellationToken: ct);
+            return verification?.Success == true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error while verifying reCAPTCHA.");
+            return false;
+        }
+    }
 }
 
 public class SendCodeRequest
@@ -366,6 +418,12 @@ public class CompleteRegistrationRequest
     public string? AdminMiddleName { get; set; }
     public string? AdminLastName { get; set; }
     public string? Password { get; set; }
+    public string? RecaptchaToken { get; set; }
     public string? PaymentIntentId { get; set; }
     public bool? UseTestPayment { get; set; }
+}
+
+public class RecaptchaVerifyResponse
+{
+    public bool Success { get; set; }
 }
