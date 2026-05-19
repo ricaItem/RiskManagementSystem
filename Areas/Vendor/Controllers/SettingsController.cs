@@ -242,9 +242,9 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
 
         private void ValidateSecurityPolicies(SecurityPolicySettingsForm form)
         {
-            if (form.SessionTimeoutMinutes < 5 || form.SessionTimeoutMinutes > 480)
+            if (form.SessionTimeoutMinutes < 1 || form.SessionTimeoutMinutes > 480)
             {
-                ModelState.AddModelError("SecurityPolicies.SessionTimeoutMinutes", "Session timeout must be between 5 and 480 minutes.");
+                ModelState.AddModelError("SecurityPolicies.SessionTimeoutMinutes", "Session timeout must be between 1 and 480 minutes.");
             }
 
             if (form.PasswordMinLength < 8 || form.PasswordMinLength > 64)

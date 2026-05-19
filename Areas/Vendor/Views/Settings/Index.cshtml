@@ -253,7 +253,7 @@
                         <div class="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label asp-for="SecurityPolicies.SessionTimeoutMinutes" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Session Timeout (minutes)</label>
-                                <input asp-for="SecurityPolicies.SessionTimeoutMinutes" type="number" min="5" max="480" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
+                                <input asp-for="SecurityPolicies.SessionTimeoutMinutes" type="number" min="1" max="480" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold dark:border-slate-800 dark:bg-slate-950 dark:text-white" />
                             </div>
                             <div>
                                 <label asp-for="SecurityPolicies.PasswordMinLength" class="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Password Min Length</label>

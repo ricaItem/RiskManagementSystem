@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -178,6 +179,36 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction(nameof(Index), new { message = "Password changed successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reauthenticate([FromForm] string password)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized(new { success = false, message = "Session not found." });
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return BadRequest(new { success = false, message = "Password is required." });
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+            if (!result.Succeeded)
+            {
+                if (result.IsLockedOut)
+                {
+                    return StatusCode(StatusCodes.Status423Locked, new { success = false, message = "Account locked due to failed password attempts." });
+                }
+
+                return Unauthorized(new { success = false, message = "Password is incorrect." });
+            }
+
+            await _signInManager.RefreshSignInAsync(user);
+            return Ok(new { success = true });
         }
 
         [HttpPost]
