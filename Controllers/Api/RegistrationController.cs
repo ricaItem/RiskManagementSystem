@@ -134,7 +134,11 @@ public class RegistrationController : ControllerBase
         if (string.IsNullOrEmpty(email) || !IsValidEmail(email))
             return BadRequest(new { error = "Valid email is required." });
 
-        var recaptchaEnabled = _configuration.GetValue<bool>("ReCaptcha:Enabled");
+        var recaptchaSiteKey = _configuration["ReCaptcha:SiteKey"] ?? _configuration["GoogleReCaptcha:SiteKey"];
+        var recaptchaSecretConfig = _configuration["ReCaptcha:SecretKey"] ?? _configuration["GoogleReCaptcha:SecretKey"];
+        var recaptchaEnabled = _configuration.GetValue<bool>("ReCaptcha:Enabled")
+                               || (!string.IsNullOrWhiteSpace(recaptchaSiteKey) && !string.IsNullOrWhiteSpace(recaptchaSecretConfig));
+
         if (recaptchaEnabled)
         {
             var recaptchaToken = request.RecaptchaToken?.Trim();
@@ -365,7 +369,8 @@ public class RegistrationController : ControllerBase
 
     private async Task<bool> VerifyRecaptchaAsync(string token, CancellationToken ct)
     {
-        var secret = _configuration["ReCaptcha:SecretKey"];
+        // allow either ReCaptcha:* or GoogleReCaptcha:* keys in appsettings
+        var secret = _configuration["ReCaptcha:SecretKey"] ?? _configuration["GoogleReCaptcha:SecretKey"];
         if (string.IsNullOrWhiteSpace(secret))
         {
             _logger.LogWarning("ReCaptcha is enabled but secret key is missing.");
@@ -405,7 +410,7 @@ public class SendCodeRequest
 public class VerifyCodeRequest
 {
     [Required] public string? Email { get; set; }
-    [Required] [StringLength(6, MinimumLength = 6)] public string? Code { get; set; }
+    [Required][StringLength(6, MinimumLength = 6)] public string? Code { get; set; }
 }
 
 public class CompleteRegistrationRequest
