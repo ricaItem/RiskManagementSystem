@@ -103,16 +103,21 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var check = await _signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
-            if (!check.Succeeded)
+            var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+            if (result.RequiresTwoFactor)
             {
-                if (check.IsLockedOut)
+                return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+            }
+
+            if (!result.Succeeded)
+            {
+                if (result.IsLockedOut)
                 {
                     await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginLocked", "Account locked due to failures", "Warning", HttpContext.Connection.RemoteIpAddress?.ToString());
                     ModelState.AddModelError(string.Empty, "Your account has been locked for 1 minute due to multiple failed login attempts.");
                     return Page();
                 }
-                if (check.IsNotAllowed)
+                if (result.IsNotAllowed)
                 {
                     ModelState.AddModelError(string.Empty, "Login not allowed. Please confirm your email first.");
                     return Page();
@@ -144,9 +149,8 @@ namespace WEB_Sentro.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            await _signInManager.SignInAsync(user, Input.RememberMe);
             await _auditService.LogAsync(user.OrganizationId, user.Id, "Identity", 0, "LoginSuccess", "User logged in successfully", "Success", HttpContext.Connection.RemoteIpAddress?.ToString());
-            _logger.LogInformation("User logged in (explicit sign-in). UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
+            _logger.LogInformation("User logged in. UserId: {UserId}, UserName: {UserName}", user.Id, user.UserName);
 
             var roles = await _userManager.GetRolesAsync(user);
             _logger.LogDebug("Roles for user {UserName}: {Roles}", user.UserName, string.Join(",", roles));

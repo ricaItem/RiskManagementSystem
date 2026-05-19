@@ -13,6 +13,12 @@ public class MyAccountViewModel
     public DateTime? LastLoginAt { get; set; }
     public string? Message { get; set; }
     public string? Error { get; set; }
+    public bool IsTwoFactorEnabled { get; set; }
+    public bool HasAuthenticator { get; set; }
+    public int RecoveryCodesLeft { get; set; }
+    public string? AuthenticatorKey { get; set; }
+    public string? AuthenticatorUri { get; set; }
+    public string? AuthenticatorQrCodeUrl { get; set; }
 }
 
 public class UpdateProfileInput
@@ -44,4 +50,11 @@ public class ChangePasswordInput
     [DataType(DataType.Password)]
     [Compare("NewPassword", ErrorMessage = "The new password and confirmation do not match.")]
     public string ConfirmPassword { get; set; } = "";
+}
+
+public class EnableTwoFactorInput
+{
+    [Required(ErrorMessage = "Authenticator code is required.")]
+    [StringLength(7, MinimumLength = 6, ErrorMessage = "Code must be 6 or 7 digits.")]
+    public string Code { get; set; } = "";
 }

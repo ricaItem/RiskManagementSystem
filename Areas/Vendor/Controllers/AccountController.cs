@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WEB_Sentro.Areas.Vendor.Models;
 using WEB_Sentro.Models.Identity;
+using System.Text;
+using System.Text.Encodings.Web;
 
 namespace WEB_Sentro.Areas.Vendor.Controllers
 {
@@ -46,10 +48,79 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 ProfileImagePath = user.ProfileImagePath,
                 LastLoginAt = user.LastLoginAt,
                 Message = message,
-                Error = error
+                Error = error,
+                IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
+                HasAuthenticator = !string.IsNullOrEmpty(await _userManager.GetAuthenticatorKeyAsync(user)),
+                RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user)
             };
 
+            if (!model.IsTwoFactorEnabled)
+            {
+                var key = await _userManager.GetAuthenticatorKeyAsync(user);
+                if (string.IsNullOrEmpty(key))
+                {
+                    await _userManager.ResetAuthenticatorKeyAsync(user);
+                    key = await _userManager.GetAuthenticatorKeyAsync(user);
+                }
+
+                model.AuthenticatorKey = FormatKey(key ?? string.Empty);
+                model.AuthenticatorUri = GenerateQrCodeUri(user.Email ?? user.UserName ?? user.Id, key ?? string.Empty);
+                model.AuthenticatorQrCodeUrl = GenerateQrCodeImageUrl(model.AuthenticatorUri);
+            }
+
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EnableTwoFactor(EnableTwoFactorInput input)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Code))
+            {
+                return RedirectToAction(nameof(Index), new { error = "Authenticator code is required." });
+            }
+
+            var verificationCode = input.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
+            var is2faTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
+                user,
+                _userManager.Options.Tokens.AuthenticatorTokenProvider,
+                verificationCode);
+
+            if (!is2faTokenValid)
+            {
+                return RedirectToAction(nameof(Index), new { error = "Verification code is invalid." });
+            }
+
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+            await _signInManager.RefreshSignInAsync(user);
+            return RedirectToAction(nameof(Index), new { message = "Two-factor authentication has been enabled." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DisableTwoFactor()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            var disableResult = await _userManager.SetTwoFactorEnabledAsync(user, false);
+            if (!disableResult.Succeeded)
+            {
+                var err = string.Join(" ", disableResult.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(Index), new { error = err });
+            }
+
+            await _signInManager.RefreshSignInAsync(user);
+            return RedirectToAction(nameof(Index), new { message = "Two-factor authentication has been disabled." });
         }
 
         [HttpPost]
@@ -181,6 +252,38 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             }
 
             return ("Vendor User", "You have access to the vendor workspace.");
+        }
+
+        private static string FormatKey(string unformattedKey)
+        {
+            var result = new StringBuilder();
+            var currentPosition = 0;
+            while (currentPosition + 4 < unformattedKey.Length)
+            {
+                result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
+                currentPosition += 4;
+            }
+
+            if (currentPosition < unformattedKey.Length)
+            {
+                result.Append(unformattedKey.AsSpan(currentPosition));
+            }
+
+            return result.ToString().ToLowerInvariant();
+        }
+
+        private static string GenerateQrCodeUri(string email, string unformattedKey)
+        {
+            return string.Format(
+                "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6",
+                UrlEncoder.Default.Encode("Sentro"),
+                UrlEncoder.Default.Encode(email),
+                unformattedKey);
+        }
+
+        private static string GenerateQrCodeImageUrl(string uri)
+        {
+            return $"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={UrlEncoder.Default.Encode(uri)}";
         }
     }
 }
