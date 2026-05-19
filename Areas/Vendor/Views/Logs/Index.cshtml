@@ -1,24 +1,31 @@
 @model WEB_Sentro.Areas.Vendor.Models.LogsIndexViewModel
 @{
-    ViewData["Title"] = "System Logs & Audit Trails";
+    ViewData["Title"] = "Audit & System Logs";
     Layout = "~/Areas/Vendor/Views/Shared/_LayoutVendor.cshtml";
 }
 
 <div class="space-y-6 animate-in fade-in duration-500">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Audit <span class="text-emerald-600">Trails</span></h1>
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cross-tenant activity monitoring</p>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Audit <span class="text-emerald-600">and System Logs</span></h1>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Clear separation by log type, severity, and organization</p>
         </div>
     </div>
 
     <form method="get" class="grid gap-3 md:grid-cols-12 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/50">
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
-        <div class="md:col-span-5">
+        <div class="md:col-span-4">
             <input type="text" name="search" value="@Model.Search" placeholder="Search event, message, actor..." class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
         </div>
-        <div class="md:col-span-3">
+        <div class="md:col-span-2">
+            <select name="logType" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option value="">All Types</option>
+                <option value="Audit" selected="@(Model.LogType == "Audit")">Audit</option>
+                <option value="System" selected="@(Model.LogType == "System")">System</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
             <select name="severity" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                 <option value="">All Severity</option>
                 <option value="success" selected="@(Model.Severity == "success")">Success</option>
@@ -48,7 +55,9 @@
                         <th class="px-6 py-4">Timestamp</th>
                         <th class="px-6 py-4">Organization</th>
                         <th class="px-6 py-4">Actor</th>
+                        <th class="px-6 py-4">Type</th>
                         <th class="px-6 py-4">Event</th>
+                        <th class="px-6 py-4">IP Address</th>
                         <th class="px-6 py-4">Status</th>
                     </tr>
                 </thead>
@@ -56,7 +65,7 @@
                     @if (!Model.Logs.Any())
                     {
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-slate-500">No logs found for the selected filters.</td>
+                            <td colspan="7" class="px-6 py-8 text-center text-slate-500">No logs found for the selected filters.</td>
                         </tr>
                     }
                     else
@@ -67,7 +76,9 @@
                                 <td class="px-6 py-4 text-xs text-slate-500">@log.TimestampDisplay</td>
                                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">@log.OrganizationName</td>
                                 <td class="px-6 py-4 text-slate-600 dark:text-slate-300">@log.ActorName</td>
+                                <td class="px-6 py-4"><span class="inline-flex rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-300">@log.Category</span></td>
                                 <td class="px-6 py-4">@log.Event</td>
+                                <td class="px-6 py-4 text-xs font-mono text-slate-500">@log.IpAddress</td>
                                 <td class="px-6 py-4"><span class="text-xs font-bold @log.StatusColorClass">@log.Status</span></td>
                             </tr>
                         }
@@ -85,6 +96,7 @@
                 <a class="rounded-lg border border-slate-200 px-3 py-1.5 @(Model.CurrentPage == 1 ? "pointer-events-none opacity-40" : "")"
                    asp-action="Index"
                    asp-route-search="@Model.Search"
+                   asp-route-logType="@Model.LogType"
                    asp-route-severity="@Model.Severity"
                    asp-route-orgId="@Model.OrganizationId"
                    asp-route-page="@prevPage"
@@ -93,6 +105,7 @@
                 <a class="rounded-lg border border-slate-200 px-3 py-1.5 @(Model.CurrentPage >= Model.TotalPages ? "pointer-events-none opacity-40" : "")"
                    asp-action="Index"
                    asp-route-search="@Model.Search"
+                   asp-route-logType="@Model.LogType"
                    asp-route-severity="@Model.Severity"
                    asp-route-orgId="@Model.OrganizationId"
                    asp-route-page="@nextPage"

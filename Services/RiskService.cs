@@ -605,8 +605,12 @@ namespace WEB_Sentro.Services
             return new[] { "Investigate the risk", "Assign owner and due date", "Implement control measures", "Verify controls are effective" };
         }
 
-        public void AddAuditLog(TenantDbContext db, int orgId, string userId, string entityType, int entityId, string actionType, string? message, string? ipAddress)
+        public void AddAuditLog(TenantDbContext db, int orgId, string userId, string entityType, int entityId, string actionType, string? message, string? ipAddress, string? category = null)
         {
+            var resolvedCategory = string.IsNullOrWhiteSpace(category)
+                ? AuditLogClassifier.DetermineCategory(entityType, actionType)
+                : category;
+
             db.AuditLogs.Add(new AuditLog
             {
                 OrgId = orgId,
@@ -615,8 +619,8 @@ namespace WEB_Sentro.Services
                 EntityId = entityId,
                 ActionType = actionType,
                 Level = "Info",
-                Message = message,
-                IpAddress = ipAddress,
+                Message = string.IsNullOrWhiteSpace(message) ? $"[{resolvedCategory}]" : $"[{resolvedCategory}] {message}",
+                IpAddress = AuditLogClassifier.NormalizeIp(ipAddress),
                 CreatedAt = DateTime.UtcNow
             });
         }

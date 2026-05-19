@@ -17,7 +17,7 @@
                 <tr class="border-b border-slate-100 bg-slate-50/30 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
                     <th class="px-6 py-3 font-medium">Event Details</th>
                     <th class="px-6 py-3 font-medium">Actor</th>
-                    <th class="px-6 py-3 font-medium">Context</th>
+                    <th class="px-6 py-3 font-medium">Category</th>
                     <th class="px-6 py-3 font-medium">Action Taken</th>
                     <th class="px-6 py-3 font-medium text-right">Severity</th>
                 </tr>
@@ -26,20 +26,31 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                            No audit logs found matching your criteria.
-                        </td>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
+                                No audit logs found matching your criteria.
+                            </td>
                     </tr>
+                }
+                @{
+                    DateTime? currentDate = null;
                 }
                 @foreach (var log in Model)
                 {
+                    var rowDate = log.Timestamp.Date;
+                    if (currentDate != rowDate)
+                    {
+                        currentDate = rowDate;
+                        <tr class="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-100/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
+                            <td colspan="5" class="px-6 py-2 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                <span class="local-date-header" data-utc="@log.Timestamp.ToString("O")">@log.Timestamp.ToString("MMMM dd, yyyy")</span>
+                            </td>
+                        </tr>
+                    }
+
                     <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-slate-900 dark:text-white local-time" data-utc="@log.Timestamp.ToString("O")">
                                 @log.Timestamp.ToString("hh:mm tt")
-                            </div>
-                            <div class="text-xs text-slate-500 local-date" data-utc="@log.Timestamp.ToString("O")">
-                                @log.Timestamp.ToString("dd MMM yyyy")
                             </div>
                         </td>
 
@@ -50,27 +61,42 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-slate-900 dark:text-white">@log.User</div>
-                                    <div class="text-xs font-mono text-slate-500">@log.IpAddress</div>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400">@(string.IsNullOrWhiteSpace(log.IpAddress) ? "N/A" : log.IpAddress)</div>
                                 </div>
                             </div>
                         </td>
 
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/20">
-                                @log.Module
+                            <span class="inline-flex items-center rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-900/20 dark:text-sky-300 dark:ring-sky-500/30">
+                                @log.Category
                             </span>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">@log.Module</div>
                         </td>
 
                         <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-slate-900 dark:text-white">@log.Action</div>
+                            <div class="text-sm font-bold text-slate-900 dark:text-white">@log.Action</div>
                             <p class="text-xs text-slate-500 mt-0.5 line-clamp-1" title="@log.Details">@log.Details</p>
                         </td>
 
                         <td class="px-6 py-4 text-right">
                             @{
-                                var statusColor = log.Status.ToLower() == "success" ? "emerald" : (log.Status.ToLower() == "warning" ? "amber" : "rose");
+                                var statusValue = (log.Status ?? string.Empty).Trim();
+                                var statusLower = statusValue.ToLowerInvariant();
+                                var isLocked = statusLower.Contains("lock") || (log.Action ?? string.Empty).ToLowerInvariant().Contains("lock");
+                                var statusClass = statusLower switch
+                                {
+                                    "info" => "bg-sky-50 text-sky-800 ring-sky-700/20 dark:bg-sky-900/30 dark:text-sky-200 dark:ring-sky-500/40",
+                                    "success" => "bg-emerald-50 text-emerald-800 ring-emerald-700/20 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-500/40",
+                                    "warning" => "bg-amber-50 text-amber-900 ring-amber-800/25 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-500/45",
+                                    "critical" => "bg-rose-50 text-rose-900 ring-rose-800/25 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-500/45",
+                                    _ => "bg-slate-100 text-slate-800 ring-slate-700/20 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-500/40"
+                                };
+                                if (isLocked)
+                                {
+                                    statusClass = "bg-rose-50 text-rose-900 ring-rose-800/25 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-500/45";
+                                }
                             }
-                            <span class="inline-flex items-center rounded-md bg-@statusColor-50 px-2 py-1 text-xs font-medium text-@statusColor-600 ring-1 ring-inset ring-@statusColor-600/10 dark:bg-@statusColor-900/20 dark:text-@statusColor-400 dark:ring-@statusColor-500/20">
+                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ring-1 ring-inset @statusClass">
                                 @log.Status
                             </span>
                         </td>

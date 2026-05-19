@@ -9,6 +9,7 @@ namespace Web_Sentro.Areas.Client.Models
         public string Details { get; set; } = "";
         public DateTime Timestamp { get; set; }
         public string? IpAddress { get; set; }
+        public string Category { get; set; } = "Audit";
         public string Status { get; set; } = "Success";
     }
 }

@@ -4,6 +4,7 @@ public class LogsIndexViewModel
 {
     public string? Search { get; set; }
     public string? Severity { get; set; }
+    public string? LogType { get; set; }
     public int? OrganizationId { get; set; }
     public int CurrentPage { get; set; } = 1;
     public int PageSize { get; set; } = 25;
@@ -20,6 +21,8 @@ public class VendorLogRowViewModel
     public int OrganizationId { get; set; }
     public string OrganizationName { get; set; } = "-";
     public string ActorName { get; set; } = "-";
+    public string IpAddress { get; set; } = "N/A";
+    public string Category { get; set; } = "Audit";
     public string Event { get; set; } = "-";
     public string Status { get; set; } = "Info";
     public string StatusColorClass { get; set; } = "text-slate-500";

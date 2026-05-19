@@ -25,8 +25,13 @@ namespace Web_Sentro.Areas.Client.Controllers
             return View();
         }
 
-        public async Task<IActionResult> AuditContent(DateTime? from, DateTime? to, string? search, string? severity, int page = 1, int pageSize = 10, CancellationToken ct = default)
+        public async Task<IActionResult> AuditContent(DateTime? from, DateTime? to, string? search, string? severity, string? logType = "Audit", int page = 1, int pageSize = 10, CancellationToken ct = default)
         {
+            if (string.Equals(logType, "Security", StringComparison.OrdinalIgnoreCase))
+            {
+                logType = AuditLogClassifier.System;
+            }
+
             var user = await _platformDb.Users.AsNoTracking()
                 .Where(u => u.UserName == User.Identity!.Name)
                 .Select(u => new { u.OrganizationId })
@@ -48,7 +53,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             await using var db = await _tenantDbFactory.CreateAsync(orgId);
             
             var query = db.AuditLogs.AsNoTracking()
-                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate && a.ActionType != "BackgroundSync" && a.ActionType != "BackgroundSyncFailed");
+                .Where(a => a.OrgId == orgId && a.CreatedAt >= fromDate && a.CreatedAt < toDate);
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -75,13 +80,24 @@ namespace Web_Sentro.Areas.Client.Controllers
                     query = query.Where(a => a.Level == "Error" || a.Level == "Critical");
             }
 
-            var totalCount = await query.CountAsync(ct);
             var logs = await query
                 .OrderByDescending(a => a.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
                 .Select(a => new { a.AuditId, a.UserId, a.EntityType, a.EntityId, a.ActionType, a.Level, a.Message, a.IpAddress, a.CreatedAt })
                 .ToListAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(logType))
+            {
+                logs = logs
+                    .Where(a => AuditLogClassifier.DetermineCategory(a.EntityType, a.ActionType)
+                        .Equals(logType, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            var totalCount = logs.Count;
+            logs = logs
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             var userIds = logs.Select(l => l.UserId).Distinct().ToList();
             var users = await _platformDb.Users.AsNoTracking()
@@ -98,7 +114,8 @@ namespace Web_Sentro.Areas.Client.Controllers
                 Module = a.EntityType,
                 Details = a.Message ?? $"{a.EntityType} #{a.EntityId}",
                 Timestamp = DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc),
-                IpAddress = a.IpAddress,
+                IpAddress = AuditLogClassifier.NormalizeIp(a.IpAddress),
+                Category = AuditLogClassifier.DetermineCategory(a.EntityType, a.ActionType),
                 Status = string.IsNullOrEmpty(a.Level) ? "Success" : (a.Level == "Warning" ? "Warning" : a.Level == "Error" ? "Critical" : a.Level)
             }).ToList();
 
@@ -112,6 +129,7 @@ namespace Web_Sentro.Areas.Client.Controllers
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             ViewBag.Search = search;
             ViewBag.Severity = severity;
+            ViewBag.LogType = logType;
 
             return PartialView("_AuditContent", model);
         }

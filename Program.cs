@@ -10,6 +10,7 @@ using WEB_Sentro.Services.PayMongo;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using WEB_Sentro.Filters;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -158,9 +159,22 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+
+    options.ForwardLimit = 2;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<WEB_Sentro.Middlewares.GlobalExceptionMiddleware>();
+app.UseForwardedHeaders();
 
 // --------------------S
 // Auto migrate (Platform)

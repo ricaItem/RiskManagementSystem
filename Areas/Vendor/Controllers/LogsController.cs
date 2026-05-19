@@ -23,17 +23,22 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             _cache = cache;
         }
 
-        public async Task<IActionResult> Index(string? search, string? severity, int? orgId, int page = 1, int pageSize = 25, CancellationToken ct = default)
+        public async Task<IActionResult> Index(string? search, string? severity, string? logType, int? orgId, int page = 1, int pageSize = 25, CancellationToken ct = default)
         {
+            if (string.Equals(logType, "Security", StringComparison.OrdinalIgnoreCase))
+            {
+                logType = AuditLogClassifier.System;
+            }
+
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
 
-            var model = await BuildModelAsync(search, severity, orgId, page, pageSize, ct);
+            var model = await BuildModelAsync(search, severity, logType, orgId, page, pageSize, ct);
             return View(model);
         }
 
-        private async Task<LogsIndexViewModel> BuildModelAsync(string? search, string? severity, int? orgId, int page, int pageSize, CancellationToken ct)
+        private async Task<LogsIndexViewModel> BuildModelAsync(string? search, string? severity, string? logType, int? orgId, int page, int pageSize, CancellationToken ct)
         {
             var organizations = await _platformDb.Organizations.AsNoTracking()
                 .OrderBy(o => o.OrgName)
@@ -44,11 +49,11 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                 ? new List<int> { orgId.Value }
                 : organizations.Select(o => o.OrganizationId).ToList();
 
-            var cacheKey = $"vendor:logs:{orgId}:{severity}:{search}";
+            var cacheKey = $"vendor:logs:{orgId}:{severity}:{logType}:{search}";
             var rows = await _cache.GetOrCreateAsync(cacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
-                return await LoadRowsAsync(selectedOrgIds, search, severity, ct);
+                return await LoadRowsAsync(selectedOrgIds, search, severity, logType, ct);
             }) ?? new List<VendorLogRowViewModel>();
 
             var totalCount = rows.Count;
@@ -64,6 +69,7 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             {
                 Search = search,
                 Severity = severity,
+                LogType = logType,
                 OrganizationId = orgId,
                 CurrentPage = page,
                 PageSize = pageSize,
@@ -74,7 +80,7 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
             };
         }
 
-        private async Task<List<VendorLogRowViewModel>> LoadRowsAsync(List<int> orgIds, string? search, string? severity, CancellationToken ct)
+        private async Task<List<VendorLogRowViewModel>> LoadRowsAsync(List<int> orgIds, string? search, string? severity, string? logType, CancellationToken ct)
         {
             var organizationLookup = await _platformDb.Organizations.AsNoTracking()
                 .Where(o => orgIds.Contains(o.OrganizationId))
@@ -98,7 +104,8 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                             a.ActionType.Contains(term) ||
                             a.EntityType.Contains(term) ||
                             (a.Message != null && a.Message.Contains(term)) ||
-                            a.UserId.Contains(term));
+                            a.UserId.Contains(term) ||
+                            (a.IpAddress != null && a.IpAddress.Contains(term)));
                     }
 
                     if (!string.IsNullOrWhiteSpace(severity))
@@ -120,8 +127,16 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                     var rawRows = await baseQuery
                         .OrderByDescending(a => a.CreatedAt)
                         .Take(40)
-                        .Select(a => new { a.CreatedAt, a.UserId, a.ActionType, a.Level })
+                        .Select(a => new { a.CreatedAt, a.UserId, a.ActionType, a.Level, a.EntityType, a.IpAddress })
                         .ToListAsync(ct);
+
+                    if (!string.IsNullOrWhiteSpace(logType))
+                    {
+                        rawRows = rawRows
+                            .Where(a => AuditLogClassifier.DetermineCategory(a.EntityType, a.ActionType)
+                                .Equals(logType, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                    }
 
                     if (rawRows.Count == 0)
                     {
@@ -143,6 +158,8 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                             OrganizationId = currentOrgId,
                             OrganizationName = organizationLookup.GetValueOrDefault(currentOrgId, "-"),
                             ActorName = usersLookup.GetValueOrDefault(row.UserId, row.UserId),
+                            IpAddress = AuditLogClassifier.NormalizeIp(row.IpAddress),
+                            Category = AuditLogClassifier.DetermineCategory(row.EntityType, row.ActionType),
                             Event = row.ActionType,
                             Status = mappedStatus,
                             StatusColorClass = GetStatusColorClass(mappedStatus)
@@ -158,6 +175,8 @@ namespace WEB_Sentro.Areas.Vendor.Controllers
                         OrganizationId = currentOrgId,
                         OrganizationName = organizationLookup.GetValueOrDefault(currentOrgId, "-"),
                         ActorName = "System",
+                        IpAddress = "N/A",
+                        Category = AuditLogClassifier.System,
                         Event = "TenantLogUnavailable",
                         Status = "Warning",
                         StatusColorClass = "text-amber-500"
