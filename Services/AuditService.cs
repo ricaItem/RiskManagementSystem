@@ -2,6 +2,9 @@ using WEB_Sentro.Data;
 using WEB_Sentro.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace WEB_Sentro.Services
 {
@@ -29,9 +32,35 @@ namespace WEB_Sentro.Services
             var resolvedCategory = string.IsNullOrWhiteSpace(category)
                 ? AuditLogClassifier.DetermineCategory(entityType, actionType)
                 : category;
-            var resolvedIp = string.IsNullOrWhiteSpace(ipAddress)
-                ? _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString()
-                : ipAddress;
+
+            // Resolve IP: prefer explicit ipAddress param, then standard proxy headers, then connection remote address
+            string? resolvedIp = null;
+            if (!string.IsNullOrWhiteSpace(ipAddress))
+            {
+                resolvedIp = ipAddress;
+            }
+            else
+            {
+                var http = _httpContextAccessor.HttpContext;
+                if (http != null)
+                {
+                    // X-Forwarded-For may contain a comma separated list; first value is the client
+                    if (http.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues xff) && !StringValues.IsNullOrEmpty(xff))
+                    {
+                        resolvedIp = xff.ToString().Split(',').Select(s => s.Trim()).FirstOrDefault();
+                    }
+                    // RFC 7239 Forwarded header: look for for=...
+                    else if (http.Request.Headers.TryGetValue("Forwarded", out StringValues fwd) && !StringValues.IsNullOrEmpty(fwd))
+                    {
+                        var m = Regex.Match(fwd.ToString(), @"for=(?:\""(?<ip>[^\""]+)\""|(?<ip>[^;,\s]+))", RegexOptions.IgnoreCase);
+                        if (m.Success) resolvedIp = m.Groups["ip"].Value;
+                    }
+                    else
+                    {
+                        resolvedIp = http.Connection.RemoteIpAddress?.ToString();
+                    }
+                }
+            }
 
             var log = new AuditLog
             {

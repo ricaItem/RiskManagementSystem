@@ -4,8 +4,9 @@
 @{
     ViewData["Title"] = "Register";
     Layout = "/Views/Shared/_LayoutLanding.cshtml";
-    var recaptchaSiteKey = Configuration["ReCaptcha:SiteKey"] ?? string.Empty;
-    var recaptchaEnabled = bool.TryParse(Configuration["ReCaptcha:Enabled"], out var parsedReCaptchaEnabled) && parsedReCaptchaEnabled;
+    var recaptchaSiteKey = Configuration["ReCaptcha:SiteKey"] ?? Configuration["GoogleReCaptcha:SiteKey"] ?? string.Empty;
+    var recaptchaEnabled = bool.TryParse(Configuration["ReCaptcha:Enabled"], out var parsedReCaptchaEnabled) && parsedReCaptchaEnabled
+                           || !string.IsNullOrWhiteSpace(recaptchaSiteKey);
 }
 
 <style>
@@ -647,71 +648,71 @@
                     <!-- Content column: right edge of left panel, right next to white panel -->
                     <div class="max-w-sm flex flex-col flex-1 min-h-full pl-6 pr-4 lg:pr-5">
 
-                    <!-- Logo row + back arrow -->
-                    <div class="flex items-center gap-3 pb-6">
-                        <button type="button" data-back="5"
-                                class="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                            </svg>
-                        </button>
-                        <img src="~/images/logo1.png" alt="Sentro" class="h-9 w-auto object-contain" />
-                        <span class="text-xl font-extrabold tracking-tight">Sentro</span>
-                    </div>
+                        <!-- Logo row + back arrow -->
+                        <div class="flex items-center gap-3 pb-6">
+                            <button type="button" data-back="5"
+                                    class="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white focus:outline-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <img src="~/images/logo1.png" alt="Sentro" class="h-9 w-auto object-contain" />
+                            <span class="text-xl font-extrabold tracking-tight">Sentro</span>
+                        </div>
 
-                    <!-- Divider line below logo -->
-                    <div class="h-px w-full bg-white/15 mb-8"></div>
+                        <!-- Divider line below logo -->
+                        <div class="h-px w-full bg-white/15 mb-8"></div>
 
-                    <!-- Main content — vertically centred in remaining space -->
-                    <div class="my-auto pt-0 pb-8">
+                        <!-- Main content — vertically centred in remaining space -->
+                        <div class="my-auto pt-0 pb-8">
 
-                        <!-- Billing summary card -->
-                        <div class="rounded-xl border-2 border-white/25 bg-white/[0.04] p-8 shadow-md">
-                            <!-- Section label -->
-                            <p class="text-xs font-semibold uppercase tracking-widest text-white/50 text-center">Billing summary</p>
+                            <!-- Billing summary card -->
+                            <div class="rounded-xl border-2 border-white/25 bg-white/[0.04] p-8 shadow-md">
+                                <!-- Section label -->
+                                <p class="text-xs font-semibold uppercase tracking-widest text-white/50 text-center">Billing summary</p>
 
-                            <!-- Plan name -->
-                            <h2 class="mt-4 text-2xl font-semibold text-white" id="summaryPlanName">Basic</h2>
-                            <p class="mt-1 text-sm text-white/50" id="summaryPlanPrice">₱49 / month</p>
+                                <!-- Plan name -->
+                                <h2 class="mt-4 text-2xl font-semibold text-white" id="summaryPlanName">Basic</h2>
+                                <p class="mt-1 text-sm text-white/50" id="summaryPlanPrice">₱49 / month</p>
 
-                            <!-- Divider line -->
-                            <div class="mt-6 h-px w-full bg-white/20"></div>
+                                <!-- Divider line -->
+                                <div class="mt-6 h-px w-full bg-white/20"></div>
 
-                            <!-- Bill breakdown -->
-                            <p class="mt-5 text-xs font-semibold uppercase tracking-widest text-white/50">Bill breakdown</p>
-                            <ul class="mt-4 space-y-3">
-                                <li class="flex items-center justify-between gap-4">
-                                    <span class="text-sm text-white/90">Basic plan <span class="text-white/50">(Monthly)</span></span>
-                                    <span class="shrink-0 text-sm font-semibold text-white" id="summaryPlanAmount">₱49.00</span>
-                                </li>
-                                <li class="flex items-center justify-between gap-4">
-                                    <span class="text-sm text-white/70">Subtotal</span>
-                                    <span class="shrink-0 text-sm font-medium text-white" id="summarySubtotal">₱49.00</span>
-                                </li>
-                                <li class="flex items-center justify-between gap-4">
-                                    <span class="text-sm text-white/70">Tax <span class="text-white/40 font-normal">(at checkout)</span></span>
-                                    <span class="shrink-0 text-sm font-medium text-white/50" id="summaryTax">—</span>
-                                </li>
-                            </ul>
+                                <!-- Bill breakdown -->
+                                <p class="mt-5 text-xs font-semibold uppercase tracking-widest text-white/50">Bill breakdown</p>
+                                <ul class="mt-4 space-y-3">
+                                    <li class="flex items-center justify-between gap-4">
+                                        <span class="text-sm text-white/90">Basic plan <span class="text-white/50">(Monthly)</span></span>
+                                        <span class="shrink-0 text-sm font-semibold text-white" id="summaryPlanAmount">₱49.00</span>
+                                    </li>
+                                    <li class="flex items-center justify-between gap-4">
+                                        <span class="text-sm text-white/70">Subtotal</span>
+                                        <span class="shrink-0 text-sm font-medium text-white" id="summarySubtotal">₱49.00</span>
+                                    </li>
+                                    <li class="flex items-center justify-between gap-4">
+                                        <span class="text-sm text-white/70">Tax <span class="text-white/40 font-normal">(at checkout)</span></span>
+                                        <span class="shrink-0 text-sm font-medium text-white/50" id="summaryTax">—</span>
+                                    </li>
+                                </ul>
 
-                            <!-- Divider line -->
-                            <div class="mt-6 h-px w-full bg-white/20"></div>
+                                <!-- Divider line -->
+                                <div class="mt-6 h-px w-full bg-white/20"></div>
 
-                            <!-- Total -->
-                            <div class="mt-6 flex items-baseline justify-between">
-                                <span class="text-xs font-semibold uppercase tracking-widest text-white/50">Total today</span>
-                                <span class="text-3xl font-extrabold text-white" id="summaryTotal">₱49</span>
+                                <!-- Total -->
+                                <div class="mt-6 flex items-baseline justify-between">
+                                    <span class="text-xs font-semibold uppercase tracking-widest text-white/50">Total today</span>
+                                    <span class="text-3xl font-extrabold text-white" id="summaryTotal">₱49</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Divider line above footer -->
-                    <div class="h-px w-full bg-white/15 mt-6 mb-4"></div>
+                        <!-- Divider line above footer -->
+                        <div class="h-px w-full bg-white/15 mt-6 mb-4"></div>
 
-                    <!-- Footer note -->
-                    <p class="text-xs leading-relaxed text-white/30">
-                        By completing setup you agree to Sentro's terms of service, privacy policy, and billing terms.
-                    </p>
+                        <!-- Footer note -->
+                        <p class="text-xs leading-relaxed text-white/30">
+                            By completing setup you agree to Sentro's terms of service, privacy policy, and billing terms.
+                        </p>
 
                     </div><!-- end content column -->
                 </div>
@@ -741,9 +742,9 @@
                                             data-method="card">
                                         <!-- Generic card icon -->
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 24" class="h-6 w-auto">
-                                            <rect width="38" height="24" rx="4" fill="#1a1a2e"/>
-                                            <rect y="7" width="38" height="5" fill="#e2b714"/>
-                                            <rect x="4" y="16" width="10" height="3" rx="1" fill="#fff" opacity=".7"/>
+                                            <rect width="38" height="24" rx="4" fill="#1a1a2e" />
+                                            <rect y="7" width="38" height="5" fill="#e2b714" />
+                                            <rect x="4" y="16" width="10" height="3" rx="1" fill="#fff" opacity=".7" />
                                         </svg>
                                         <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">Card</span>
                                     </button>
@@ -755,7 +756,7 @@
                                         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/gcash.svg"
                                              alt="GCash" class="h-6 w-auto"
                                              style="filter: invert(27%) sepia(97%) saturate(1700%) hue-rotate(200deg) brightness(100%) contrast(105%);"
-                                             onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+                                             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
                                         <span class="hidden text-lg font-extrabold" style="color:#007DFF;">G</span>
                                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">GCash</span>
                                     </button>
@@ -767,7 +768,7 @@
                                         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/maya.svg"
                                              alt="Maya" class="h-6 w-auto"
                                              style="filter: invert(47%) sepia(96%) saturate(500%) hue-rotate(110deg) brightness(95%) contrast(101%);"
-                                             onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+                                             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
                                         <span class="hidden text-lg font-extrabold" style="color:#00B564;">M</span>
                                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Maya</span>
                                     </button>
@@ -918,483 +919,483 @@
 <script>
     // ── Plan card selector (global so onclick attrs can reach it) ──
     function selectPlan(plan) {
-        const hidden = document.getElementById('selectedPlan');
-        if (hidden) hidden.value = plan;
-        document.querySelectorAll('#planCardGroup .plan-card').forEach(function (card) {
-            card.classList.toggle('selected', card.getAttribute('data-plan') === plan);
-        });
-        // keep billing summary in sync if already rendered
-        if (typeof syncPlanSummary === 'function') syncPlanSummary();
+    const hidden = document.getElementById('selectedPlan');
+    if (hidden) hidden.value = plan;
+    document.querySelectorAll('#planCardGroup .plan-card').forEach(function (card) {
+    card.classList.toggle('selected', card.getAttribute('data-plan') === plan);
+    });
+    // keep billing summary in sync if already rendered
+    if (typeof syncPlanSummary === 'function') syncPlanSummary();
     }
 
     (function () {
-        let currentStep = 1;
-        let orgCodeManuallyEdited = false;
-        const recaptchaEnabled = @recaptchaEnabled.ToString().ToLowerInvariant();
+    let currentStep = 1;
+    let orgCodeManuallyEdited = false;
+    const recaptchaEnabled = @recaptchaEnabled.ToString().ToLowerInvariant();
 
-        function humanizeError(errorMessage, fallback) {
-            const text = String(errorMessage || '').trim();
-            if (!text) return fallback;
-            const lower = text.toLowerCase();
+    function humanizeError(errorMessage, fallback) {
+    const text = String(errorMessage || '').trim();
+    if (!text) return fallback;
+    const lower = text.toLowerCase();
 
-            if (lower.includes('already exists')) return 'This email is already registered. Please log in instead.';
-            if (lower.includes('organization code') && lower.includes('already')) return 'That organization code is already in use. Please use a different one.';
-            if (lower.includes('invalid or expired')) return 'That code is invalid or already expired. Request a new one and try again.';
-            if (lower.includes('valid payment is required')) return 'Payment was not completed. Please choose a payment method and try again.';
-            if (lower.includes('password must be at least')) return 'Use a stronger password with at least 12 characters.';
+    if (lower.includes('already exists')) return 'This email is already registered. Please log in instead.';
+    if (lower.includes('organization code') && lower.includes('already')) return 'That organization code is already in use. Please use a different one.';
+    if (lower.includes('invalid or expired')) return 'That code is invalid or already expired. Request a new one and try again.';
+    if (lower.includes('valid payment is required')) return 'Payment was not completed. Please choose a payment method and try again.';
+    if (lower.includes('password must be at least')) return 'Use a stronger password with at least 12 characters.';
 
-            return text;
-        }
+    return text;
+    }
 
-        function showToast(message, type) {
-            const container = document.getElementById('toastContainer');
-            if (!container) return;
+    function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
 
-            const toastType = type || 'error';
-            const toast = document.createElement('div');
-            toast.className = 'toast ' + toastType;
+    const toastType = type || 'error';
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + toastType;
 
-            const msg = document.createElement('div');
-            msg.className = 'toast-message';
-            msg.textContent = message;
+    const msg = document.createElement('div');
+    msg.className = 'toast-message';
+    msg.textContent = message;
 
-            const closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.className = 'toast-close';
-            closeBtn.setAttribute('aria-label', 'Close message');
-            closeBtn.textContent = 'x';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'toast-close';
+    closeBtn.setAttribute('aria-label', 'Close message');
+    closeBtn.textContent = 'x';
 
-            closeBtn.addEventListener('click', function () {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            });
+    closeBtn.addEventListener('click', function () {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+    });
 
-            toast.appendChild(msg);
-            toast.appendChild(closeBtn);
-            container.appendChild(toast);
+    toast.appendChild(msg);
+    toast.appendChild(closeBtn);
+    container.appendChild(toast);
 
-            window.setTimeout(function () {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 4500);
-        }
+    window.setTimeout(function () {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 4500);
+    }
 
-        const stepCount = 6;
-        const planMeta = {
-            Basic:        { price: '₱49 / month',  total: '₱49',  seats: 'Up to 10' },
-            Professional: { price: '₱149 / month', total: '₱149', seats: 'Up to 50' },
-            Enterprise:   { price: '₱399 / month', total: '₱399', seats: 'Up to 200' }
-        };
+    const stepCount = 6;
+    const planMeta = {
+    Basic:        { price: '₱49 / month',  total: '₱49',  seats: 'Up to 10' },
+    Professional: { price: '₱149 / month', total: '₱149', seats: 'Up to 50' },
+    Enterprise:   { price: '₱399 / month', total: '₱399', seats: 'Up to 200' }
+    };
 
-        function showStep(step) {
-            currentStep = step;
-            const step1Wrapper = document.getElementById('step-1-wrapper');
-            const multiStepWrapper = document.getElementById('multi-step-wrapper');
-            const section = document.getElementById('registerSection');
+    function showStep(step) {
+    currentStep = step;
+    const step1Wrapper = document.getElementById('step-1-wrapper');
+    const multiStepWrapper = document.getElementById('multi-step-wrapper');
+    const section = document.getElementById('registerSection');
 
-            // Toggle between step-1 full-screen layout and multi-step layout
-            const isStep1 = step === 1;
-            if (step1Wrapper) step1Wrapper.classList.toggle('hidden', !isStep1);
-            if (multiStepWrapper) multiStepWrapper.classList.toggle('hidden', isStep1);
+    // Toggle between step-1 full-screen layout and multi-step layout
+    const isStep1 = step === 1;
+    if (step1Wrapper) step1Wrapper.classList.toggle('hidden', !isStep1);
+    if (multiStepWrapper) multiStepWrapper.classList.toggle('hidden', isStep1);
 
-            // Show/hide individual step panels (steps 2–6 inside multi-step-wrapper)
-            for (let i = 2; i <= stepCount; i++) {
-                const panel = document.getElementById(`step-${i}`);
-                if (!panel) continue;
-                panel.classList.toggle('hidden', i !== step);
+    // Show/hide individual step panels (steps 2–6 inside multi-step-wrapper)
+    for (let i = 2; i <= stepCount; i++) {
+    const panel = document.getElementById(`step-${i}`);
+    if (!panel) continue;
+    panel.classList.toggle('hidden', i !== step);
 
-                const dot = document.querySelector(`[data-step-dot="${i}"]`);
-                const label = document.querySelector(`[data-step-label="${i}"]`);
-                if (dot) dot.classList.toggle('active', i <= step);
-                if (label) label.classList.toggle('active', i <= step);
-            }
+    const dot = document.querySelector(`[data-step-dot="${i}"]`);
+    const label = document.querySelector(`[data-step-label="${i}"]`);
+    if (dot) dot.classList.toggle('active', i <= step);
+    if (label) label.classList.toggle('active', i <= step);
+    }
 
-            const isBilling = step === 6;
-            if (section) {
-                section.style.background = isBilling ? 'transparent' : '';
-            }
-        }
+    const isBilling = step === 6;
+    if (section) {
+    section.style.background = isBilling ? 'transparent' : '';
+    }
+    }
 
-        function syncEmails() {
-            const email = document.getElementById('flowEmail')?.value?.trim() || '';
-            const verifyLabel = document.getElementById('verifyEmailLabel');
-            const loginEmail = document.getElementById('loginEmail');
-            const paymentEmail = document.getElementById('paymentEmail');
-            if (verifyLabel) verifyLabel.textContent = email || 'your email';
-            if (loginEmail) loginEmail.value = email;
-            if (paymentEmail) paymentEmail.value = email;
-        }
+    function syncEmails() {
+    const email = document.getElementById('flowEmail')?.value?.trim() || '';
+    const verifyLabel = document.getElementById('verifyEmailLabel');
+    const loginEmail = document.getElementById('loginEmail');
+    const paymentEmail = document.getElementById('paymentEmail');
+    if (verifyLabel) verifyLabel.textContent = email || 'your email';
+    if (loginEmail) loginEmail.value = email;
+    if (paymentEmail) paymentEmail.value = email;
+    }
 
-        function generateOrgCode(name) {
-            const cleaned = (name || '')
-                .toUpperCase()
-                .replace(/[^A-Z0-9\s]/g, '')
-                .trim()
-                .split(/\s+/)
-                .slice(0, 3)
-                .map(x => x.substring(0, 3))
-                .join('');
-            const suffix = String(Math.floor(Math.random() * 900) + 100);
-            return (cleaned || 'ORG') + '-' + suffix;
-        }
+    function generateOrgCode(name) {
+    const cleaned = (name || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 3)
+    .map(x => x.substring(0, 3))
+    .join('');
+    const suffix = String(Math.floor(Math.random() * 900) + 100);
+    return (cleaned || 'ORG') + '-' + suffix;
+    }
 
-        function syncPlanSummary() {
-            const plan = document.getElementById('selectedPlan')?.value || 'Basic';
-            const paymentPlan = document.getElementById('paymentPlan');
-            const planName = document.getElementById('summaryPlanName');
-            const planPrice = document.getElementById('summaryPlanPrice');
-            const planAmount = document.getElementById('summaryPlanAmount');
-            const subtotal = document.getElementById('summarySubtotal');
-            const total = document.getElementById('summaryTotal');
-            const meta = planMeta[plan] || planMeta.Basic;
+    function syncPlanSummary() {
+    const plan = document.getElementById('selectedPlan')?.value || 'Basic';
+    const paymentPlan = document.getElementById('paymentPlan');
+    const planName = document.getElementById('summaryPlanName');
+    const planPrice = document.getElementById('summaryPlanPrice');
+    const planAmount = document.getElementById('summaryPlanAmount');
+    const subtotal = document.getElementById('summarySubtotal');
+    const total = document.getElementById('summaryTotal');
+    const meta = planMeta[plan] || planMeta.Basic;
 
-            if (paymentPlan && paymentPlan.value !== plan) paymentPlan.value = plan;
-            if (planName) planName.textContent = plan;
-            if (planPrice) planPrice.textContent = meta.price;
-            // Bill breakdown: plan amount and subtotal match total (tax at checkout)
-            const amount = meta.total;
-            if (planAmount) planAmount.textContent = amount.includes('.') ? amount : amount + '.00';
-            if (subtotal) subtotal.textContent = amount.includes('.') ? amount : amount + '.00';
-            if (total) total.textContent = meta.total;
-        }
-        // expose for selectPlan global
-        window.syncPlanSummary = syncPlanSummary;
+    if (paymentPlan && paymentPlan.value !== plan) paymentPlan.value = plan;
+    if (planName) planName.textContent = plan;
+    if (planPrice) planPrice.textContent = meta.price;
+    // Bill breakdown: plan amount and subtotal match total (tax at checkout)
+    const amount = meta.total;
+    if (planAmount) planAmount.textContent = amount.includes('.') ? amount : amount + '.00';
+    if (subtotal) subtotal.textContent = amount.includes('.') ? amount : amount + '.00';
+    if (total) total.textContent = meta.total;
+    }
+    // expose for selectPlan global
+    window.syncPlanSummary = syncPlanSummary;
 
-        function updatePasswordChecklist() {
-            const value = document.getElementById('adminPassword')?.value || '';
-            const checks = {
-                'chk-len': value.length >= 12,
-                'chk-upper': /[A-Z]/.test(value),
-                'chk-lower': /[a-z]/.test(value),
-                'chk-number': /\d/.test(value),
-                'chk-symbol': /[^A-Za-z0-9]/.test(value)
-            };
-            Object.keys(checks).forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.classList.toggle('ok', checks[id]);
-            });
-        }
+    function updatePasswordChecklist() {
+    const value = document.getElementById('adminPassword')?.value || '';
+    const checks = {
+    'chk-len': value.length >= 12,
+    'chk-upper': /[A-Z]/.test(value),
+    'chk-lower': /[a-z]/.test(value),
+    'chk-number': /\d/.test(value),
+    'chk-symbol': /[^A-Za-z0-9]/.test(value)
+    };
+    Object.keys(checks).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('ok', checks[id]);
+    });
+    }
 
-        function setupVerifyInputs() {
-            const inputs = Array.from(document.querySelectorAll('.verify-digit'));
-            inputs.forEach((input, idx) => {
-                input.addEventListener('input', function () {
-                    input.value = input.value.replace(/\D/g, '').slice(0, 1);
-                    if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
-                });
-                input.addEventListener('keydown', function (e) {
-                    if (e.key === 'Backspace' && !input.value && idx > 0) {
-                        inputs[idx - 1].focus();
-                    }
-                });
-            });
-        }
+    function setupVerifyInputs() {
+    const inputs = Array.from(document.querySelectorAll('.verify-digit'));
+    inputs.forEach((input, idx) => {
+    input.addEventListener('input', function () {
+    input.value = input.value.replace(/\D/g, '').slice(0, 1);
+    if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+    });
+    input.addEventListener('keydown', function (e) {
+    if (e.key === 'Backspace' && !input.value && idx > 0) {
+    inputs[idx - 1].focus();
+    }
+    });
+    });
+    }
 
-        function setupPaymentMethods() {
-            const cards = Array.from(document.querySelectorAll('.payment-method'));
-            const cardFields = document.getElementById('cardFields');
-            const walletFields = document.getElementById('walletFields');
-            const walletTitle = document.getElementById('walletTitle');
+    function setupPaymentMethods() {
+    const cards = Array.from(document.querySelectorAll('.payment-method'));
+    const cardFields = document.getElementById('cardFields');
+    const walletFields = document.getElementById('walletFields');
+    const walletTitle = document.getElementById('walletTitle');
 
-            function setMethod(method) {
-                cards.forEach(c => c.classList.toggle('active', c.getAttribute('data-method') === method));
-                const useCard = method === 'card';
-                if (cardFields) cardFields.classList.toggle('hidden', !useCard);
-                if (walletFields) walletFields.classList.toggle('hidden', useCard);
-                if (walletTitle) walletTitle.textContent = method === 'maya' ? 'Maya Account Information' : 'GCash Account Information';
-            }
+    function setMethod(method) {
+    cards.forEach(c => c.classList.toggle('active', c.getAttribute('data-method') === method));
+    const useCard = method === 'card';
+    if (cardFields) cardFields.classList.toggle('hidden', !useCard);
+    if (walletFields) walletFields.classList.toggle('hidden', useCard);
+    if (walletTitle) walletTitle.textContent = method === 'maya' ? 'Maya Account Information' : 'GCash Account Information';
+    }
 
-            cards.forEach(c => c.addEventListener('click', () => setMethod(c.getAttribute('data-method') || 'card')));
-            setMethod('card');
-        }
+    cards.forEach(c => c.addEventListener('click', () => setMethod(c.getAttribute('data-method') || 'card')));
+    setMethod('card');
+    }
 
-        function setupCardExpiryFormatter() {
-            const expiry = document.getElementById('cardExpiry');
-            if (!expiry) return;
-            expiry.addEventListener('input', function () {
-                const digits = expiry.value.replace(/\D/g, '').slice(0, 4);
-                if (digits.length >= 3) {
-                    expiry.value = digits.slice(0, 2) + '/' + digits.slice(2);
-                } else {
-                    expiry.value = digits;
-                }
-            });
-        }
+    function setupCardExpiryFormatter() {
+    const expiry = document.getElementById('cardExpiry');
+    if (!expiry) return;
+    expiry.addEventListener('input', function () {
+    const digits = expiry.value.replace(/\D/g, '').slice(0, 4);
+    if (digits.length >= 3) {
+    expiry.value = digits.slice(0, 2) + '/' + digits.slice(2);
+    } else {
+    expiry.value = digits;
+    }
+    });
+    }
 
-        function setupPhoneFormat() {
-            document.querySelectorAll('input[data-phone-format]').forEach(function (input) {
-                input.addEventListener('input', function () {
-                    const digits = this.value.replace(/\D/g, '').slice(0, 10);
-                    if (digits.length <= 3) {
-                        this.value = digits;
-                    } else if (digits.length <= 6) {
-                        this.value = digits.slice(0, 3) + ' ' + digits.slice(3);
-                    } else {
-                        this.value = digits.slice(0, 3) + ' ' + digits.slice(3, 6) + ' ' + digits.slice(6);
-                    }
-                });
-            });
-        }
+    function setupPhoneFormat() {
+    document.querySelectorAll('input[data-phone-format]').forEach(function (input) {
+    input.addEventListener('input', function () {
+    const digits = this.value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) {
+    this.value = digits;
+    } else if (digits.length <= 6) {
+    this.value = digits.slice(0, 3) + ' ' + digits.slice(3);
+    } else {
+    this.value = digits.slice(0, 3) + ' ' + digits.slice(3, 6) + ' ' + digits.slice(6);
+    }
+    });
+    });
+    }
 
-        async function sendVerificationCode() {
-            const email = (document.getElementById('flowEmail')?.value || '').trim();
-            if (!email) { alert('Please enter your email.'); return false; }
-            try {
-                const r = await fetch('/api/registration/send-verification-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
-                });
-                const data = await r.json().catch(() => ({}));
-                if (!r.ok) {
-                    showToast(humanizeError(data.error, 'We could not send a verification code right now. Please try again.'));
-                    return false;
-                }
-                if (data.devCode) {
-                    showToast('Development mode: use verification code ' + data.devCode, 'info');
-                }
-                return true;
-            } catch (e) {
-                showToast('Network issue detected. Please check your connection and try again.');
-                return false;
-            }
-        }
+    async function sendVerificationCode() {
+    const email = (document.getElementById('flowEmail')?.value || '').trim();
+    if (!email) { alert('Please enter your email.'); return false; }
+    try {
+    const r = await fetch('/api/registration/send-verification-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+    showToast(humanizeError(data.error, 'We could not send a verification code right now. Please try again.'));
+    return false;
+    }
+    if (data.devCode) {
+    showToast('Development mode: use verification code ' + data.devCode, 'info');
+    }
+    return true;
+    } catch (e) {
+    showToast('Network issue detected. Please check your connection and try again.');
+    return false;
+    }
+    }
 
-        async function verifyCodeAndContinue() {
-            const email = (document.getElementById('flowEmail')?.value || '').trim();
-            const digits = Array.from(document.querySelectorAll('.verify-digit')).map(i => i.value).join('');
-            if (digits.length !== 6) {
-                showToast('Please enter the full 6-digit verification code.');
-                return false;
-            }
-            try {
-                const r = await fetch('/api/registration/verify-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, code: digits })
-                });
-                const data = await r.json().catch(() => ({}));
-                if (!r.ok) {
-                    showToast(humanizeError(data.error, 'The verification code is invalid or expired.'));
-                    return false;
-                }
-                return true;
-            } catch (e) {
-                showToast('Network issue detected. Please check your connection and try again.');
-                return false;
-            }
-        }
+    async function verifyCodeAndContinue() {
+    const email = (document.getElementById('flowEmail')?.value || '').trim();
+    const digits = Array.from(document.querySelectorAll('.verify-digit')).map(i => i.value).join('');
+    if (digits.length !== 6) {
+    showToast('Please enter the full 6-digit verification code.');
+    return false;
+    }
+    try {
+    const r = await fetch('/api/registration/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, code: digits })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+    showToast(humanizeError(data.error, 'The verification code is invalid or expired.'));
+    return false;
+    }
+    return true;
+    } catch (e) {
+    showToast('Network issue detected. Please check your connection and try again.');
+    return false;
+    }
+    }
 
-        document.querySelectorAll('[data-next]').forEach(btn => {
-            btn.addEventListener('click', async function () {
-                const next = parseInt(btn.getAttribute('data-next') || '1', 10);
+    document.querySelectorAll('[data-next]').forEach(btn => {
+    btn.addEventListener('click', async function () {
+    const next = parseInt(btn.getAttribute('data-next') || '1', 10);
 
-                if (currentStep === 1) {
-                    syncEmails();
-                    if (btn.id === 'get-started-btn') {
-                        btn.classList.add('processing');
-                        const ok = await sendVerificationCode();
-                        btn.classList.remove('processing');
-                        if (!ok) return;
-                        const label = document.getElementById('verifyEmailLabel');
-                        if (label) label.textContent = document.getElementById('flowEmail')?.value || '';
-                    }
-                }
+    if (currentStep === 1) {
+    syncEmails();
+    if (btn.id === 'get-started-btn') {
+    btn.classList.add('processing');
+    const ok = await sendVerificationCode();
+    btn.classList.remove('processing');
+    if (!ok) return;
+    const label = document.getElementById('verifyEmailLabel');
+    if (label) label.textContent = document.getElementById('flowEmail')?.value || '';
+    }
+    }
 
-                if (currentStep === 2 && next === 3 && btn.id === 'verify-continue-btn') {
-                    btn.classList.add('processing');
-                    const ok = await verifyCodeAndContinue();
-                    btn.classList.remove('processing');
-                    if (!ok) return;
-                }
+    if (currentStep === 2 && next === 3 && btn.id === 'verify-continue-btn') {
+    btn.classList.add('processing');
+    const ok = await verifyCodeAndContinue();
+    btn.classList.remove('processing');
+    if (!ok) return;
+    }
 
-                if (currentStep === 5 && next === 6 && recaptchaEnabled) {
-                    if (!window.grecaptcha || !window.grecaptcha.getResponse || !window.grecaptcha.getResponse()) {
-                        showToast('Please complete the reCAPTCHA checkbox before continuing.');
-                        return;
-                    }
-                }
+    if (currentStep === 5 && next === 6 && recaptchaEnabled) {
+    if (!window.grecaptcha || !window.grecaptcha.getResponse || !window.grecaptcha.getResponse()) {
+    showToast('Please complete the reCAPTCHA checkbox before continuing.');
+    return;
+    }
+    }
 
-                if (currentStep === 1 || currentStep === 2) syncEmails();
-                if (currentStep === 3) syncPlanSummary();
+    if (currentStep === 1 || currentStep === 2) syncEmails();
+    if (currentStep === 3) syncPlanSummary();
 
-                showStep(next);
-            });
-        });
+    showStep(next);
+    });
+    });
 
-        document.querySelectorAll('[data-back]').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const back = parseInt(btn.getAttribute('data-back') || '1', 10);
-                showStep(back);
-            });
-        });
+    document.querySelectorAll('[data-back]').forEach(btn => {
+    btn.addEventListener('click', function () {
+    const back = parseInt(btn.getAttribute('data-back') || '1', 10);
+    showStep(back);
+    });
+    });
 
-        const flowEmail = document.getElementById('flowEmail');
-        if (flowEmail) flowEmail.addEventListener('input', syncEmails);
+    const flowEmail = document.getElementById('flowEmail');
+    if (flowEmail) flowEmail.addEventListener('input', syncEmails);
 
-        const orgName = document.getElementById('orgName');
-        const orgCode = document.getElementById('orgCode');
-        if (orgCode) {
-            orgCode.addEventListener('input', function () {
-                orgCodeManuallyEdited = true;
-            });
-        }
-        if (orgName) {
-            orgName.addEventListener('input', function () {
-                if (!orgCode || orgCodeManuallyEdited) return;
-                orgCode.value = generateOrgCode(orgName.value);
-            });
-            orgName.addEventListener('blur', function () {
-                if (!orgCode || orgCodeManuallyEdited || orgCode.value.trim()) return;
-                orgCode.value = generateOrgCode(orgName.value);
-            });
-        }
+    const orgName = document.getElementById('orgName');
+    const orgCode = document.getElementById('orgCode');
+    if (orgCode) {
+    orgCode.addEventListener('input', function () {
+    orgCodeManuallyEdited = true;
+    });
+    }
+    if (orgName) {
+    orgName.addEventListener('input', function () {
+    if (!orgCode || orgCodeManuallyEdited) return;
+    orgCode.value = generateOrgCode(orgName.value);
+    });
+    orgName.addEventListener('blur', function () {
+    if (!orgCode || orgCodeManuallyEdited || orgCode.value.trim()) return;
+    orgCode.value = generateOrgCode(orgName.value);
+    });
+    }
 
-        const adminPassword = document.getElementById('adminPassword');
-        if (adminPassword) adminPassword.addEventListener('input', updatePasswordChecklist);
+    const adminPassword = document.getElementById('adminPassword');
+    if (adminPassword) adminPassword.addEventListener('input', updatePasswordChecklist);
 
-        const resendCodeBtn = document.getElementById('resend-code-btn');
-        if (resendCodeBtn) {
-            resendCodeBtn.addEventListener('click', async function () {
-                const email = (document.getElementById('flowEmail')?.value || '').trim();
-                if (!email) {
-                    showToast('Please enter your email address first.');
-                    return;
-                }
-                resendCodeBtn.classList.add('processing');
-                const ok = await sendVerificationCode();
-                resendCodeBtn.classList.remove('processing');
-                if (ok) showToast('A new verification code has been sent to your email.', 'success');
-            });
-        }
+    const resendCodeBtn = document.getElementById('resend-code-btn');
+    if (resendCodeBtn) {
+    resendCodeBtn.addEventListener('click', async function () {
+    const email = (document.getElementById('flowEmail')?.value || '').trim();
+    if (!email) {
+    showToast('Please enter your email address first.');
+    return;
+    }
+    resendCodeBtn.classList.add('processing');
+    const ok = await sendVerificationCode();
+    resendCodeBtn.classList.remove('processing');
+    if (ok) showToast('A new verification code has been sent to your email.', 'success');
+    });
+    }
 
-        const completeSetup = document.getElementById('completeSetup');
-        if (completeSetup) {
-            completeSetup.addEventListener('click', async function () {
-                const email = (document.getElementById('flowEmail')?.value || '').trim();
-                const plan = document.getElementById('selectedPlan')?.value || 'Basic';
-                const orgName = document.getElementById('orgName')?.value?.trim();
-                const orgCode = document.getElementById('orgCode')?.value?.trim();
-                const adminFirstName = document.getElementById('adminFirstName')?.value?.trim();
-                const adminMiddleName = document.getElementById('adminMiddleName')?.value?.trim();
-                const adminLastName = document.getElementById('adminLastName')?.value?.trim();
-                const loginEmail = document.getElementById('loginEmail')?.value?.trim();
-                const adminPassword = document.getElementById('adminPassword')?.value;
-                const paymentEmail = document.getElementById('paymentEmail')?.value?.trim();
-                const agreeTerms = document.getElementById('agreeTerms');
-                const recaptchaToken = recaptchaEnabled && window.grecaptcha && window.grecaptcha.getResponse
-                    ? window.grecaptcha.getResponse()
-                    : '';
-                if (!email) { showToast('Please enter your email address in Step 1.'); return; }
-                if (!orgName) { showToast('Please enter your organization name.'); return; }
-                if (!orgCode) { showToast('Please provide your organization code.'); return; }
-                if (!adminFirstName) { showToast('Please enter the admin first name.'); return; }
-                if (!adminLastName) { showToast('Please enter the admin last name.'); return; }
-                if (!adminPassword) { showToast('Please create an admin password.'); return; }
-                if (adminPassword.length < 12) { showToast('Password must be at least 12 characters long.'); return; }
-                if (loginEmail && loginEmail !== email) {
-                    showToast('Login email should match the email entered in Step 1.');
-                    return;
-                }
-                const atIndex = paymentEmail ? paymentEmail.indexOf(String.fromCharCode(64)) : -1;
-                if (paymentEmail && (atIndex <= 0 || atIndex === paymentEmail.length - 1 || paymentEmail.indexOf('.', atIndex) < atIndex + 2)) {
-                    showToast('Please enter a valid billing email address.');
-                    return;
-                }
-                if (agreeTerms && !agreeTerms.checked) {
-                    showToast('Please accept the terms to continue with payment.');
-                    return;
-                }
-                if (recaptchaEnabled && !recaptchaToken) {
-                    showToast('Please complete the reCAPTCHA checkbox before processing payment.');
-                    return;
-                }
-                const amountCentavos = plan === 'Professional' ? 14900 : plan === 'Enterprise' ? 39900 : 10000;
-                completeSetup.classList.add('processing');
-                try {
-                    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                    const intentRes = await fetch('/api/paymongo/payment-intents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amountCentavos: amountCentavos, paymentMethodAllowed: ['card', 'paymaya', 'gcash'] })
-                    });
-                    const intentData = await intentRes.json().catch(() => ({}));
-                    let paymentIntentId = null;
-                    if (!intentRes.ok) {
-                        if (!isLocalDev) {
-                            showToast(humanizeError(intentData.error, 'Unable to initialize payment. Please try again.'));
-                            completeSetup.classList.remove('processing');
-                            return;
-                        }
-                        showToast('PayMongo is unavailable. Continuing with local test payment mode.', 'info');
-                    } else {
-                        paymentIntentId = intentData.id;
-                    }
+    const completeSetup = document.getElementById('completeSetup');
+    if (completeSetup) {
+    completeSetup.addEventListener('click', async function () {
+    const email = (document.getElementById('flowEmail')?.value || '').trim();
+    const plan = document.getElementById('selectedPlan')?.value || 'Basic';
+    const orgName = document.getElementById('orgName')?.value?.trim();
+    const orgCode = document.getElementById('orgCode')?.value?.trim();
+    const adminFirstName = document.getElementById('adminFirstName')?.value?.trim();
+    const adminMiddleName = document.getElementById('adminMiddleName')?.value?.trim();
+    const adminLastName = document.getElementById('adminLastName')?.value?.trim();
+    const loginEmail = document.getElementById('loginEmail')?.value?.trim();
+    const adminPassword = document.getElementById('adminPassword')?.value;
+    const paymentEmail = document.getElementById('paymentEmail')?.value?.trim();
+    const agreeTerms = document.getElementById('agreeTerms');
+    const recaptchaToken = recaptchaEnabled && window.grecaptcha && window.grecaptcha.getResponse
+    ? window.grecaptcha.getResponse()
+    : '';
+    if (!email) { showToast('Please enter your email address in Step 1.'); return; }
+    if (!orgName) { showToast('Please enter your organization name.'); return; }
+    if (!orgCode) { showToast('Please provide your organization code.'); return; }
+    if (!adminFirstName) { showToast('Please enter the admin first name.'); return; }
+    if (!adminLastName) { showToast('Please enter the admin last name.'); return; }
+    if (!adminPassword) { showToast('Please create an admin password.'); return; }
+    if (adminPassword.length < 12) { showToast('Password must be at least 12 characters long.'); return; }
+    if (loginEmail && loginEmail !== email) {
+    showToast('Login email should match the email entered in Step 1.');
+    return;
+    }
+    const atIndex = paymentEmail ? paymentEmail.indexOf(String.fromCharCode(64)) : -1;
+    if (paymentEmail && (atIndex <= 0 || atIndex === paymentEmail.length - 1 || paymentEmail.indexOf('.', atIndex) < atIndex + 2)) {
+    showToast('Please enter a valid billing email address.');
+    return;
+    }
+    if (agreeTerms && !agreeTerms.checked) {
+    showToast('Please accept the terms to continue with payment.');
+    return;
+    }
+    if (recaptchaEnabled && !recaptchaToken) {
+    showToast('Please complete the reCAPTCHA checkbox before processing payment.');
+    return;
+    }
+    const amountCentavos = plan === 'Professional' ? 14900 : plan === 'Enterprise' ? 39900 : 10000;
+    completeSetup.classList.add('processing');
+    try {
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const intentRes = await fetch('/api/paymongo/payment-intents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amountCentavos: amountCentavos, paymentMethodAllowed: ['card', 'paymaya', 'gcash'] })
+    });
+    const intentData = await intentRes.json().catch(() => ({}));
+    let paymentIntentId = null;
+    if (!intentRes.ok) {
+    if (!isLocalDev) {
+    showToast(humanizeError(intentData.error, 'Unable to initialize payment. Please try again.'));
+    completeSetup.classList.remove('processing');
+    return;
+    }
+    showToast('PayMongo is unavailable. Continuing with local test payment mode.', 'info');
+    } else {
+    paymentIntentId = intentData.id;
+    }
 
-                    const completePayload = {
-                        email: email,
-                        plan: plan,
-                        organizationName: orgName,
-                        organizationCode: orgCode,
-                        adminFirstName: adminFirstName,
-                        adminMiddleName: adminMiddleName || '',
-                        adminLastName: adminLastName,
-                        password: adminPassword,
-                        recaptchaToken: recaptchaToken,
-                        paymentIntentId: paymentIntentId,
-                        useTestPayment: isLocalDev
-                    };
-                    const completeRes = await fetch('/api/registration/complete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(completePayload)
-                    });
-                    const completeData = await completeRes.json().catch(() => ({}));
-                    if (!completeRes.ok) {
-                        showToast(humanizeError(completeData.error, 'Registration failed. Please review your details and try again.'));
-                        completeSetup.classList.remove('processing');
-                        return;
-                    }
-                    if (completeData.redirectUrl) {
-                        window.location.href = completeData.redirectUrl;
-                        return;
-                    }
-                    window.location.href = '/Identity/Account/RegisterSuccess?email=' + encodeURIComponent(email) + '&plan=' + encodeURIComponent(plan) + '&amount=' + encodeURIComponent(plan === 'Professional' ? '₱149' : plan === 'Enterprise' ? '₱399' : '₱49');
-                } catch (e) {
-                    showToast('Something went wrong while processing your registration. Please try again.');
-                    completeSetup.classList.remove('processing');
-                }
-            });
-        }
+    const completePayload = {
+    email: email,
+    plan: plan,
+    organizationName: orgName,
+    organizationCode: orgCode,
+    adminFirstName: adminFirstName,
+    adminMiddleName: adminMiddleName || '',
+    adminLastName: adminLastName,
+    password: adminPassword,
+    recaptchaToken: recaptchaToken,
+    paymentIntentId: paymentIntentId,
+    useTestPayment: isLocalDev
+    };
+    const completeRes = await fetch('/api/registration/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(completePayload)
+    });
+    const completeData = await completeRes.json().catch(() => ({}));
+    if (!completeRes.ok) {
+    showToast(humanizeError(completeData.error, 'Registration failed. Please review your details and try again.'));
+    completeSetup.classList.remove('processing');
+    return;
+    }
+    if (completeData.redirectUrl) {
+    window.location.href = completeData.redirectUrl;
+    return;
+    }
+    window.location.href = '/Identity/Account/RegisterSuccess?email=' + encodeURIComponent(email) + '&plan=' + encodeURIComponent(plan) + '&amount=' + encodeURIComponent(plan === 'Professional' ? '₱149' : plan === 'Enterprise' ? '₱399' : '₱49');
+    } catch (e) {
+    showToast('Something went wrong while processing your registration. Please try again.');
+    completeSetup.classList.remove('processing');
+    }
+    });
+    }
 
-        document.querySelectorAll('.password-toggle').forEach(function (btn) {
-            var targetId = btn.getAttribute('data-target');
-            if (!targetId) return;
-            var input = document.getElementById(targetId);
-            var eyeOpen = btn.querySelector('.eye-open');
-            var eyeClosed = btn.querySelector('.eye-closed');
-            if (!input || !eyeOpen || !eyeClosed) return;
-            btn.addEventListener('click', function () {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    eyeOpen.classList.add('hidden');
-                    eyeClosed.classList.remove('hidden');
-                    btn.setAttribute('aria-label', 'Hide password');
-                } else {
-                    input.type = 'password';
-                    eyeOpen.classList.remove('hidden');
-                    eyeClosed.classList.add('hidden');
-                    btn.setAttribute('aria-label', 'Show password');
-                }
-            });
-        });
+    document.querySelectorAll('.password-toggle').forEach(function (btn) {
+    var targetId = btn.getAttribute('data-target');
+    if (!targetId) return;
+    var input = document.getElementById(targetId);
+    var eyeOpen = btn.querySelector('.eye-open');
+    var eyeClosed = btn.querySelector('.eye-closed');
+    if (!input || !eyeOpen || !eyeClosed) return;
+    btn.addEventListener('click', function () {
+    if (input.type === 'password') {
+    input.type = 'text';
+    eyeOpen.classList.add('hidden');
+    eyeClosed.classList.remove('hidden');
+    btn.setAttribute('aria-label', 'Hide password');
+    } else {
+    input.type = 'password';
+    eyeOpen.classList.remove('hidden');
+    eyeClosed.classList.add('hidden');
+    btn.setAttribute('aria-label', 'Show password');
+    }
+    });
+    });
 
-        setupVerifyInputs();
-        setupPaymentMethods();
-        setupCardExpiryFormatter();
-        setupPhoneFormat();
-        syncEmails();
-        syncPlanSummary();
-        updatePasswordChecklist();
-        showStep(1);
+    setupVerifyInputs();
+    setupPaymentMethods();
+    setupCardExpiryFormatter();
+    setupPhoneFormat();
+    syncEmails();
+    syncPlanSummary();
+    updatePasswordChecklist();
+    showStep(1);
     })();
 </script>
